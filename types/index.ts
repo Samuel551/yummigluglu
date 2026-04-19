@@ -70,6 +70,7 @@ export interface Receta {
   ingredientes: Ingrediente[];
   pasos: PasoReceta[];
   tags: string[];
+  video_url?: string;
   es_premium: boolean;
   activa: boolean;
   created_at: string;
@@ -122,6 +123,63 @@ export interface Suscripcion {
 export interface Usuario {
   id: string;
   email: string;
+  created_at: string;
+}
+
+// ─── Plan Semanal ─────────────────────────────────────────────────────────────
+
+export type DiaSemana =
+  | 'lunes'
+  | 'martes'
+  | 'miercoles'
+  | 'jueves'
+  | 'viernes'
+  | 'sabado'
+  | 'domingo';
+
+export type DiasPlan = Record<DiaSemana, Record<MomentoDia, string | null>>;
+
+export interface PlanSemanal {
+  id: string;
+  user_id: string;
+  perfil_id: string;
+  semana_inicio: string; // ISO date — lunes de la semana
+  dias: DiasPlan;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Lista de Compras ─────────────────────────────────────────────────────────
+
+export interface ItemCompras {
+  nombre: string;
+  cantidad: string; // ej: "150g", "2 unidades"
+  categoria: string;
+  comprado: boolean;
+}
+
+export interface ListaCompras {
+  id: string;
+  user_id: string;
+  perfil_id: string;
+  plan_id?: string;
+  items: ItemCompras[];
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Diario de Alimentos ──────────────────────────────────────────────────────
+
+export type ReaccionAlimento = 'ninguna' | 'leve' | 'severa';
+
+export interface DiarioAlimento {
+  id: string;
+  user_id: string;
+  perfil_id: string;
+  alimento: string;
+  fecha_introduccion: string; // ISO date
+  reaccion: ReaccionAlimento;
+  notas?: string;
   created_at: string;
 }
 

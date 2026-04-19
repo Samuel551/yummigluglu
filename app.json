@@ -33,6 +33,13 @@
     "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7a0da185-5226-4f11-80f1-00e913696718"
+      }
+    },
+    "owner": "samfrasan"
   }
 }

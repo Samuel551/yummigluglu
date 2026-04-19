@@ -52,6 +52,10 @@ export const usePerfilStore = create<PerfilState>((set, get) => ({
   },
 
   crearPerfil: async (input) => {
+    if (get().perfiles.length >= 2) {
+      set({ error: 'Plan gratuito: puedes tener hasta 2 perfiles.' });
+      return null;
+    }
     set({ cargando: true, error: null });
     try {
       const { data, error } = await supabase.from('perfiles_hijos').insert(input).select().single();

@@ -41,3 +41,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# IDE / editor locals
+.vs/
+.idea/
+
+# MCP / agent tooling locals
+.playwright-mcp/
+skills-lock.json
+
+# Windows redirect artifact (bash: `> NUL` creates a file literally named "nul")
+/nul

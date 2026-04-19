@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Evita que el body crezca más allá del viewport en web.
+   Sin esto, el tab bar queda fuera del viewport en pantallas chicas
+   porque el DOM hace scroll natural y la barra queda "debajo del pliegue". */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
