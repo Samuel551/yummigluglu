@@ -109,12 +109,39 @@ function generarDias(recetas: Receta[]): DiasPlan {
   return dias;
 }
 
+// ─── Cache de recetas referenciadas por el plan ──────────────────────────────
+
+type RecetasCache = Record<string, Pick<Receta, 'id' | 'nombre' | 'tiempo_preparacion'>>;
+
+// Trae las recetas que aparecen en `dias` y devuelve el cache. Función pura:
+// no toca el store. El caller hace UN solo set() con plan + cache juntos,
+// evitando estados intermedios donde el plan está pero el cache queda {}.
+async function fetchRecetasCacheDePlan(dias: DiasPlan): Promise<RecetasCache> {
+  const ids = new Set<string>();
+  for (const dia of DIAS_SEMANA) {
+    for (const momento of MOMENTOS_DIA) {
+      const id = dias[dia]?.[momento];
+      if (id) ids.add(id);
+    }
+  }
+  if (ids.size === 0) return {};
+
+  const { data } = await supabase
+    .from('recetas')
+    .select('id, nombre, tiempo_preparacion')
+    .in('id', Array.from(ids));
+
+  const cache: RecetasCache = {};
+  for (const r of data ?? []) cache[r.id] = r;
+  return cache;
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 interface PlanState {
   plan: PlanSemanal | null;
   lista: ListaCompras | null;
-  recetasCache: Record<string, Pick<Receta, 'id' | 'nombre' | 'tiempo_preparacion'>>;
+  recetasCache: RecetasCache;
   cargando: boolean;
   cargandoLista: boolean;
   error: string | null;
@@ -134,295 +161,271 @@ interface PlanState {
   limpiarPlan: () => void;
 }
 
-export const usePlanStore = create<PlanState>(
-  (set, get) =>
-    ({
-      plan: null,
-      lista: null,
-      recetasCache: {},
-      cargando: false,
-      cargandoLista: false,
-      error: null,
+export const usePlanStore = create<PlanState>((set, get) => ({
+  plan: null,
+  lista: null,
+  recetasCache: {},
+  cargando: false,
+  cargandoLista: false,
+  error: null,
 
-      limpiarPlan: () => set({ plan: null, lista: null, recetasCache: {}, error: null }),
+  limpiarPlan: () => set({ plan: null, lista: null, recetasCache: {}, error: null }),
 
-      cargarPlan: async (perfilId, semanaInicio) => {
-        set({ cargando: true, error: null });
-        try {
-          const { data, error } = await supabase
-            .from('planes_semanales')
-            .select('*')
-            .eq('perfil_id', perfilId)
-            .eq('semana_inicio', semanaInicio)
-            .maybeSingle();
+  cargarPlan: async (perfilId, semanaInicio) => {
+    set({ cargando: true, error: null });
+    try {
+      const { data, error } = await supabase
+        .from('planes_semanales')
+        .select('*')
+        .eq('perfil_id', perfilId)
+        .eq('semana_inicio', semanaInicio)
+        .maybeSingle();
 
-          if (error) throw error;
+      if (error) throw error;
 
-          if (data) {
-            set({ plan: data as PlanSemanal });
-            await (
-              get() as PlanState & { _cachearRecetasDePlan: (d: DiasPlan) => Promise<void> }
-            )._cachearRecetasDePlan(data.dias);
-          } else {
-            set({ plan: null });
-          }
-        } catch (e) {
-          set({ error: (e as Error).message });
-        } finally {
-          set({ cargando: false });
+      if (data) {
+        const plan = data as PlanSemanal;
+        const recetasCache = await fetchRecetasCacheDePlan(plan.dias);
+        set({ plan, recetasCache });
+      } else {
+        set({ plan: null, recetasCache: {} });
+      }
+    } catch (e) {
+      set({ error: (e as Error).message });
+    } finally {
+      set({ cargando: false });
+    }
+  },
+
+  generarPlan: async (perfilId, etapa, alergias, semanaInicio) => {
+    set({ cargando: true, error: null });
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Sin sesión activa');
+
+      const { data: recetas, error: rError } = await supabase
+        .from('recetas')
+        .select(
+          'id, nombre, momento_dia, etapas_compatibles, alergenos, ingredientes, tiempo_preparacion'
+        )
+        .eq('activa', true)
+        .contains('etapas_compatibles', [etapa]);
+
+      if (rError) throw rError;
+
+      const compatibles = (recetas ?? []).filter(
+        (r) => !r.alergenos.some((a: string) => alergias.includes(a))
+      ) as Receta[];
+
+      const dias = generarDias(compatibles);
+
+      const { data, error } = await supabase
+        .from('planes_semanales')
+        .upsert(
+          {
+            user_id: user.id,
+            perfil_id: perfilId,
+            semana_inicio: semanaInicio,
+            dias,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,perfil_id,semana_inicio' }
+        )
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const cache: RecetasCache = {};
+      for (const r of compatibles) {
+        cache[r.id] = { id: r.id, nombre: r.nombre, tiempo_preparacion: r.tiempo_preparacion };
+      }
+
+      set({ plan: data as PlanSemanal, recetasCache: cache });
+
+      // Auto-generar lista de compras con las recetas que ya tenemos en memoria.
+      // Evita re-query a Supabase — reusamos `compatibles` y el `dias` recién generado.
+      // IMPORTANTE: iteramos por slot (no por id único) para respetar la multiplicidad —
+      // una receta que aparece 3 veces en la semana debe sumar 3× sus ingredientes.
+      const compatiblesPorId = new Map(compatibles.map((r) => [r.id, r]));
+      const recetasPorSlot: Receta[] = [];
+      for (const dia of DIAS_SEMANA) {
+        for (const momento of MOMENTOS_DIA) {
+          const rid = dias[dia]?.[momento];
+          if (!rid) continue;
+          const r = compatiblesPorId.get(rid);
+          if (r) recetasPorSlot.push(r);
         }
-      },
+      }
+      const items = generarItemsLista(recetasPorSlot);
 
-      generarPlan: async (perfilId, etapa, alergias, semanaInicio) => {
-        set({ cargando: true, error: null });
-        try {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (!user) throw new Error('Sin sesión activa');
+      const { data: listaData, error: listaErr } = await supabase
+        .from('listas_compras')
+        .upsert(
+          {
+            user_id: user.id,
+            perfil_id: perfilId,
+            plan_id: (data as PlanSemanal).id,
+            items,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'plan_id' }
+        )
+        .select()
+        .single();
 
-          const { data: recetas, error: rError } = await supabase
-            .from('recetas')
-            .select(
-              'id, nombre, momento_dia, etapas_compatibles, alergenos, ingredientes, tiempo_preparacion'
-            )
-            .eq('activa', true)
-            .contains('etapas_compatibles', [etapa]);
+      if (listaErr) {
+        // El plan quedó guardado aunque la lista falle — no bloqueamos al user.
+        console.warn('No se pudo generar la lista de compras:', listaErr.message);
+        set({ lista: null });
+      } else {
+        set({ lista: listaData as ListaCompras });
+      }
+    } catch (e) {
+      set({ error: (e as Error).message });
+    } finally {
+      set({ cargando: false });
+    }
+  },
 
-          if (rError) throw rError;
+  actualizarSlot: async (dia, momento, recetaId) => {
+    const { plan } = get();
+    if (!plan) return;
 
-          const compatibles = (recetas ?? []).filter(
-            (r) => !r.alergenos.some((a: string) => alergias.includes(a))
-          ) as Receta[];
+    const diasOriginales = plan.dias;
+    const nuevosDias: DiasPlan = {
+      ...plan.dias,
+      [dia]: { ...plan.dias[dia], [momento]: recetaId },
+    };
 
-          const dias = generarDias(compatibles);
+    set({ plan: { ...plan, dias: nuevosDias } });
 
-          const { data, error } = await supabase
-            .from('planes_semanales')
-            .upsert(
-              {
-                user_id: user.id,
-                perfil_id: perfilId,
-                semana_inicio: semanaInicio,
-                dias,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: 'user_id,perfil_id,semana_inicio' }
-            )
-            .select()
-            .single();
+    const { error } = await supabase
+      .from('planes_semanales')
+      .update({ dias: nuevosDias, updated_at: new Date().toISOString() })
+      .eq('id', plan.id);
 
-          if (error) throw error;
+    if (error) {
+      set({ plan: { ...plan, dias: diasOriginales }, error: error.message });
+    }
+  },
 
-          const cache: PlanState['recetasCache'] = {};
-          for (const r of compatibles) {
-            cache[r.id] = { id: r.id, nombre: r.nombre, tiempo_preparacion: r.tiempo_preparacion };
-          }
+  cargarLista: async (planId) => {
+    set({ cargandoLista: true, error: null });
+    try {
+      const { data, error } = await supabase
+        .from('listas_compras')
+        .select('*')
+        .eq('plan_id', planId)
+        .maybeSingle();
 
-          set({ plan: data as PlanSemanal, recetasCache: cache });
+      if (error) throw error;
+      set({ lista: data as ListaCompras | null });
+    } catch (e) {
+      set({ error: (e as Error).message });
+    } finally {
+      set({ cargandoLista: false });
+    }
+  },
 
-          // Auto-generar lista de compras con las recetas que ya tenemos en memoria.
-          // Evita re-query a Supabase — reusamos `compatibles` y el `dias` recién generado.
-          // IMPORTANTE: iteramos por slot (no por id único) para respetar la multiplicidad —
-          // una receta que aparece 3 veces en la semana debe sumar 3× sus ingredientes.
-          const compatiblesPorId = new Map(compatibles.map((r) => [r.id, r]));
-          const recetasPorSlot: Receta[] = [];
-          for (const dia of DIAS_SEMANA) {
-            for (const momento of MOMENTOS_DIA) {
-              const rid = dias[dia]?.[momento];
-              if (!rid) continue;
-              const r = compatiblesPorId.get(rid);
-              if (r) recetasPorSlot.push(r);
-            }
-          }
-          const items = generarItemsLista(recetasPorSlot);
+  generarLista: async () => {
+    const { plan } = get();
+    if (!plan) return;
 
-          const { data: listaData, error: listaErr } = await supabase
-            .from('listas_compras')
-            .upsert(
-              {
-                user_id: user.id,
-                perfil_id: perfilId,
-                plan_id: (data as PlanSemanal).id,
-                items,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: 'plan_id' }
-            )
-            .select()
-            .single();
+    set({ cargandoLista: true, error: null });
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Sin sesión activa');
 
-          if (listaErr) {
-            // El plan quedó guardado aunque la lista falle — no bloqueamos al user.
-            console.warn('No se pudo generar la lista de compras:', listaErr.message);
-            set({ lista: null });
-          } else {
-            set({ lista: listaData as ListaCompras });
-          }
-        } catch (e) {
-          set({ error: (e as Error).message });
-        } finally {
-          set({ cargando: false });
+      // Contamos cuántas veces aparece cada receta en el plan — respetamos multiplicidad
+      // para que una receta que sale en varios slots sume sus ingredientes varias veces.
+      const conteoPorId: Record<string, number> = {};
+      for (const dia of DIAS_SEMANA) {
+        for (const momento of MOMENTOS_DIA) {
+          const id = plan.dias[dia]?.[momento];
+          if (id) conteoPorId[id] = (conteoPorId[id] ?? 0) + 1;
         }
-      },
+      }
 
-      actualizarSlot: async (dia, momento, recetaId) => {
-        const { plan } = get();
-        if (!plan) return;
+      const { data: recetas, error: rError } = await supabase
+        .from('recetas')
+        .select('id, nombre, ingredientes, tiempo_preparacion')
+        .in('id', Object.keys(conteoPorId));
 
-        const diasOriginales = plan.dias;
-        const nuevosDias: DiasPlan = {
-          ...plan.dias,
-          [dia]: { ...plan.dias[dia], [momento]: recetaId },
-        };
+      if (rError) throw rError;
 
-        set({ plan: { ...plan, dias: nuevosDias } });
+      // Expandimos: cada receta aparece en el array tantas veces como esté usada en el plan.
+      const recetasPorSlot: Receta[] = [];
+      for (const r of (recetas ?? []) as Receta[]) {
+        const n = conteoPorId[r.id] ?? 0;
+        for (let i = 0; i < n; i++) recetasPorSlot.push(r);
+      }
 
-        const { error } = await supabase
-          .from('planes_semanales')
-          .update({ dias: nuevosDias, updated_at: new Date().toISOString() })
-          .eq('id', plan.id);
+      const items = generarItemsLista(recetasPorSlot);
 
-        if (error) {
-          set({ plan: { ...plan, dias: diasOriginales }, error: error.message });
-        }
-      },
+      const { data, error } = await supabase
+        .from('listas_compras')
+        .upsert(
+          {
+            user_id: user.id,
+            perfil_id: plan.perfil_id,
+            plan_id: plan.id,
+            items,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'plan_id' }
+        )
+        .select()
+        .single();
 
-      cargarLista: async (planId) => {
-        set({ cargandoLista: true, error: null });
-        try {
-          const { data, error } = await supabase
-            .from('listas_compras')
-            .select('*')
-            .eq('plan_id', planId)
-            .maybeSingle();
+      if (error) throw error;
+      set({ lista: data as ListaCompras });
+    } catch (e) {
+      set({ error: (e as Error).message });
+    } finally {
+      set({ cargandoLista: false });
+    }
+  },
 
-          if (error) throw error;
-          set({ lista: data as ListaCompras | null });
-        } catch (e) {
-          set({ error: (e as Error).message });
-        } finally {
-          set({ cargandoLista: false });
-        }
-      },
+  toggleComprado: async (nombre) => {
+    const { lista } = get();
+    if (!lista) return;
 
-      generarLista: async () => {
-        const { plan } = get();
-        if (!plan) return;
+    const itemsOriginales = lista.items;
+    const nuevosItems = lista.items.map((item) =>
+      item.nombre === nombre ? { ...item, comprado: !item.comprado } : item
+    );
+    set({ lista: { ...lista, items: nuevosItems } });
 
-        set({ cargandoLista: true, error: null });
-        try {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (!user) throw new Error('Sin sesión activa');
+    const { error } = await supabase
+      .from('listas_compras')
+      .update({ items: nuevosItems, updated_at: new Date().toISOString() })
+      .eq('id', lista.id);
 
-          // Contamos cuántas veces aparece cada receta en el plan — respetamos multiplicidad
-          // para que una receta que sale en varios slots sume sus ingredientes varias veces.
-          const conteoPorId: Record<string, number> = {};
-          for (const dia of DIAS_SEMANA) {
-            for (const momento of MOMENTOS_DIA) {
-              const id = plan.dias[dia]?.[momento];
-              if (id) conteoPorId[id] = (conteoPorId[id] ?? 0) + 1;
-            }
-          }
+    if (error) {
+      set({ lista: { ...lista, items: itemsOriginales }, error: error.message });
+    }
+  },
 
-          const { data: recetas, error: rError } = await supabase
-            .from('recetas')
-            .select('id, nombre, ingredientes, tiempo_preparacion')
-            .in('id', Object.keys(conteoPorId));
+  limpiarComprados: async () => {
+    const { lista } = get();
+    if (!lista) return;
 
-          if (rError) throw rError;
+    const itemsOriginales = lista.items;
+    const nuevosItems = lista.items.map((item) => ({ ...item, comprado: false }));
+    set({ lista: { ...lista, items: nuevosItems } });
 
-          // Expandimos: cada receta aparece en el array tantas veces como esté usada en el plan.
-          const recetasPorSlot: Receta[] = [];
-          for (const r of (recetas ?? []) as Receta[]) {
-            const n = conteoPorId[r.id] ?? 0;
-            for (let i = 0; i < n; i++) recetasPorSlot.push(r);
-          }
+    const { error } = await supabase
+      .from('listas_compras')
+      .update({ items: nuevosItems, updated_at: new Date().toISOString() })
+      .eq('id', lista.id);
 
-          const items = generarItemsLista(recetasPorSlot);
-
-          const { data, error } = await supabase
-            .from('listas_compras')
-            .upsert(
-              {
-                user_id: user.id,
-                perfil_id: plan.perfil_id,
-                plan_id: plan.id,
-                items,
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: 'plan_id' }
-            )
-            .select()
-            .single();
-
-          if (error) throw error;
-          set({ lista: data as ListaCompras });
-        } catch (e) {
-          set({ error: (e as Error).message });
-        } finally {
-          set({ cargandoLista: false });
-        }
-      },
-
-      toggleComprado: async (nombre) => {
-        const { lista } = get();
-        if (!lista) return;
-
-        const itemsOriginales = lista.items;
-        const nuevosItems = lista.items.map((item) =>
-          item.nombre === nombre ? { ...item, comprado: !item.comprado } : item
-        );
-        set({ lista: { ...lista, items: nuevosItems } });
-
-        const { error } = await supabase
-          .from('listas_compras')
-          .update({ items: nuevosItems, updated_at: new Date().toISOString() })
-          .eq('id', lista.id);
-
-        if (error) {
-          set({ lista: { ...lista, items: itemsOriginales }, error: error.message });
-        }
-      },
-
-      limpiarComprados: async () => {
-        const { lista } = get();
-        if (!lista) return;
-
-        const itemsOriginales = lista.items;
-        const nuevosItems = lista.items.map((item) => ({ ...item, comprado: false }));
-        set({ lista: { ...lista, items: nuevosItems } });
-
-        const { error } = await supabase
-          .from('listas_compras')
-          .update({ items: nuevosItems, updated_at: new Date().toISOString() })
-          .eq('id', lista.id);
-
-        if (error) {
-          set({ lista: { ...lista, items: itemsOriginales }, error: error.message });
-        }
-      },
-
-      _cachearRecetasDePlan: async (dias: DiasPlan) => {
-        const ids = new Set<string>();
-        for (const dia of DIAS_SEMANA) {
-          for (const momento of MOMENTOS_DIA) {
-            const id = dias[dia]?.[momento];
-            if (id) ids.add(id);
-          }
-        }
-        if (ids.size === 0) return;
-
-        const { data } = await supabase
-          .from('recetas')
-          .select('id, nombre, tiempo_preparacion')
-          .in('id', Array.from(ids));
-
-        const cache: PlanState['recetasCache'] = {};
-        for (const r of data ?? []) cache[r.id] = r;
-        set({ recetasCache: cache });
-      },
-    }) as PlanState & { _cachearRecetasDePlan: (dias: DiasPlan) => Promise<void> }
-);
+    if (error) {
+      set({ lista: { ...lista, items: itemsOriginales }, error: error.message });
+    }
+  },
+}));

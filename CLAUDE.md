@@ -200,7 +200,16 @@ Los hooks viven en `hooks/`. Cuando una pantalla ya resuelve colores vía Native
 
 ### Edge Functions (Supabase)
 
-`supabase/functions/revenuecat-webhook/` — recibe eventos de RevenueCat (INITIAL_PURCHASE, RENEWAL, CANCELLATION, etc.) y actualiza la tabla `suscripciones` usando `service_role` (el cliente nunca escribe directamente en esa tabla). Valida el secret via header `Authorization`. Deploy: `supabase functions deploy revenuecat-webhook`. Requiere vars de entorno en Supabase: `REVENUECAT_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+`supabase/functions/revenuecat-webhook/` — recibe eventos de RevenueCat (INITIAL_PURCHASE, RENEWAL, CANCELLATION, etc.) y actualiza la tabla `suscripciones` usando `service_role` (el cliente nunca escribe directamente en esa tabla). Deploy: `supabase functions deploy revenuecat-webhook`. Requiere vars de entorno en Supabase: `REVENUECAT_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+
+**Hardening del webhook (4 defensas — manejan datos de pago, no romper):**
+
+1. **Comparación timing-safe del secret** — `timingSafeEqual()` en lugar de `===`. RevenueCat NO ofrece firma HMAC (verificado en doc oficial), solo shared secret en `Authorization`. El compare manual es la única defensa contra timing attacks sobre el secret.
+2. **Validación + verificación del `app_user_id`** — regex de UUID antes de tocar DB, luego `supabase.auth.admin.getUserById(userId)`. Si el user no existe, devolver 404 (RC no reintenta 4xx). Aunque la FK de `suscripciones.user_id → auth.users` ya bloquea inserts inválidos, el chequeo explícito evita el round-trip y devuelve un código limpio.
+3. **Idempotencia via `webhook_events_procesados`** — tabla con `event_id` como PK. Antes de procesar, query si ya existe → si sí, retornar `{ ok: true, ignorado: 'duplicado' }`. Después del upsert exitoso, INSERT del event_id (PK race-safe — código `23505` es esperado en concurrencia y se ignora). Migración en `006_webhook_security_hardening.sql`. RLS habilitado sin policies → solo `service_role` accede.
+4. **Operacional — secret rotado y largo** — `REVENUECAT_WEBHOOK_SECRET` debe ser ≥ 32 chars random. Vive solo en Supabase Edge Function secrets (`supabase secrets set REVENUECAT_WEBHOOK_SECRET=...`) y en RevenueCat Dashboard → Integrations → Webhooks. **NUNCA en el repo, ni en `.env.local`, ni en logs.** Si hay sospecha de filtración: rotar inmediatamente en ambos lados (Supabase + RC dashboard).
+
+**Lo que estas defensas NO previenen** (limitaciones de RC): si el secret se filtra, un atacante puede activar/desactivar premium para users **existentes** (no inventar IDs). El daño máximo es regalar premium o bloquear suscripciones legítimas — no exfiltrar datos de tarjetas (esos viven en RC/Stripe, nunca en nuestra DB).
 
 ### Libraries (`lib/`)
 
