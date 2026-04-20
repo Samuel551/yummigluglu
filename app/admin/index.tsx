@@ -5,6 +5,10 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAdminStore } from '@/store/useAdminStore';
 
+// Nota: el auto-registro de admin (`registrar_primer_admin` RPC) fue removido en
+// la migracion 007. Para agregar admins nuevos, hacerlo manualmente en Supabase
+// Studio con: INSERT INTO admins (user_id) SELECT id FROM auth.users WHERE email='...';
+
 interface StatsAdmin {
   total_usuarios: number;
   total_recetas: number;
@@ -41,33 +45,6 @@ export default function AdminDashboard() {
     } finally {
       setCargando(false);
     }
-  };
-
-  const registrarComoAdmin = async () => {
-    Alert.alert(
-      'Registrarse como admin',
-      '¿Confirmar? Solo funciona si no hay admins registrados aún.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          onPress: async () => {
-            const { data, error } = await supabase.rpc('registrar_primer_admin');
-            if (error) {
-              Alert.alert('Error', error.message);
-            } else if (!data) {
-              Alert.alert(
-                'Error',
-                'La función devolvió false. Ya puede haber un admin registrado.'
-              );
-            } else {
-              Alert.alert('¡Listo!', 'Registrado como admin correctamente.');
-              verificarYCargar();
-            }
-          },
-        },
-      ]
-    );
   };
 
   const tarjeta = (emoji: string, titulo: string, valor: number, color: string) => (
@@ -143,23 +120,10 @@ export default function AdminDashboard() {
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#92400E', marginBottom: 4 }}>
                 Tu usuario no está registrado como admin
               </Text>
-              <Text style={{ fontSize: 12, color: '#92400E', marginBottom: 10 }}>
-                Las stats y acciones de edición requieren estar en la tabla admins.
+              <Text style={{ fontSize: 12, color: '#92400E' }}>
+                Las stats y acciones de edición requieren estar en la tabla admins. Solicita acceso
+                al equipo de Baby Bites.
               </Text>
-              <TouchableOpacity
-                onPress={registrarComoAdmin}
-                style={{
-                  backgroundColor: '#F59E0B',
-                  borderRadius: 8,
-                  paddingVertical: 8,
-                  paddingHorizontal: 14,
-                  alignSelf: 'flex-start',
-                }}
-              >
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>
-                  Registrarme como admin
-                </Text>
-              </TouchableOpacity>
             </View>
           </View>
         )}
