@@ -22,7 +22,7 @@ ARRAY['chile','latam','primera-papilla','vegetariano'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('pure-de-manzana-y-platano', 'Puré de manzana y plátano', 'Compota dulce natural, sin azúcar agregada. Perfecta para postre o merienda.', ARRAY['merienda','desayuno'], ARRAY['inicio'], 10, 2, ARRAY[]::text[], 95, 0.6, 24, 0.3, 0.3,
+('pure-de-manzana-y-platano', 'Puré de manzana y plátano', 'Compota dulce natural, sin azúcar agregada. Perfecta para postre o merienda.', ARRAY['snack','desayuno'], ARRAY['inicio'], 10, 2, ARRAY[]::text[], 95, 0.6, 24, 0.3, 0.3,
 '[{"id":"manzana","nombre":"Manzana","cantidad":1,"unidad":"unidad","calorias_por_100g":52},{"id":"platano","nombre":"Plátano","cantidad":1,"unidad":"unidad","calorias_por_100g":89}]'::jsonb,
 '[{"orden":1,"descripcion":"Pela y corta la manzana en trozos pequeños.","duracion_min":3},{"orden":2,"descripcion":"Cocina la manzana al vapor o en olla con un poco de agua por 8 minutos.","duracion_min":8},{"orden":3,"descripcion":"Pisa la manzana cocida con el plátano maduro hasta obtener un puré.","duracion_min":2}]'::jsonb,
 ARRAY['latam','primera-papilla','fruta','dulce'], false, true)
@@ -43,21 +43,21 @@ ARRAY['chile','latam','primera-papilla','vegetariano'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('compota-de-pera-y-manzana', 'Compota de pera y manzana', 'Compota natural sin azúcar, suave para el estómago de tu bebé.', ARRAY['merienda','desayuno'], ARRAY['inicio'], 15, 2, ARRAY[]::text[], 80, 0.5, 21, 0.2, 0.2,
+('compota-de-pera-y-manzana', 'Compota de pera y manzana', 'Compota natural sin azúcar, suave para el estómago de tu bebé.', ARRAY['snack','desayuno'], ARRAY['inicio'], 15, 2, ARRAY[]::text[], 80, 0.5, 21, 0.2, 0.2,
 '[{"id":"pera","nombre":"Pera","cantidad":1,"unidad":"unidad","calorias_por_100g":57},{"id":"manzana","nombre":"Manzana","cantidad":1,"unidad":"unidad","calorias_por_100g":52},{"id":"agua","nombre":"Agua","cantidad":50,"unidad":"ml","calorias_por_100g":0}]'::jsonb,
 '[{"orden":1,"descripcion":"Pela y corta ambas frutas en cubos pequeños.","duracion_min":3},{"orden":2,"descripcion":"Cocina a fuego bajo con el agua durante 10 minutos, tapado.","duracion_min":10},{"orden":3,"descripcion":"Pisa o procesa hasta la textura que prefieras para tu bebé.","duracion_min":2}]'::jsonb,
 ARRAY['latam','primera-papilla','fruta','sin-azucar'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('pure-de-palta-y-platano', 'Puré de palta y plátano', 'Mezcla energética con grasas buenas del aguacate. Ideal sin cocción.', ARRAY['merienda','desayuno'], ARRAY['inicio'], 5, 1, ARRAY[]::text[], 180, 2.5, 20, 11, 0.5,
+('pure-de-palta-y-platano', 'Puré de palta y plátano', 'Mezcla energética con grasas buenas del aguacate. Ideal sin cocción.', ARRAY['snack','desayuno'], ARRAY['inicio'], 5, 1, ARRAY[]::text[], 180, 2.5, 20, 11, 0.5,
 '[{"id":"palta","nombre":"Palta madura","cantidad":0.5,"unidad":"unidad","calorias_por_100g":160},{"id":"platano","nombre":"Plátano maduro","cantidad":0.5,"unidad":"unidad","calorias_por_100g":89}]'::jsonb,
 '[{"orden":1,"descripcion":"Extrae la pulpa de la palta con una cuchara.","duracion_min":1},{"orden":2,"descripcion":"Pisa la palta junto con el plátano hasta obtener una crema suave.","duracion_min":2},{"orden":3,"descripcion":"Sirve de inmediato para evitar que se oxide.","duracion_min":1}]'::jsonb,
 ARRAY['chile','latam','sin-coccion','grasas-buenas'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('papilla-de-avena-con-manzana', 'Papilla de avena con manzana', 'Desayuno tibio y reconfortante. La avena aporta fibra y hierro.', ARRAY['desayuno','merienda'], ARRAY['inicio'], 10, 1, ARRAY['gluten']::text[], 140, 4, 25, 2.5, 1.8,
+('papilla-de-avena-con-manzana', 'Papilla de avena con manzana', 'Desayuno tibio y reconfortante. La avena aporta fibra y hierro.', ARRAY['desayuno','snack'], ARRAY['inicio'], 10, 1, ARRAY['gluten']::text[], 140, 4, 25, 2.5, 1.8,
 '[{"id":"avena","nombre":"Avena en hojuelas","cantidad":30,"unidad":"g","calorias_por_100g":389},{"id":"manzana","nombre":"Manzana","cantidad":0.5,"unidad":"unidad","calorias_por_100g":52},{"id":"agua","nombre":"Agua","cantidad":150,"unidad":"ml","calorias_por_100g":0}]'::jsonb,
 '[{"orden":1,"descripcion":"Ralla finamente la manzana pelada.","duracion_min":2},{"orden":2,"descripcion":"Cocina la avena con el agua a fuego bajo durante 5 minutos, revolviendo.","duracion_min":5},{"orden":3,"descripcion":"Incorpora la manzana rallada y cocina 2 minutos más.","duracion_min":2}]'::jsonb,
 ARRAY['latam','desayuno','fibra','hierro'], false, true)
@@ -85,7 +85,7 @@ ARRAY['latam','hierro','legumbres','vegetariano'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('papilla-de-quinoa-con-manzana', 'Papilla de quinoa con manzana', 'Quinoa andina con fruta dulce. Aporta proteína completa y hierro.', ARRAY['desayuno','merienda'], ARRAY['inicio'], 25, 2, ARRAY[]::text[], 130, 4.5, 24, 2, 1.5,
+('papilla-de-quinoa-con-manzana', 'Papilla de quinoa con manzana', 'Quinoa andina con fruta dulce. Aporta proteína completa y hierro.', ARRAY['desayuno','snack'], ARRAY['inicio'], 25, 2, ARRAY[]::text[], 130, 4.5, 24, 2, 1.5,
 '[{"id":"quinoa","nombre":"Quinoa","cantidad":40,"unidad":"g","calorias_por_100g":368},{"id":"manzana","nombre":"Manzana","cantidad":1,"unidad":"unidad","calorias_por_100g":52},{"id":"agua","nombre":"Agua","cantidad":120,"unidad":"ml","calorias_por_100g":0}]'::jsonb,
 '[{"orden":1,"descripcion":"Lava la quinoa varias veces hasta que el agua salga transparente.","duracion_min":3},{"orden":2,"descripcion":"Cocina la quinoa con el agua durante 18 minutos a fuego bajo.","duracion_min":18},{"orden":3,"descripcion":"Mezcla con la manzana rallada o cocida y procesa hasta obtener la papilla.","duracion_min":3}]'::jsonb,
 ARRAY['latam','andino','hierro','proteina-vegetal'], false, true)
@@ -129,7 +129,7 @@ ARRAY['latam','verdura-verde','hierro','vegetariano'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('compota-de-durazno-y-manzana', 'Compota de durazno y manzana', 'Compota dulce con duraznos de estación. Perfecta para postre.', ARRAY['merienda','desayuno'], ARRAY['inicio','transicion'], 15, 2, ARRAY[]::text[], 85, 0.7, 22, 0.3, 0.3,
+('compota-de-durazno-y-manzana', 'Compota de durazno y manzana', 'Compota dulce con duraznos de estación. Perfecta para postre.', ARRAY['snack','desayuno'], ARRAY['inicio','transicion'], 15, 2, ARRAY[]::text[], 85, 0.7, 22, 0.3, 0.3,
 '[{"id":"durazno","nombre":"Durazno","cantidad":1,"unidad":"unidad","calorias_por_100g":39},{"id":"manzana","nombre":"Manzana","cantidad":1,"unidad":"unidad","calorias_por_100g":52},{"id":"canela","nombre":"Canela (opcional)","cantidad":0.5,"unidad":"g","calorias_por_100g":247}]'::jsonb,
 '[{"orden":1,"descripcion":"Pela el durazno y la manzana y córtalos en trozos pequeños.","duracion_min":3},{"orden":2,"descripcion":"Cocina a fuego bajo con un poco de agua durante 10 minutos.","duracion_min":10},{"orden":3,"descripcion":"Pisa o procesa según la textura que quieras ofrecer.","duracion_min":2}]'::jsonb,
 ARRAY['latam','fruta','postre','sin-azucar'], false, true)
@@ -145,7 +145,7 @@ ON CONFLICT (slug) DO NOTHING;
 -- ─── TRANSICION SOLO (12-23m): texturas variadas y trozos pequeños ─────
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('mini-tortilla-de-acelga', 'Mini tortilla de acelga', 'Tortilla suave horneada en molde chico. Fácil de tomar con la mano.', ARRAY['almuerzo','cena','merienda'], ARRAY['transicion'], 20, 2, ARRAY['huevo']::text[], 150, 11, 6, 9, 1.8,
+('mini-tortilla-de-acelga', 'Mini tortilla de acelga', 'Tortilla suave horneada en molde chico. Fácil de tomar con la mano.', ARRAY['almuerzo','cena','snack'], ARRAY['transicion'], 20, 2, ARRAY['huevo']::text[], 150, 11, 6, 9, 1.8,
 '[{"id":"huevo","nombre":"Huevo","cantidad":2,"unidad":"unidad","calorias_por_100g":155},{"id":"acelga","nombre":"Acelga","cantidad":60,"unidad":"g","calorias_por_100g":19},{"id":"aceite-oliva","nombre":"Aceite de oliva","cantidad":5,"unidad":"ml","calorias_por_100g":884}]'::jsonb,
 '[{"orden":1,"descripcion":"Lava y pica finamente la acelga, luego saltéala en una sartén con una gota de aceite.","duracion_min":5},{"orden":2,"descripcion":"Bate los huevos y mézclalos con la acelga fría.","duracion_min":2},{"orden":3,"descripcion":"Cocina en sartén a fuego bajo con tapa por 8 minutos, dando vuelta con cuidado.","duracion_min":10}]'::jsonb,
 ARRAY['latam','chile','bls','huevo'], false, true)
@@ -173,7 +173,7 @@ ARRAY['latam','pasta','bls','bebe-grande'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('mini-panqueques-de-avena', 'Mini panqueques de avena', 'Panqueques chicos y esponjosos, ideales para el desayuno.', ARRAY['desayuno','merienda'], ARRAY['transicion'], 15, 2, ARRAY['gluten','huevo','lacteos']::text[], 210, 9, 30, 6, 1.6,
+('mini-panqueques-de-avena', 'Mini panqueques de avena', 'Panqueques chicos y esponjosos, ideales para el desayuno.', ARRAY['desayuno','snack'], ARRAY['transicion'], 15, 2, ARRAY['gluten','huevo','lacteos']::text[], 210, 9, 30, 6, 1.6,
 '[{"id":"avena","nombre":"Avena en hojuelas","cantidad":40,"unidad":"g","calorias_por_100g":389},{"id":"huevo","nombre":"Huevo","cantidad":1,"unidad":"unidad","calorias_por_100g":155},{"id":"platano","nombre":"Plátano maduro","cantidad":0.5,"unidad":"unidad","calorias_por_100g":89},{"id":"leche","nombre":"Leche entera","cantidad":50,"unidad":"ml","calorias_por_100g":61}]'::jsonb,
 '[{"orden":1,"descripcion":"Procesa la avena hasta convertirla en harina fina.","duracion_min":2},{"orden":2,"descripcion":"Mezcla con el huevo, el plátano pisado y la leche hasta obtener una masa.","duracion_min":3},{"orden":3,"descripcion":"Cocina cucharadas en sartén antiadherente 2 minutos por lado.","duracion_min":8}]'::jsonb,
 ARRAY['latam','desayuno','bls','sin-azucar'], false, true)
@@ -194,14 +194,14 @@ ARRAY['latam','chile','sopa','reconfortante'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('muffin-de-platano-y-avena', 'Muffin de plátano y avena', 'Muffins caseros sin azúcar añadida, endulzados naturalmente con plátano.', ARRAY['desayuno','merienda'], ARRAY['transicion'], 30, 6, ARRAY['gluten','huevo']::text[], 140, 4, 22, 4, 1,
+('muffin-de-platano-y-avena', 'Muffin de plátano y avena', 'Muffins caseros sin azúcar añadida, endulzados naturalmente con plátano.', ARRAY['desayuno','snack'], ARRAY['transicion'], 30, 6, ARRAY['gluten','huevo']::text[], 140, 4, 22, 4, 1,
 '[{"id":"platano","nombre":"Plátano maduro","cantidad":2,"unidad":"unidad","calorias_por_100g":89},{"id":"avena","nombre":"Avena en hojuelas","cantidad":100,"unidad":"g","calorias_por_100g":389},{"id":"huevo","nombre":"Huevo","cantidad":2,"unidad":"unidad","calorias_por_100g":155},{"id":"aceite","nombre":"Aceite","cantidad":15,"unidad":"ml","calorias_por_100g":884}]'::jsonb,
 '[{"orden":1,"descripcion":"Pisa los plátanos y mezcla con el huevo batido y el aceite.","duracion_min":3},{"orden":2,"descripcion":"Incorpora la avena y deja reposar 5 minutos.","duracion_min":5},{"orden":3,"descripcion":"Reparte en moldes de muffin y hornea a 180°C durante 20 minutos.","duracion_min":20}]'::jsonb,
 ARRAY['latam','desayuno','merienda','sin-azucar'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('crepe-de-manzana', 'Crepe de manzana', 'Crepe delgado relleno de manzana cocida con canela. Perfecto para el postre.', ARRAY['merienda','desayuno'], ARRAY['transicion'], 20, 2, ARRAY['gluten','huevo','lacteos']::text[], 190, 6, 28, 6, 0.8,
+('crepe-de-manzana', 'Crepe de manzana', 'Crepe delgado relleno de manzana cocida con canela. Perfecto para el postre.', ARRAY['snack','desayuno'], ARRAY['transicion'], 20, 2, ARRAY['gluten','huevo','lacteos']::text[], 190, 6, 28, 6, 0.8,
 '[{"id":"harina","nombre":"Harina","cantidad":40,"unidad":"g","calorias_por_100g":364},{"id":"huevo","nombre":"Huevo","cantidad":1,"unidad":"unidad","calorias_por_100g":155},{"id":"leche","nombre":"Leche entera","cantidad":80,"unidad":"ml","calorias_por_100g":61},{"id":"manzana","nombre":"Manzana","cantidad":1,"unidad":"unidad","calorias_por_100g":52}]'::jsonb,
 '[{"orden":1,"descripcion":"Mezcla la harina, el huevo y la leche hasta obtener una mezcla líquida.","duracion_min":3},{"orden":2,"descripcion":"Cocina los crepes en sartén antiadherente con poco aceite.","duracion_min":8},{"orden":3,"descripcion":"Rellena con manzana rallada cocida con canela y enrolla.","duracion_min":5}]'::jsonb,
 ARRAY['latam','postre','merienda','fruta'], false, true)
@@ -252,7 +252,7 @@ ARRAY['latam','pasta','familiar','proteina'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('arepa-de-queso', 'Arepa de queso', 'Arepa blanda hecha con harina de maíz precocida y queso fresco.', ARRAY['desayuno','merienda'], ARRAY['transicion','preescolar'], 20, 2, ARRAY['lacteos']::text[], 260, 10, 40, 7, 0.8,
+('arepa-de-queso', 'Arepa de queso', 'Arepa blanda hecha con harina de maíz precocida y queso fresco.', ARRAY['desayuno','snack'], ARRAY['transicion','preescolar'], 20, 2, ARRAY['lacteos']::text[], 260, 10, 40, 7, 0.8,
 '[{"id":"harina-maiz","nombre":"Harina de maíz precocida","cantidad":80,"unidad":"g","calorias_por_100g":362},{"id":"agua","nombre":"Agua tibia","cantidad":100,"unidad":"ml","calorias_por_100g":0},{"id":"queso","nombre":"Queso fresco","cantidad":40,"unidad":"g","calorias_por_100g":264}]'::jsonb,
 '[{"orden":1,"descripcion":"Mezcla la harina con el agua tibia hasta formar una masa suave. Deja reposar 5 minutos.","duracion_min":7},{"orden":2,"descripcion":"Forma discos de 1 cm de alto rellenos con queso.","duracion_min":5},{"orden":3,"descripcion":"Cocina en sartén caliente 4 minutos por lado hasta dorar.","duracion_min":8}]'::jsonb,
 ARRAY['venezuela','colombia','latam','bls'], false, true)
@@ -273,14 +273,14 @@ ARRAY['latam','chile','sopa','reconfortante'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('tortilla-espanola-de-papas', 'Tortilla de papas', 'Tortilla esponjosa al estilo español, con papas tiernas y huevo.', ARRAY['almuerzo','cena','merienda'], ARRAY['transicion','preescolar'], 35, 3, ARRAY['huevo']::text[], 280, 12, 25, 15, 1.8,
+('tortilla-espanola-de-papas', 'Tortilla de papas', 'Tortilla esponjosa al estilo español, con papas tiernas y huevo.', ARRAY['almuerzo','cena','snack'], ARRAY['transicion','preescolar'], 35, 3, ARRAY['huevo']::text[], 280, 12, 25, 15, 1.8,
 '[{"id":"papa","nombre":"Papa","cantidad":300,"unidad":"g","calorias_por_100g":77},{"id":"huevo","nombre":"Huevo","cantidad":4,"unidad":"unidad","calorias_por_100g":155},{"id":"cebolla","nombre":"Cebolla","cantidad":60,"unidad":"g","calorias_por_100g":40},{"id":"aceite-oliva","nombre":"Aceite de oliva","cantidad":20,"unidad":"ml","calorias_por_100g":884}]'::jsonb,
 '[{"orden":1,"descripcion":"Corta las papas en láminas finas y cocínalas en aceite a fuego bajo 20 minutos.","duracion_min":20},{"orden":2,"descripcion":"Bate los huevos y mezcla con las papas tibias y la cebolla pochada.","duracion_min":3},{"orden":3,"descripcion":"Vuelca en sartén y cocina 5 minutos por lado cuajando suavemente.","duracion_min":10}]'::jsonb,
 ARRAY['latam','chile','huevo','familiar'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('pandebono', 'Pandebono', 'Pancitos de queso redonditos y tibios. Clásico colombiano sin gluten.', ARRAY['desayuno','merienda','snack'], ARRAY['transicion','preescolar'], 30, 6, ARRAY['lacteos','huevo']::text[], 180, 7, 26, 5, 0.7,
+('pandebono', 'Pandebono', 'Pancitos de queso redonditos y tibios. Clásico colombiano sin gluten.', ARRAY['desayuno','snack'], ARRAY['transicion','preescolar'], 30, 6, ARRAY['lacteos','huevo']::text[], 180, 7, 26, 5, 0.7,
 '[{"id":"almidon-yuca","nombre":"Almidón de yuca","cantidad":150,"unidad":"g","calorias_por_100g":340},{"id":"queso","nombre":"Queso fresco","cantidad":100,"unidad":"g","calorias_por_100g":264},{"id":"huevo","nombre":"Huevo","cantidad":1,"unidad":"unidad","calorias_por_100g":155}]'::jsonb,
 '[{"orden":1,"descripcion":"Mezcla el almidón con el queso rallado y el huevo hasta formar una masa.","duracion_min":5},{"orden":2,"descripcion":"Forma bolitas del tamaño de una nuez.","duracion_min":5},{"orden":3,"descripcion":"Hornea a 200°C durante 15 minutos hasta que estén doraditos.","duracion_min":15}]'::jsonb,
 ARRAY['colombia','latam','sin-gluten','merienda'], false, true)
@@ -317,21 +317,21 @@ ARRAY['chile','tradicional','legumbres','pasta'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('empanadas-de-pino-horneadas', 'Empanadas de pino al horno', 'Empanadas caseras de horno con pino de carne suave. Menos picante que las tradicionales.', ARRAY['almuerzo','cena','merienda'], ARRAY['preescolar'], 90, 4, ARRAY['gluten','huevo']::text[], 380, 15, 48, 15, 2,
+('empanadas-de-pino-horneadas', 'Empanadas de pino al horno', 'Empanadas caseras de horno con pino de carne suave. Menos picante que las tradicionales.', ARRAY['almuerzo','cena','snack'], ARRAY['preescolar'], 90, 4, ARRAY['gluten','huevo']::text[], 380, 15, 48, 15, 2,
 '[{"id":"harina","nombre":"Harina","cantidad":300,"unidad":"g","calorias_por_100g":364},{"id":"carne","nombre":"Carne molida","cantidad":200,"unidad":"g","calorias_por_100g":250},{"id":"cebolla","nombre":"Cebolla","cantidad":150,"unidad":"g","calorias_por_100g":40},{"id":"huevo","nombre":"Huevo duro","cantidad":2,"unidad":"unidad","calorias_por_100g":155},{"id":"manteca","nombre":"Manteca","cantidad":60,"unidad":"g","calorias_por_100g":717}]'::jsonb,
 '[{"orden":1,"descripcion":"Prepara la masa con harina, agua tibia y manteca. Deja reposar 30 minutos.","duracion_min":35},{"orden":2,"descripcion":"Sofríe cebolla y carne hasta dorar. Deja enfriar y mezcla con huevo duro picado.","duracion_min":20},{"orden":3,"descripcion":"Arma las empanadas rellenando discos y hornea a 200°C por 20 minutos.","duracion_min":30}]'::jsonb,
 ARRAY['chile','tradicional','horno','fiestas-patrias'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('pan-amasado', 'Pan amasado', 'Pan chileno casero, ideal para completar cualquier comida.', ARRAY['desayuno','merienda'], ARRAY['preescolar'], 90, 8, ARRAY['gluten']::text[], 180, 5, 34, 2, 0.8,
+('pan-amasado', 'Pan amasado', 'Pan chileno casero, ideal para completar cualquier comida.', ARRAY['desayuno','snack'], ARRAY['preescolar'], 90, 8, ARRAY['gluten']::text[], 180, 5, 34, 2, 0.8,
 '[{"id":"harina","nombre":"Harina","cantidad":500,"unidad":"g","calorias_por_100g":364},{"id":"levadura","nombre":"Levadura fresca","cantidad":15,"unidad":"g","calorias_por_100g":105},{"id":"agua","nombre":"Agua tibia","cantidad":250,"unidad":"ml","calorias_por_100g":0},{"id":"manteca","nombre":"Manteca","cantidad":30,"unidad":"g","calorias_por_100g":717}]'::jsonb,
 '[{"orden":1,"descripcion":"Mezcla harina, levadura disuelta, sal y agua tibia. Amasa 10 minutos.","duracion_min":15},{"orden":2,"descripcion":"Deja leudar tapado en lugar tibio durante 40 minutos.","duracion_min":40},{"orden":3,"descripcion":"Forma panes pequeños redondos y hornea a 200°C durante 25 minutos.","duracion_min":30}]'::jsonb,
 ARRAY['chile','tradicional','pan','horno'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('sopaipillas-al-horno', 'Sopaipillas al horno', 'Sopaipillas chilenas más sanas, horneadas en vez de fritas.', ARRAY['merienda','snack'], ARRAY['preescolar'], 45, 6, ARRAY['gluten']::text[], 220, 4, 38, 5, 0.8,
+('sopaipillas-al-horno', 'Sopaipillas al horno', 'Sopaipillas chilenas más sanas, horneadas en vez de fritas.', ARRAY['snack'], ARRAY['preescolar'], 45, 6, ARRAY['gluten']::text[], 220, 4, 38, 5, 0.8,
 '[{"id":"harina","nombre":"Harina","cantidad":300,"unidad":"g","calorias_por_100g":364},{"id":"zapallo","nombre":"Zapallo cocido","cantidad":150,"unidad":"g","calorias_por_100g":26},{"id":"manteca","nombre":"Manteca","cantidad":40,"unidad":"g","calorias_por_100g":717},{"id":"polvo-hornear","nombre":"Polvo de hornear","cantidad":5,"unidad":"g","calorias_por_100g":97}]'::jsonb,
 '[{"orden":1,"descripcion":"Mezcla el zapallo pisado con la harina, manteca y polvo de hornear.","duracion_min":10},{"orden":2,"descripcion":"Amasa suavemente y estira hasta 1 cm de grosor. Corta círculos.","duracion_min":10},{"orden":3,"descripcion":"Hornea a 200°C durante 20 minutos hasta que estén doradas.","duracion_min":25}]'::jsonb,
 ARRAY['chile','tradicional','merienda','horno'], false, true)
@@ -359,21 +359,21 @@ ARRAY['chile','latam','pescado','horno'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('arroz-con-leche', 'Arroz con leche', 'Postre clásico de arroz cocido en leche con canela. Cremoso y reconfortante.', ARRAY['merienda'], ARRAY['preescolar'], 40, 3, ARRAY['lacteos']::text[], 230, 7, 40, 5, 0.5,
+('arroz-con-leche', 'Arroz con leche', 'Postre clásico de arroz cocido en leche con canela. Cremoso y reconfortante.', ARRAY['snack'], ARRAY['preescolar'], 40, 3, ARRAY['lacteos']::text[], 230, 7, 40, 5, 0.5,
 '[{"id":"arroz","nombre":"Arroz","cantidad":80,"unidad":"g","calorias_por_100g":130},{"id":"leche","nombre":"Leche entera","cantidad":500,"unidad":"ml","calorias_por_100g":61},{"id":"canela","nombre":"Canela en rama","cantidad":1,"unidad":"g","calorias_por_100g":247},{"id":"azucar","nombre":"Azúcar","cantidad":20,"unidad":"g","calorias_por_100g":387}]'::jsonb,
 '[{"orden":1,"descripcion":"Cocina el arroz en agua durante 10 minutos y escurre.","duracion_min":10},{"orden":2,"descripcion":"Pasa el arroz a una olla con leche y canela, cocina 25 minutos a fuego bajo.","duracion_min":25},{"orden":3,"descripcion":"Agrega el azúcar los últimos 5 minutos y sirve tibio o frío.","duracion_min":5}]'::jsonb,
 ARRAY['latam','chile','postre','tradicional'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('leche-asada', 'Leche asada', 'Postre chileno al horno, similar al flan pero más firme y con caramelo.', ARRAY['merienda'], ARRAY['preescolar'], 70, 4, ARRAY['lacteos','huevo']::text[], 240, 9, 32, 9, 0.8,
+('leche-asada', 'Leche asada', 'Postre chileno al horno, similar al flan pero más firme y con caramelo.', ARRAY['snack'], ARRAY['preescolar'], 70, 4, ARRAY['lacteos','huevo']::text[], 240, 9, 32, 9, 0.8,
 '[{"id":"leche","nombre":"Leche entera","cantidad":500,"unidad":"ml","calorias_por_100g":61},{"id":"huevo","nombre":"Huevo","cantidad":4,"unidad":"unidad","calorias_por_100g":155},{"id":"azucar","nombre":"Azúcar","cantidad":100,"unidad":"g","calorias_por_100g":387},{"id":"vainilla","nombre":"Vainilla","cantidad":2,"unidad":"ml","calorias_por_100g":288}]'::jsonb,
 '[{"orden":1,"descripcion":"Haz un caramelo con 50 g de azúcar en el fondo de una fuente.","duracion_min":10},{"orden":2,"descripcion":"Bate los huevos con el azúcar, agrega leche y vainilla.","duracion_min":5},{"orden":3,"descripcion":"Vierte sobre el caramelo y hornea a 170°C durante 45 minutos a baño maría.","duracion_min":55}]'::jsonb,
 ARRAY['chile','postre','tradicional','horno'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('mote-con-huesillo', 'Mote con huesillo', 'Bebida-postre chilena de durazno deshidratado cocido con trigo mote.', ARRAY['merienda','snack'], ARRAY['preescolar'], 60, 4, ARRAY['gluten']::text[], 200, 3, 48, 0.5, 1,
+('mote-con-huesillo', 'Mote con huesillo', 'Bebida-postre chilena de durazno deshidratado cocido con trigo mote.', ARRAY['snack'], ARRAY['preescolar'], 60, 4, ARRAY['gluten']::text[], 200, 3, 48, 0.5, 1,
 '[{"id":"mote","nombre":"Trigo mote","cantidad":80,"unidad":"g","calorias_por_100g":340},{"id":"huesillos","nombre":"Huesillos (duraznos secos)","cantidad":8,"unidad":"unidad","calorias_por_100g":240},{"id":"azucar","nombre":"Azúcar","cantidad":50,"unidad":"g","calorias_por_100g":387},{"id":"canela","nombre":"Canela","cantidad":1,"unidad":"g","calorias_por_100g":247}]'::jsonb,
 '[{"orden":1,"descripcion":"Cocina los huesillos con canela y azúcar durante 40 minutos.","duracion_min":40},{"orden":2,"descripcion":"Hierve el mote aparte hasta que esté blando, unos 30 minutos.","duracion_min":30},{"orden":3,"descripcion":"Enfría y sirve en vaso con mote en el fondo y huesillos con su jugo.","duracion_min":5}]'::jsonb,
 ARRAY['chile','tradicional','verano','bebida'], false, true)
@@ -394,7 +394,7 @@ ARRAY['chile','tradicional','proteina','hierro'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('completo-casero-infantil', 'Completo casero infantil', 'Versión casera y sin aditivos del clásico chileno: pancito, vienesa y palta.', ARRAY['almuerzo','merienda'], ARRAY['preescolar'], 20, 2, ARRAY['gluten']::text[], 380, 15, 40, 18, 1.8,
+('completo-casero-infantil', 'Completo casero infantil', 'Versión casera y sin aditivos del clásico chileno: pancito, vienesa y palta.', ARRAY['almuerzo','snack'], ARRAY['preescolar'], 20, 2, ARRAY['gluten']::text[], 380, 15, 40, 18, 1.8,
 '[{"id":"pan-hotdog","nombre":"Pan de completo","cantidad":2,"unidad":"unidad","calorias_por_100g":275},{"id":"vienesa","nombre":"Vienesa de pavo","cantidad":2,"unidad":"unidad","calorias_por_100g":190},{"id":"tomate","nombre":"Tomate","cantidad":80,"unidad":"g","calorias_por_100g":18},{"id":"palta","nombre":"Palta","cantidad":60,"unidad":"g","calorias_por_100g":160}]'::jsonb,
 '[{"orden":1,"descripcion":"Cocina las vienesas en agua hirviendo durante 5 minutos.","duracion_min":5},{"orden":2,"descripcion":"Tuesta el pan levemente en sartén.","duracion_min":3},{"orden":3,"descripcion":"Arma el completo con vienesa, tomate picado y palta pisada.","duracion_min":5}]'::jsonb,
 ARRAY['chile','tradicional','rapido','merienda'], false, true)
@@ -436,21 +436,21 @@ ARRAY['latam','caribe','coco','cremoso'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('mazamorra-morada', 'Mazamorra morada', 'Postre peruano de maíz morado con frutas. Dulce y lleno de antioxidantes.', ARRAY['merienda'], ARRAY['preescolar'], 50, 4, ARRAY['gluten']::text[], 180, 1.5, 42, 0.5, 0.6,
+('mazamorra-morada', 'Mazamorra morada', 'Postre peruano de maíz morado con frutas. Dulce y lleno de antioxidantes.', ARRAY['snack'], ARRAY['preescolar'], 50, 4, ARRAY['gluten']::text[], 180, 1.5, 42, 0.5, 0.6,
 '[{"id":"maiz-morado","nombre":"Maíz morado","cantidad":200,"unidad":"g","calorias_por_100g":340},{"id":"manzana","nombre":"Manzana","cantidad":1,"unidad":"unidad","calorias_por_100g":52},{"id":"pina","nombre":"Piña","cantidad":100,"unidad":"g","calorias_por_100g":50},{"id":"chuno","nombre":"Chuño o maicena","cantidad":30,"unidad":"g","calorias_por_100g":340},{"id":"azucar","nombre":"Azúcar","cantidad":40,"unidad":"g","calorias_por_100g":387}]'::jsonb,
 '[{"orden":1,"descripcion":"Cocina el maíz morado en agua durante 30 minutos y cuela el líquido.","duracion_min":35},{"orden":2,"descripcion":"Agrega azúcar, manzana y piña en cubos. Cocina 10 minutos.","duracion_min":10},{"orden":3,"descripcion":"Espesa con el chuño disuelto en agua fría y sirve tibio.","duracion_min":5}]'::jsonb,
 ARRAY['peru','latam','postre','fruta'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('tortilla-de-espinaca-y-queso', 'Tortilla de espinaca y queso', 'Tortilla al horno con espinaca y queso rallado. Alta en hierro.', ARRAY['almuerzo','cena','merienda'], ARRAY['preescolar'], 25, 2, ARRAY['huevo','lacteos']::text[], 260, 18, 8, 18, 2.5,
+('tortilla-de-espinaca-y-queso', 'Tortilla de espinaca y queso', 'Tortilla al horno con espinaca y queso rallado. Alta en hierro.', ARRAY['almuerzo','cena','snack'], ARRAY['preescolar'], 25, 2, ARRAY['huevo','lacteos']::text[], 260, 18, 8, 18, 2.5,
 '[{"id":"huevo","nombre":"Huevo","cantidad":3,"unidad":"unidad","calorias_por_100g":155},{"id":"espinaca","nombre":"Espinaca","cantidad":100,"unidad":"g","calorias_por_100g":23},{"id":"queso","nombre":"Queso rallado","cantidad":40,"unidad":"g","calorias_por_100g":264},{"id":"aceite-oliva","nombre":"Aceite de oliva","cantidad":10,"unidad":"ml","calorias_por_100g":884}]'::jsonb,
 '[{"orden":1,"descripcion":"Saltea la espinaca en aceite hasta que reduzca. Enfría.","duracion_min":5},{"orden":2,"descripcion":"Bate los huevos con la espinaca y el queso.","duracion_min":3},{"orden":3,"descripcion":"Cocina en sartén tapada 8 minutos por lado o al horno 15 minutos.","duracion_min":15}]'::jsonb,
 ARRAY['latam','huevo','verdura-verde','hierro'], false, true)
 ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO recetas (slug, nombre, descripcion, momento_dia, etapas_compatibles, tiempo_preparacion, porciones_base, alergenos, calorias, proteinas, carbohidratos, grasas, hierro, ingredientes, pasos, tags, es_premium, activa) VALUES
-('budin-de-zapallo', 'Budín de zapallo', 'Budín tibio y suave, ideal para merienda o acompañamiento.', ARRAY['merienda','cena'], ARRAY['preescolar'], 60, 4, ARRAY['huevo','lacteos','gluten']::text[], 220, 8, 28, 8, 1.2,
+('budin-de-zapallo', 'Budín de zapallo', 'Budín tibio y suave, ideal para merienda o acompañamiento.', ARRAY['snack','cena'], ARRAY['preescolar'], 60, 4, ARRAY['huevo','lacteos','gluten']::text[], 220, 8, 28, 8, 1.2,
 '[{"id":"zapallo","nombre":"Zapallo cocido","cantidad":300,"unidad":"g","calorias_por_100g":26},{"id":"huevo","nombre":"Huevo","cantidad":2,"unidad":"unidad","calorias_por_100g":155},{"id":"harina","nombre":"Harina","cantidad":40,"unidad":"g","calorias_por_100g":364},{"id":"leche","nombre":"Leche","cantidad":100,"unidad":"ml","calorias_por_100g":61},{"id":"queso","nombre":"Queso rallado","cantidad":30,"unidad":"g","calorias_por_100g":264}]'::jsonb,
 '[{"orden":1,"descripcion":"Pisa el zapallo cocido y mezcla con huevo batido y leche.","duracion_min":5},{"orden":2,"descripcion":"Agrega harina y queso, revolviendo para que no queden grumos.","duracion_min":3},{"orden":3,"descripcion":"Hornea en molde enmantecado a 180°C durante 40 minutos.","duracion_min":45}]'::jsonb,
 ARRAY['latam','chile','horno','verdura'], false, true)

@@ -82,8 +82,10 @@ function generarDias(recetas: Receta[]): DiasPlan {
   };
 
   for (const r of recetas) {
-    for (const momento of r.momento_dia) {
-      porMomento[momento].push(r);
+    for (const m of r.momento_dia as string[]) {
+      // La DB puede traer momentos legacy fuera del enum (ej. 'merienda').
+      // Skipeamos para no crashear; igual entran al pool por sus otros momentos.
+      if (m in porMomento) porMomento[m as MomentoDia].push(r);
     }
   }
 
