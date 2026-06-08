@@ -1,13 +1,24 @@
 import { useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { usePlanStore } from '@/store/usePlanStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
+import { formatearRangoSemana } from '@/constants/Semana';
 import { ItemCompras } from '@/types';
 
 export default function ListaComprasScreen() {
   const c = useColoresTema();
+  const insets = useSafeAreaInsets();
   const {
     plan,
     lista,
@@ -29,7 +40,7 @@ export default function ListaComprasScreen() {
   };
 
   const handleLimpiarComprados = () => {
-    Alert.alert('Limpiar lista', '¿Desmarcás todos los ítems como no comprados?', [
+    Alert.alert('Limpiar lista', '¿Desmarcas todos los ítems como no comprados?', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Limpiar', onPress: () => limpiarComprados() },
     ]);
@@ -46,184 +57,432 @@ export default function ListaComprasScreen() {
 
   const totalItems = lista?.items.length ?? 0;
   const comprados = lista?.items.filter((i) => i.comprado).length ?? 0;
+  const progreso = totalItems > 0 ? comprados / totalItems : 0;
+
+  // Detectar si el plan cambió después de la última generación/edición de la lista.
+  // Cuando el user toggle items, lista.updated_at avanza pero plan.updated_at queda igual,
+  // así que el banner solo aparece cuando el plan REALMENTE cambió post-lista.
+  const planDesincronizado =
+    plan && lista && new Date(plan.updated_at) > new Date(lista.updated_at);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp }}>
-      {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
-            <Text style={{ fontSize: 16, color: c.verde, fontWeight: '600' }}>← Volver</Text>
-          </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: '800', color: c.negro }}>Lista de compras</Text>
-        </View>
-        {totalItems > 0 && (
-          <Text style={{ fontSize: 13, color: c.grisTexto, marginTop: 2 }}>
-            {comprados} de {totalItems} ítems comprados
-          </Text>
-        )}
-      </View>
+    <View style={{ flex: 1, backgroundColor: c.fondoApp }}>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+        >
+          {/* ── BOTÓN VOLVER ── */}
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={12}
+            style={({ pressed }) => ({
+              paddingHorizontal: 24,
+              paddingTop: 16,
+              opacity: pressed ? 0.5 : 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              alignSelf: 'flex-start',
+            })}
+          >
+            <Feather name="arrow-left" size={18} color={c.negro} />
+            <Text style={{ fontSize: 14, fontWeight: '600', color: c.negro }}>Volver</Text>
+          </Pressable>
 
-      {cargandoLista ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={c.verde} />
-        </View>
-      ) : !lista ? (
-        /* Sin lista generada */
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>🛒</Text>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: '700',
-              color: c.negro,
-              textAlign: 'center',
-              marginBottom: 8,
-            }}
-          >
-            Sin lista generada
-          </Text>
-          <Text
-            style={{
-              fontSize: 14,
-              color: c.grisTexto,
-              textAlign: 'center',
-              marginBottom: 28,
-              lineHeight: 20,
-            }}
-          >
-            Generamos la lista con todos los ingredientes del plan semanal, agrupados por categoría.
-          </Text>
-          <TouchableOpacity
-            onPress={handleGenerarLista}
-            style={{
-              backgroundColor: c.verde,
-              borderRadius: 16,
-              paddingHorizontal: 28,
-              paddingVertical: 14,
-            }}
-            accessibilityLabel="Generar lista de compras"
-          >
-            <Text style={{ color: c.blanco, fontWeight: '700', fontSize: 16 }}>
-              ✨ Generar lista
+          {/* ── HEADER EDITORIAL ── */}
+          <View style={{ paddingHorizontal: 24, paddingTop: 24 }}>
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '700',
+                color: c.grisTexto,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                marginBottom: 16,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              LISTA DE COMPRAS
+              {plan ? ` · ${formatearRangoSemana(plan.semana_inicio).toUpperCase()}` : ''}
             </Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ padding: 20 }}
-          >
-            {Object.entries(itemsPorCategoria).map(([categoria, items]) => (
-              <View key={categoria} style={{ marginBottom: 20 }}>
-                {/* Header categoría */}
+
+            <Text
+              style={{
+                fontSize: 30,
+                fontWeight: '800',
+                color: c.negro,
+                letterSpacing: -0.6,
+                lineHeight: 36,
+              }}
+            >
+              {totalItems > 0 ? (
+                <>
+                  <Text style={{ color: c.verde, fontVariant: ['tabular-nums'] }}>
+                    {totalItems}
+                  </Text>{' '}
+                  {totalItems === 1 ? 'ingrediente' : 'ingredientes'}
+                </>
+              ) : (
+                'Tu lista'
+              )}
+            </Text>
+
+            {totalItems > 0 && (
+              <>
                 <Text
                   style={{
-                    fontSize: 11,
-                    fontWeight: '700',
+                    fontSize: 14,
                     color: c.grisTexto,
-                    letterSpacing: 0.8,
-                    marginBottom: 8,
-                    textTransform: 'uppercase',
+                    lineHeight: 20,
+                    marginTop: 8,
+                    fontVariant: ['tabular-nums'],
                   }}
                 >
-                  {categoria}
+                  {comprados} comprado{comprados === 1 ? '' : 's'} de {totalItems}
                 </Text>
 
-                <View style={{ backgroundColor: c.card, borderRadius: 16, overflow: 'hidden' }}>
-                  {items.map((item, idx) => (
-                    <TouchableOpacity
-                      key={item.nombre}
-                      onPress={() => toggleComprado(item.nombre)}
-                      accessibilityLabel={`${item.nombre} — ${item.comprado ? 'marcar como no comprado' : 'marcar como comprado'}`}
+                {/* Barra de progreso sutil */}
+                <View
+                  style={{
+                    height: 4,
+                    backgroundColor: c.cardBorde,
+                    borderRadius: 999,
+                    marginTop: 14,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View
+                    style={{
+                      width: `${progreso * 100}%`,
+                      height: '100%',
+                      backgroundColor: c.verde,
+                      borderRadius: 999,
+                    }}
+                  />
+                </View>
+              </>
+            )}
+          </View>
+
+          {/* Separador */}
+          <View
+            style={{
+              height: 1,
+              backgroundColor: c.cardBorde,
+              marginHorizontal: 24,
+              marginTop: 28,
+              marginBottom: 8,
+            }}
+          />
+
+          {/* ── CONTENIDO ── */}
+          {cargandoLista ? (
+            <View style={{ paddingVertical: 80, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color={c.verde} />
+            </View>
+          ) : !lista ? (
+            <EmptyStateLista onGenerar={handleGenerarLista} />
+          ) : (
+            <>
+              {/* Banner desincronización — solo si el plan cambió después de la lista */}
+              {planDesincronizado && (
+                <TouchableOpacity
+                  onPress={handleGenerarLista}
+                  activeOpacity={0.85}
+                  accessibilityLabel="Actualizar lista con los cambios del plan"
+                  style={{
+                    marginHorizontal: 24,
+                    marginTop: 16,
+                    marginBottom: 4,
+                    backgroundColor: c.verdeClaro,
+                    borderRadius: 14,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: c.card,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Feather name="refresh-cw" size={15} color={c.verde} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        paddingHorizontal: 16,
-                        paddingVertical: 14,
-                        borderTopWidth: idx > 0 ? 1 : 0,
-                        borderTopColor: c.grisClaro,
-                        opacity: item.comprado ? 0.45 : 1,
+                        fontSize: 13,
+                        fontWeight: '700',
+                        color: c.negro,
+                        letterSpacing: -0.1,
                       }}
                     >
-                      {/* Checkbox */}
-                      <View
-                        style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: 11,
-                          borderWidth: 2,
-                          borderColor: item.comprado ? c.verde : '#D1CEC9',
-                          backgroundColor: item.comprado ? c.verde : 'transparent',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: 12,
-                        }}
-                      >
-                        {item.comprado && <Text style={{ color: c.blanco, fontSize: 12 }}>✓</Text>}
-                      </View>
+                      El plan cambió
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: c.grisTexto,
+                        marginTop: 2,
+                      }}
+                    >
+                      Toca para actualizar la lista
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={c.verde} />
+                </TouchableOpacity>
+              )}
 
-                      <Text
-                        style={{
-                          flex: 1,
-                          fontSize: 15,
-                          color: c.negro,
-                          textDecorationLine: item.comprado ? 'line-through' : 'none',
-                        }}
-                      >
-                        {item.nombre}
-                      </Text>
-                      <Text style={{ fontSize: 13, color: c.grisTexto }}>{item.cantidad}</Text>
-                    </TouchableOpacity>
-                  ))}
+              {/* Categorías */}
+              {Object.entries(itemsPorCategoria).map(([categoria, items]) => (
+                <CategoriaSeccion
+                  key={categoria}
+                  categoria={categoria}
+                  items={items}
+                  onToggle={toggleComprado}
+                  c={c}
+                />
+              ))}
+
+              {/* Acción final — solo Limpiar comprados (cuando hay items comprados) */}
+              {comprados > 0 && (
+                <View
+                  style={{
+                    paddingHorizontal: 24,
+                    paddingTop: 16,
+                    paddingBottom: 12,
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={handleLimpiarComprados}
+                    activeOpacity={0.85}
+                    style={{
+                      backgroundColor: c.verde,
+                      borderRadius: 999,
+                      paddingVertical: 14,
+                      alignItems: 'center',
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      gap: 8,
+                      shadowColor: c.verde,
+                      shadowOpacity: 0.18,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 3 },
+                      elevation: 3,
+                    }}
+                    accessibilityLabel="Limpiar ítems comprados"
+                  >
+                    <Feather name="check-circle" size={15} color="#fff" />
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontWeight: '800',
+                        fontSize: 13,
+                        letterSpacing: 0.2,
+                      }}
+                    >
+                      Limpiar comprados ({comprados})
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </View>
-            ))}
+              )}
+            </>
+          )}
 
-            <View style={{ height: 20 }} />
-          </ScrollView>
+          {error && (
+            <View style={{ paddingHorizontal: 24, paddingBottom: 8 }}>
+              <Text style={{ color: c.error, fontSize: 12, textAlign: 'center' }}>{error}</Text>
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+}
 
-          {/* Acciones footer */}
-          <View style={{ padding: 20, flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity
-              onPress={handleGenerarLista}
+// ─── CategoriaSeccion ─────────────────────────────────────────────────────────
+
+function CategoriaSeccion({
+  categoria,
+  items,
+  onToggle,
+  c,
+}: {
+  categoria: string;
+  items: ItemCompras[];
+  onToggle: (nombre: string) => void;
+  c: ReturnType<typeof useColoresTema>;
+}) {
+  return (
+    <View style={{ paddingTop: 20 }}>
+      {/* Eyebrow categoría */}
+      <Text
+        style={{
+          fontSize: 11,
+          fontWeight: '700',
+          color: c.grisTexto,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          paddingHorizontal: 24,
+          marginBottom: 8,
+        }}
+      >
+        {categoria}
+      </Text>
+
+      {/* Items con separadores */}
+      <View style={{ paddingHorizontal: 24 }}>
+        {items.map((item, idx) => (
+          <TouchableOpacity
+            key={item.nombre}
+            onPress={() => onToggle(item.nombre)}
+            activeOpacity={0.6}
+            accessibilityLabel={`${item.nombre} — ${item.comprado ? 'marcar como no comprado' : 'marcar como comprado'}`}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 13,
+              borderTopWidth: idx > 0 ? 1 : 0,
+              borderTopColor: c.cardBorde,
+              opacity: item.comprado ? 0.5 : 1,
+            }}
+          >
+            {/* Checkbox circular */}
+            <View
               style={{
-                flex: 1,
-                backgroundColor: c.card,
-                borderRadius: 14,
-                paddingVertical: 14,
-                alignItems: 'center',
+                width: 22,
+                height: 22,
+                borderRadius: 11,
                 borderWidth: 1.5,
-                borderColor: c.verde,
+                borderColor: item.comprado ? c.verde : '#D1CEC9',
+                backgroundColor: item.comprado ? c.verde : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 14,
               }}
-              accessibilityLabel="Regenerar lista de compras"
             >
-              <Text style={{ fontSize: 14, fontWeight: '700', color: c.verde }}>🔄 Regenerar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleLimpiarComprados}
+              {item.comprado && <Feather name="check" size={13} color="#fff" />}
+            </View>
+
+            <Text
               style={{
                 flex: 1,
-                backgroundColor: c.verde,
-                borderRadius: 14,
-                paddingVertical: 14,
-                alignItems: 'center',
+                fontSize: 15,
+                color: c.negro,
+                fontWeight: '500',
+                letterSpacing: -0.1,
+                textDecorationLine: item.comprado ? 'line-through' : 'none',
               }}
-              accessibilityLabel="Limpiar ítems comprados"
+              numberOfLines={1}
             >
-              <Text style={{ fontSize: 14, fontWeight: '700', color: c.blanco }}>Limpiar ✓</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
+              {item.nombre}
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: c.grisTexto,
+                fontWeight: '600',
+                fontVariant: ['tabular-nums'],
+                marginLeft: 8,
+              }}
+            >
+              {item.cantidad}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-      {error && (
-        <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
-          <Text style={{ color: c.error, fontSize: 12, textAlign: 'center' }}>{error}</Text>
-        </View>
-      )}
-    </SafeAreaView>
+      {/* Separador entre categorías */}
+      <View
+        style={{
+          height: 1,
+          backgroundColor: c.cardBorde,
+          marginHorizontal: 24,
+          marginTop: 20,
+        }}
+      />
+    </View>
+  );
+}
+
+// ─── EmptyStateLista ──────────────────────────────────────────────────────────
+
+function EmptyStateLista({ onGenerar }: { onGenerar: () => void }) {
+  const c = useColoresTema();
+  return (
+    <View
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 56,
+        paddingHorizontal: 32,
+      }}
+    >
+      <View
+        style={{
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          backgroundColor: c.grisClaro,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 16,
+        }}
+      >
+        <Feather name="shopping-cart" size={26} color={c.grisTexto} />
+      </View>
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: '700',
+          color: c.negro,
+          textAlign: 'center',
+          letterSpacing: -0.2,
+        }}
+      >
+        Sin lista generada
+      </Text>
+      <Text
+        style={{
+          fontSize: 13,
+          color: c.grisTexto,
+          textAlign: 'center',
+          marginTop: 6,
+          lineHeight: 19,
+          maxWidth: 280,
+          marginBottom: 20,
+        }}
+      >
+        Genera la lista con todos los ingredientes del plan semanal, agrupados por categoría.
+      </Text>
+      <TouchableOpacity
+        onPress={onGenerar}
+        activeOpacity={0.85}
+        style={{
+          backgroundColor: c.verde,
+          paddingHorizontal: 24,
+          paddingVertical: 13,
+          borderRadius: 999,
+          shadowColor: c.verde,
+          shadowOpacity: 0.18,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 3 },
+          elevation: 3,
+        }}
+        accessibilityLabel="Generar lista de compras"
+      >
+        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14, letterSpacing: 0.2 }}>
+          Generar lista
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }

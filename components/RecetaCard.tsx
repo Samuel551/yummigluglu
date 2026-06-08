@@ -1,42 +1,27 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable, Image, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { Receta } from '@/types';
 import { useFavoritosStore } from '@/store/useFavoritosStore';
 import { usePerfilStore } from '@/store/usePerfilStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
-import { COLOR_ETAPA, ETAPA_BADGE } from '@/constants/Etapas';
-
-// Emoji representativo según tags de la receta
-function resolverEmoji(receta: Receta): string {
-  if (receta.slug.includes('pasta')) return '🍝';
-  if (receta.slug.includes('arroz')) return '🍚';
-  if (receta.slug.includes('pollo')) return '🍗';
-  if (receta.slug.includes('lentejas')) return '🥣';
-  if (receta.slug.includes('yogur')) return '🥛';
-  if (receta.slug.includes('avena') || receta.slug.includes('pancito')) return '🥞';
-  if (receta.slug.includes('omelette')) return '🍳';
-  if (receta.slug.includes('batata') || receta.slug.includes('zapallo')) return '🥕';
-  if (receta.slug.includes('manzana') || receta.slug.includes('compota')) return '🍎';
-  if (receta.slug.includes('milanesa')) return '🥩';
-  return '🍲';
-}
+import { COLOR_ETAPA, ETAPA_LABEL, getEtapaInfo } from '@/constants/Etapas';
 
 interface RecetaCardProps {
   receta: Receta;
-  horizontal?: boolean; // Modo horizontal para scroll del home
 }
 
-export function RecetaCard({ receta, horizontal = false }: RecetaCardProps) {
+export function RecetaCard({ receta }: RecetaCardProps) {
   const c = useColoresTema();
   const { esFavorito, agregarFavorito, quitarFavorito } = useFavoritosStore();
   const perfilActivo = usePerfilStore((state) => state.perfilActivo);
   const favorito = esFavorito(receta.id);
 
   const etapaPrimaria = receta.etapas_compatibles[0] ?? 'inicio';
-  const color = COLOR_ETAPA[etapaPrimaria] ?? COLOR_ETAPA.inicio;
+  const colorEtapa = COLOR_ETAPA[etapaPrimaria] ?? COLOR_ETAPA.inicio;
+  const etapaInfo = getEtapaInfo(etapaPrimaria);
 
-  const handleToggleFavorito = (e: { stopPropagation?: () => void }) => {
-    e.stopPropagation?.();
+  const handleToggleFavorito = () => {
     if (favorito) {
       quitarFavorito(receta.id);
     } else {
@@ -44,179 +29,154 @@ export function RecetaCard({ receta, horizontal = false }: RecetaCardProps) {
     }
   };
 
-  const handlePress = () => {
-    router.push(`/receta/${receta.id}`);
-  };
-
-  if (horizontal) {
-    // Card compacta para el scroll horizontal del home
-    return (
-      <TouchableOpacity
-        onPress={handlePress}
-        activeOpacity={0.85}
-        style={{
-          width: 160,
-          backgroundColor: c.card,
-          borderRadius: 16,
-          marginRight: 12,
-          overflow: 'hidden',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
-          elevation: 3,
-        }}
-      >
-        {/* Encabezado coloreado */}
-        <View
-          style={{
-            backgroundColor: color.bg,
-            height: 80,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Text style={{ fontSize: 36 }}>{resolverEmoji(receta)}</Text>
-          {/* Corazón favorito */}
-          <TouchableOpacity
-            onPress={handleToggleFavorito}
-            activeOpacity={0.7}
-            style={{ position: 'absolute', top: 6, left: 6, padding: 4 }}
-          >
-            <Text style={{ fontSize: 16 }}>{favorito ? '❤️' : '🤍'}</Text>
-          </TouchableOpacity>
-          {receta.es_premium && (
-            <View
-              style={{
-                position: 'absolute',
-                top: 6,
-                right: 6,
-                backgroundColor: '#F59E0B',
-                borderRadius: 8,
-                paddingHorizontal: 5,
-                paddingVertical: 1,
-              }}
-            >
-              <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700' }}>PREMIUM</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={{ padding: 10 }}>
-          <Text
-            style={{ fontSize: 12, fontWeight: '600', color: c.negro, marginBottom: 4 }}
-            numberOfLines={2}
-          >
-            {receta.nombre}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: 10, color: c.grisTexto }}>
-              ⏱ {receta.tiempo_preparacion}min
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }
-
-  // Card completa para el catálogo
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      activeOpacity={0.85}
-      style={{
-        backgroundColor: c.card,
-        borderRadius: 16,
-        marginBottom: 12,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 3,
-      }}
+    <Pressable
+      onPress={() => router.push(`/receta/${receta.id}`)}
+      style={({ pressed }) => ({
+        opacity: pressed ? 0.92 : 1,
+        transform: [{ scale: pressed ? 0.99 : 1 }],
+        marginBottom: 28,
+      })}
     >
-      {/* Encabezado coloreado */}
+      {/* Imagen / fallback */}
       <View
         style={{
-          backgroundColor: color.bg,
-          height: 100,
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'row',
-          gap: 12,
+          width: '100%',
+          aspectRatio: 4 / 3,
+          borderRadius: 18,
+          overflow: 'hidden',
+          backgroundColor: colorEtapa.bg,
+          position: 'relative',
         }}
       >
-        <Text style={{ fontSize: 44 }}>{resolverEmoji(receta)}</Text>
-        {/* Corazón favorito */}
+        {receta.imagen_url ? (
+          <Image
+            source={{ uri: receta.imagen_url }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 96, lineHeight: 144 }}>{etapaInfo.emoji}</Text>
+          </View>
+        )}
+
+        {/* Favorito — círculo translúcido top-left */}
         <TouchableOpacity
           onPress={handleToggleFavorito}
           activeOpacity={0.7}
-          style={{ position: 'absolute', top: 8, left: 10, padding: 4 }}
+          hitSlop={8}
+          style={{
+            position: 'absolute',
+            top: 14,
+            left: 14,
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000',
+            shadowOpacity: 0.12,
+            shadowRadius: 6,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 3,
+          }}
         >
-          <Text style={{ fontSize: 20 }}>{favorito ? '❤️' : '🤍'}</Text>
+          <Feather
+            name="heart"
+            size={16}
+            color={favorito ? '#E53935' : '#1A1714'}
+            style={{ opacity: favorito ? 1 : 0.85 }}
+          />
         </TouchableOpacity>
+
+        {/* Premium badge — negro consistente con HeroDia y detalle */}
         {receta.es_premium && (
           <View
             style={{
               position: 'absolute',
-              top: 10,
-              right: 10,
-              backgroundColor: '#F59E0B',
-              borderRadius: 8,
-              paddingHorizontal: 8,
-              paddingVertical: 3,
+              top: 14,
+              right: 14,
+              backgroundColor: '#1A1714',
+              borderRadius: 999,
+              paddingHorizontal: 11,
+              paddingVertical: 5,
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 3,
+              gap: 5,
             }}
           >
-            <Text style={{ fontSize: 10 }}>👑</Text>
-            <Text style={{ fontSize: 10, color: '#fff', fontWeight: '700' }}>PREMIUM</Text>
+            <Feather name="star" size={11} color="#fff" />
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 1 }}>
+              PREMIUM
+            </Text>
           </View>
         )}
       </View>
 
-      <View style={{ padding: 14 }}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: c.negro, marginBottom: 4 }}>
-          {receta.nombre}
-        </Text>
-        <Text
-          style={{ fontSize: 12, color: c.grisTexto, marginBottom: 10, lineHeight: 17 }}
-          numberOfLines={2}
-        >
-          {receta.descripcion}
-        </Text>
+      {/* Título */}
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: '700',
+          color: c.negro,
+          letterSpacing: -0.3,
+          lineHeight: 24,
+          marginTop: 14,
+        }}
+        numberOfLines={2}
+      >
+        {receta.nombre}
+      </Text>
 
-        {/* Info row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <Text style={{ fontSize: 11, color: c.grisTexto }}>
-            ⏱ {receta.tiempo_preparacion} min
-          </Text>
-          <Text style={{ fontSize: 11, color: c.grisTexto }}>🍽️ {receta.porciones_base} porc.</Text>
-          {receta.etapas_compatibles.map((etapa) => (
-            <View
-              key={etapa}
-              style={{
-                backgroundColor: COLOR_ETAPA[etapa]?.bg ?? '#F5F5F4',
-                borderRadius: 6,
-                paddingHorizontal: 6,
-                paddingVertical: 2,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: COLOR_ETAPA[etapa]?.text ?? '#78716C',
-                  fontWeight: '600',
-                }}
-              >
-                {ETAPA_BADGE[etapa]}
-              </Text>
-            </View>
-          ))}
-        </View>
+      {/* Stats inline — mismo patrón que HeroDia */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          marginTop: 8,
+        }}
+      >
+        <StatInline icon="clock" texto={`${receta.tiempo_preparacion} min`} color={c.negro} />
+        <Bullet color={c.grisTexto} />
+        <StatInline icon="users" texto={`${receta.porciones_base} porc.`} color={c.negro} />
+        <Bullet color={c.grisTexto} />
+        <Text
+          style={{
+            fontSize: 13,
+            fontWeight: '600',
+            color: colorEtapa.text,
+            fontVariant: ['tabular-nums'],
+          }}
+        >
+          {ETAPA_LABEL[etapaPrimaria]}
+        </Text>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
+}
+
+function StatInline({
+  icon,
+  texto,
+  color,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  texto: string;
+  color: string;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+      <Feather name={icon} size={13} color={color} />
+      <Text style={{ fontSize: 13, fontWeight: '600', color, fontVariant: ['tabular-nums'] }}>
+        {texto}
+      </Text>
+    </View>
+  );
+}
+
+function Bullet({ color }: { color: string }) {
+  return <Text style={{ fontSize: 12, color, marginHorizontal: 10 }}>·</Text>;
 }

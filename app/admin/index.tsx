@@ -81,7 +81,7 @@ export default function AdminDashboard() {
         >
           <View>
             <Text style={{ fontSize: 22, fontWeight: '800', color: '#1C1917' }}>Panel Admin</Text>
-            <Text style={{ fontSize: 12, color: '#78716C', marginTop: 2 }}>Baby Bites</Text>
+            <Text style={{ fontSize: 12, color: '#78716C', marginTop: 2 }}>Yummi Glu Glu</Text>
           </View>
           <TouchableOpacity
             onPress={() => {
@@ -122,7 +122,7 @@ export default function AdminDashboard() {
               </Text>
               <Text style={{ fontSize: 12, color: '#92400E' }}>
                 Las stats y acciones de edición requieren estar en la tabla admins. Solicita acceso
-                al equipo de Baby Bites.
+                al equipo de Yummi Glu Glu.
               </Text>
             </View>
           </View>

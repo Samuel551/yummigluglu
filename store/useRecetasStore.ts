@@ -50,7 +50,19 @@ export const useRecetasStore = create<RecetasState>((set) => ({
 
       if (error) throw error;
 
-      set({ recetas: (data as Receta[]) ?? [] });
+      // Filtrar por país en memoria.
+      // Universal = tiene los 6 países específicos → aparece en cualquier filtro de país.
+      // País específico (ej. 'colombia' sin los otros 5) → solo aparece con ese país o 'todos'.
+      const TODOS_LOS_PAISES = ['chile', 'peru', 'colombia', 'venezuela', 'argentina', 'mexico'];
+      let resultado = (data as Receta[]) ?? [];
+      if (filtros?.pais && filtros.pais !== 'todos') {
+        const p = filtros.pais;
+        resultado = resultado.filter(
+          (r) => r.tags.includes(p) || TODOS_LOS_PAISES.every((id) => r.tags.includes(id))
+        );
+      }
+
+      set({ recetas: resultado });
     } catch (e) {
       set({ error: (e as Error).message });
     } finally {

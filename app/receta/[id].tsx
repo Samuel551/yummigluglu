@@ -1,23 +1,39 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+  Image,
+  useWindowDimensions,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import { supabase } from '@/lib/supabase';
 import { Receta } from '@/types';
 import { getAlergenoById } from '@/constants/Alergias';
-import { COLOR_ETAPA, ETAPA_LABEL } from '@/constants/Etapas';
+import { COLOR_ETAPA, ETAPA_LABEL, getEtapaInfo } from '@/constants/Etapas';
 import { useColoresTema } from '@/hooks/useColoresTema';
+import { useSuscripcionStore } from '@/store/useSuscripcionStore';
+import { extraerVideoId, urlThumbnail } from '@/lib/youtube';
 
 const MOMENTO_LABEL: Record<string, string> = {
-  desayuno: '🌅 Desayuno',
-  almuerzo: '☀️ Almuerzo',
-  cena: '🌙 Cena',
-  snack: '🍪 Snack',
+  desayuno: 'Desayuno',
+  almuerzo: 'Almuerzo',
+  cena: 'Cena',
+  snack: 'Snack',
 };
 
 export default function DetalleRecetaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = useColoresTema();
+  const insets = useSafeAreaInsets();
+  const { width: anchoP, height: altoP } = useWindowDimensions();
+  const { esPremium } = useSuscripcionStore();
+  const [videoVisible, setVideoVisible] = useState(false);
   const [receta, setReceta] = useState<Receta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -32,7 +48,7 @@ export default function DetalleRecetaScreen() {
       const { data, error } = await supabase.from('recetas').select('*').eq('id', id).single();
 
       if (error) {
-        setErrorMsg('No se pudo cargar la receta. Intentá de nuevo.');
+        setErrorMsg('No se pudo cargar la receta. Intenta de nuevo.');
       } else if (data) {
         setReceta(data as Receta);
       }
@@ -80,121 +96,195 @@ export default function DetalleRecetaScreen() {
 
   const etapaPrimaria = receta.etapas_compatibles[0] ?? 'inicio';
   const colorEtapa = COLOR_ETAPA[etapaPrimaria] ?? COLOR_ETAPA.inicio;
+  const etapaInfo = getEtapaInfo(etapaPrimaria);
+  const videoId = receta.video_url ? extraerVideoId(receta.video_url) : null;
+  const thumbnailUrl = videoId ? urlThumbnail(videoId) : null;
+
+  // El video Short es vertical 9:16 — el iframe debe respetar esa proporción
+  // para que no aparezcan bandas negras a los lados.
+  const espacioHeader = 80;
+  const videoModalWidth = Math.min(anchoP * 0.92, (altoP - insets.top - insets.bottom - espacioHeader) * 9 / 16);
+  const videoModalHeight = videoModalWidth * 16 / 9;
+
+  const seccionLabelStyle = {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: c.grisTexto,
+    letterSpacing: 2,
+    marginBottom: 18,
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp }}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Encabezado */}
-        <View
-          style={{
-            backgroundColor: colorEtapa.bg,
-            paddingTop: 16,
-            paddingHorizontal: 20,
-            paddingBottom: 24,
-          }}
-        >
-          <TouchableOpacity onPress={() => router.back()} style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 14, color: colorEtapa.text, fontWeight: '600' }}>
-              ← Volver
-            </Text>
-          </TouchableOpacity>
-
-          {receta.es_premium && (
+    <View style={{ flex: 1, backgroundColor: c.fondoApp }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+      >
+        {/* HERO — imagen del plato o fallback con etapa */}
+        <View style={{ position: 'relative' }}>
+          {receta.imagen_url ? (
+            <Image
+              source={{ uri: receta.imagen_url }}
+              style={{ width: '100%', aspectRatio: 4 / 3 }}
+              resizeMode="cover"
+            />
+          ) : (
             <View
               style={{
-                backgroundColor: '#F59E0B',
-                borderRadius: 8,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                alignSelf: 'flex-start',
-                marginBottom: 10,
-                flexDirection: 'row',
-                gap: 4,
+                width: '100%',
+                aspectRatio: 4 / 3,
+                backgroundColor: colorEtapa.bg,
                 alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 12 }}>👑</Text>
-              <Text style={{ fontSize: 12, color: '#fff', fontWeight: '700' }}>PREMIUM</Text>
+              <Text style={{ fontSize: 96, lineHeight: 144 }}>{etapaInfo.emoji}</Text>
             </View>
           )}
 
+          {/* Velo inferior suave para legibilidad del pill de etapa */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 100,
+              backgroundColor: 'rgba(0,0,0,0.18)',
+            }}
+          />
+
+          {/* Botón Volver flotante */}
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={{
+              position: 'absolute',
+              top: insets.top + 12,
+              left: 16,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: 'rgba(255,255,255,0.95)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOpacity: 0.18,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 4,
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#1A1714' }}>←</Text>
+          </TouchableOpacity>
+
+          {/* Badge Premium flotante */}
+          {receta.es_premium && (
+            <View
+              style={{
+                position: 'absolute',
+                top: insets.top + 18,
+                right: 18,
+                backgroundColor: '#1A1714',
+                borderRadius: 999,
+                paddingHorizontal: 11,
+                paddingVertical: 5,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              <Text style={{ fontSize: 11 }}>👑</Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 1 }}>
+                PREMIUM
+              </Text>
+            </View>
+          )}
+
+          {/* Pill de etapa abajo izquierda */}
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 16,
+              left: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: 'rgba(255,255,255,0.96)',
+              borderRadius: 999,
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+            }}
+          >
+            <Text style={{ fontSize: 14 }}>{etapaInfo.emoji}</Text>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#1A1714' }}>
+              {ETAPA_LABEL[etapaPrimaria]}
+            </Text>
+          </View>
+        </View>
+
+        {/* Contenido editorial */}
+        <View style={{ paddingHorizontal: 24, paddingTop: 28 }}>
+          {/* Title */}
           <Text
             style={{
-              fontSize: 24,
+              fontSize: 30,
               fontWeight: '800',
               color: c.negro,
-              marginBottom: 8,
-              lineHeight: 30,
+              letterSpacing: -0.6,
+              lineHeight: 36,
+              marginBottom: 10,
             }}
           >
             {receta.nombre}
           </Text>
-          <Text style={{ fontSize: 14, color: c.grisTexto, lineHeight: 20 }}>
+
+          {/* Descripción */}
+          <Text
+            style={{
+              fontSize: 16,
+              color: c.grisTexto,
+              lineHeight: 24,
+              marginBottom: 22,
+            }}
+          >
             {receta.descripcion}
           </Text>
-        </View>
 
-        <View style={{ padding: 20, gap: 24 }}>
-          {/* Info rápida */}
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            {[
-              { emoji: '⏱', valor: `${receta.tiempo_preparacion} min`, label: 'Preparación' },
-              { emoji: '🍽️', valor: `${receta.porciones_base} porc.`, label: 'Porciones' },
-              {
-                emoji: '🔥',
-                valor: receta.calorias ? `${receta.calorias} kcal` : '—',
-                label: 'Calorías',
-              },
-            ].map(({ emoji, valor, label }) => (
-              <View
-                key={label}
-                style={{
-                  flex: 1,
-                  backgroundColor: c.card,
-                  borderRadius: 12,
-                  padding: 12,
-                  alignItems: 'center',
-                  shadowColor: '#000',
-                  shadowOpacity: 0.04,
-                  shadowRadius: 6,
-                  elevation: 2,
-                }}
-              >
-                <Text style={{ fontSize: 20, marginBottom: 4 }}>{emoji}</Text>
-                <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro }}>{valor}</Text>
-                <Text style={{ fontSize: 10, color: c.grisTexto }}>{label}</Text>
-              </View>
-            ))}
+          {/* Stats inline */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              marginBottom: 24,
+            }}
+          >
+            <StatInline emoji="⏱" texto={`${receta.tiempo_preparacion} min`} color={c.negro} />
+            <Bullet color={c.grisTexto} />
+            <StatInline emoji="🍽" texto={`${receta.porciones_base} porciones`} color={c.negro} />
+            {receta.calorias != null && (
+              <>
+                <Bullet color={c.grisTexto} />
+                <StatInline emoji="🔥" texto={`${receta.calorias} kcal`} color={c.negro} />
+              </>
+            )}
           </View>
 
-          {/* Etapas y momentos */}
-          <View style={{ gap: 10 }}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {receta.etapas_compatibles.map((etapa) => (
-                <View
-                  key={etapa}
-                  style={{
-                    backgroundColor: COLOR_ETAPA[etapa]?.bg,
-                    borderRadius: 8,
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                  }}
-                >
-                  <Text
-                    style={{ fontSize: 12, color: COLOR_ETAPA[etapa]?.text, fontWeight: '600' }}
-                  >
-                    {ETAPA_LABEL[etapa]}
-                  </Text>
-                </View>
-              ))}
+          {/* Pills de momentos del día */}
+          {receta.momento_dia.length > 0 && (
+            <View
+              style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 28 }}
+            >
               {receta.momento_dia.map((momento) => (
                 <View
                   key={momento}
                   style={{
                     backgroundColor: c.grisClaro,
-                    borderRadius: 8,
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
+                    borderRadius: 999,
+                    paddingHorizontal: 12,
+                    paddingVertical: 5,
                   }}
                 >
                   <Text style={{ fontSize: 12, color: c.grisTexto, fontWeight: '500' }}>
@@ -203,105 +293,282 @@ export default function DetalleRecetaScreen() {
                 </View>
               ))}
             </View>
-          </View>
+          )}
 
-          {/* Alérgenos */}
+          {/* VIDEO PREVIEW — protagonista vertical 9:16 */}
+          {videoId &&
+            (receta.es_premium && !esPremium ? (
+              <TouchableOpacity
+                onPress={() => router.push('/premium')}
+                activeOpacity={0.9}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 16,
+                  marginBottom: 28,
+                }}
+              >
+                <View
+                  style={{
+                    width: 120,
+                    aspectRatio: 9 / 16,
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    backgroundColor: c.grisClaro,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {thumbnailUrl && (
+                    <Image
+                      source={{ uri: thumbnailUrl }}
+                      style={{ width: '100%', height: '100%', opacity: 0.35 }}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View
+                    style={{
+                      position: 'absolute',
+                      width: 52,
+                      height: 52,
+                      borderRadius: 26,
+                      backgroundColor: '#F28B3B',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      shadowColor: '#000',
+                      shadowOpacity: 0.25,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: 4 },
+                      elevation: 4,
+                    }}
+                  >
+                    <Text style={{ fontSize: 22 }}>🔒</Text>
+                  </View>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: '#F28B3B',
+                      letterSpacing: 1.5,
+                      marginBottom: 4,
+                    }}
+                  >
+                    EXCLUSIVO PREMIUM
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 17,
+                      fontWeight: '700',
+                      color: c.negro,
+                      marginBottom: 6,
+                      lineHeight: 22,
+                    }}
+                  >
+                    Ver paso a paso en video
+                  </Text>
+                  <Text style={{ fontSize: 13, color: c.grisTexto, lineHeight: 18 }}>
+                    Desbloquea los videos cortos con la preparación completa.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => setVideoVisible(true)}
+                activeOpacity={0.9}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 16,
+                  marginBottom: 28,
+                }}
+              >
+                <View
+                  style={{
+                    width: 120,
+                    aspectRatio: 9 / 16,
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    backgroundColor: '#000',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {thumbnailUrl && (
+                    <Image
+                      source={{ uri: thumbnailUrl }}
+                      style={{ width: '100%', height: '100%' }}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View
+                    style={{
+                      position: 'absolute',
+                      width: 52,
+                      height: 52,
+                      borderRadius: 26,
+                      backgroundColor: 'rgba(255,255,255,0.96)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      shadowColor: '#000',
+                      shadowOpacity: 0.3,
+                      shadowRadius: 10,
+                      shadowOffset: { width: 0, height: 4 },
+                      elevation: 4,
+                    }}
+                  >
+                    <Text style={{ fontSize: 18, color: '#000', marginLeft: 3 }}>▶</Text>
+                  </View>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: c.verde,
+                      letterSpacing: 1.5,
+                      marginBottom: 4,
+                    }}
+                  >
+                    VIDEO · SHORT
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 17,
+                      fontWeight: '700',
+                      color: c.negro,
+                      marginBottom: 6,
+                      lineHeight: 22,
+                    }}
+                  >
+                    Ver paso a paso
+                  </Text>
+                  <Text style={{ fontSize: 13, color: c.grisTexto, lineHeight: 18 }}>
+                    Mira la preparación completa en un video corto.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+
+          {/* Aviso de alérgenos */}
           {receta.alergenos.length > 0 && (
-            <View style={{ backgroundColor: '#FFF7ED', borderRadius: 12, padding: 14 }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#C2410C', marginBottom: 8 }}>
-                ⚠️ Contiene alérgenos
-              </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                {receta.alergenos.map((id) => {
-                  const info = getAlergenoById(id);
-                  return (
-                    <Text key={id} style={{ fontSize: 12, color: '#78350F' }}>
-                      {info ? `${info.emoji} ${info.nombre}` : id}
-                    </Text>
-                  );
-                })}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                borderTopWidth: 1,
+                borderBottomWidth: 1,
+                borderColor: '#FDBA74',
+                paddingVertical: 14,
+                marginBottom: 28,
+              }}
+            >
+              <Text style={{ fontSize: 20 }}>⚠</Text>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: '700',
+                    color: '#C2410C',
+                    letterSpacing: 1.5,
+                    marginBottom: 3,
+                  }}
+                >
+                  CONTIENE
+                </Text>
+                <Text style={{ fontSize: 14, color: c.negro }}>
+                  {receta.alergenos
+                    .map((a) => getAlergenoById(a)?.nombre ?? a)
+                    .join(' · ')}
+                </Text>
               </View>
             </View>
           )}
 
-          {/* Ingredientes */}
-          <View>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: c.negro, marginBottom: 12 }}>
-              Ingredientes
-            </Text>
-            <View style={{ gap: 8 }}>
-              {receta.ingredientes.map((ing) => (
-                <View
-                  key={ing.id}
+          {/* Separador */}
+          <View
+            style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }}
+          />
+
+          {/* INGREDIENTES */}
+          <Text style={seccionLabelStyle}>INGREDIENTES</Text>
+          <View style={{ marginBottom: 32 }}>
+            {receta.ingredientes.map((ing, idx) => (
+              <View
+                key={ing.id}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  paddingVertical: 13,
+                  borderBottomWidth: idx < receta.ingredientes.length - 1 ? 1 : 0,
+                  borderBottomColor: c.cardBorde,
+                }}
+              >
+                <Text style={{ fontSize: 15, color: c.negro, flex: 1, paddingRight: 12 }}>
+                  {ing.nombre}
+                </Text>
+                <Text
                   style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    backgroundColor: c.card,
-                    borderRadius: 10,
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    shadowColor: '#000',
-                    shadowOpacity: 0.03,
-                    shadowRadius: 4,
-                    elevation: 1,
+                    fontSize: 14,
+                    color: c.grisTexto,
+                    fontWeight: '500',
+                    fontVariant: ['tabular-nums'],
                   }}
                 >
-                  <Text style={{ fontSize: 14, color: c.negro, flex: 1 }}>{ing.nombre}</Text>
-                  <Text style={{ fontSize: 13, color: c.grisTexto, fontWeight: '500' }}>
-                    {ing.cantidad} {ing.unidad}
+                  {ing.cantidad} {ing.unidad}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Separador */}
+          <View
+            style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }}
+          />
+
+          {/* PREPARACIÓN */}
+          <Text style={seccionLabelStyle}>PREPARACIÓN</Text>
+          <View style={{ marginBottom: 32, gap: 22 }}>
+            {receta.pasos.map((paso) => (
+              <View key={paso.orden} style={{ flexDirection: 'row', gap: 16 }}>
+                <Text
+                  style={{
+                    fontSize: 44,
+                    fontWeight: '900',
+                    color: colorEtapa.text,
+                    letterSpacing: -1.5,
+                    lineHeight: 44,
+                    fontVariant: ['tabular-nums'],
+                    width: 58,
+                  }}
+                >
+                  {String(paso.orden).padStart(2, '0')}
+                </Text>
+                <View style={{ flex: 1, paddingTop: 6 }}>
+                  <Text style={{ fontSize: 15, color: c.negro, lineHeight: 22 }}>
+                    {paso.descripcion}
                   </Text>
+                  {paso.duracion_min > 0 && (
+                    <Text style={{ fontSize: 12, color: c.grisTexto, marginTop: 6 }}>
+                      ⏱ {paso.duracion_min} min
+                    </Text>
+                  )}
                 </View>
-              ))}
-            </View>
+              </View>
+            ))}
           </View>
 
-          {/* Pasos */}
-          <View>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: c.negro, marginBottom: 12 }}>
-              Preparación
-            </Text>
-            <View style={{ gap: 12 }}>
-              {receta.pasos.map((paso) => (
-                <View key={paso.orden} style={{ flexDirection: 'row', gap: 14 }}>
-                  <View
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 14,
-                      backgroundColor: c.verde,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginTop: 2,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Text style={{ fontSize: 13, color: c.blanco, fontWeight: '700' }}>
-                      {paso.orden}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, color: c.negro, lineHeight: 20 }}>
-                      {paso.descripcion}
-                    </Text>
-                    {paso.duracion_min > 0 && (
-                      <Text style={{ fontSize: 11, color: c.grisTexto, marginTop: 4 }}>
-                        ⏱ {paso.duracion_min} min
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Info nutricional */}
-          {receta.calorias && (
-            <View>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: c.negro, marginBottom: 12 }}>
-                Info nutricional por porción
-              </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {/* NUTRICIÓN */}
+          {receta.calorias != null && (
+            <>
+              <View
+                style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }}
+              />
+              <Text style={seccionLabelStyle}>NUTRICIÓN POR PORCIÓN</Text>
+              <View>
                 {[
                   { label: 'Calorías', valor: receta.calorias, unidad: 'kcal' },
                   { label: 'Proteínas', valor: receta.proteinas, unidad: 'g' },
@@ -309,39 +576,103 @@ export default function DetalleRecetaScreen() {
                   { label: 'Grasas', valor: receta.grasas, unidad: 'g' },
                   { label: 'Hierro', valor: receta.hierro, unidad: 'mg' },
                 ]
-                  .filter(({ valor }) => valor != null)
-                  .map(({ label, valor, unidad }) => (
+                  .filter((row) => row.valor != null)
+                  .map((row, idx, arr) => (
                     <View
-                      key={label}
+                      key={row.label}
                       style={{
-                        backgroundColor: c.card,
-                        borderRadius: 10,
-                        padding: 12,
-                        minWidth: '45%',
-                        flex: 1,
-                        shadowColor: '#000',
-                        shadowOpacity: 0.03,
-                        shadowRadius: 4,
-                        elevation: 1,
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'baseline',
+                        paddingVertical: 13,
+                        borderBottomWidth: idx < arr.length - 1 ? 1 : 0,
+                        borderBottomColor: c.cardBorde,
                       }}
                     >
-                      <Text style={{ fontSize: 16, fontWeight: '700', color: c.negro }}>
-                        {valor}
-                        <Text style={{ fontSize: 11, fontWeight: '400', color: c.grisTexto }}>
-                          {' '}
-                          {unidad}
-                        </Text>
-                      </Text>
-                      <Text style={{ fontSize: 11, color: c.grisTexto, marginTop: 2 }}>
-                        {label}
+                      <Text style={{ fontSize: 15, color: c.grisTexto }}>{row.label}</Text>
+                      <Text
+                        style={{
+                          fontSize: 15,
+                          color: c.negro,
+                          fontWeight: '600',
+                          fontVariant: ['tabular-nums'],
+                        }}
+                      >
+                        {row.valor} {row.unidad}
                       </Text>
                     </View>
                   ))}
               </View>
-            </View>
+            </>
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+
+      {/* Modal de video — aspect 9:16 propio para Shorts */}
+      {videoId && (
+        <Modal
+          visible={videoVisible}
+          animationType="slide"
+          onRequestClose={() => setVideoVisible(false)}
+        >
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingHorizontal: 20,
+                paddingVertical: 14,
+              }}
+            >
+              <Text
+                style={{ color: '#fff', fontWeight: '700', fontSize: 15, flex: 1 }}
+                numberOfLines={1}
+              >
+                {receta.nombre}
+              </Text>
+              <TouchableOpacity onPress={() => setVideoVisible(false)} style={{ padding: 6 }}>
+                <Text style={{ color: '#fff', fontSize: 24 }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <View
+                style={{
+                  width: videoModalWidth,
+                  height: videoModalHeight,
+                  borderRadius: 18,
+                  overflow: 'hidden',
+                  backgroundColor: '#000',
+                }}
+              >
+                <YoutubePlayer
+                  width={videoModalWidth}
+                  height={videoModalHeight}
+                  videoId={videoId}
+                  play={false}
+                />
+              </View>
+            </View>
+          </SafeAreaView>
+        </Modal>
+      )}
+    </View>
+  );
+}
+
+function StatInline({ emoji, texto, color }: { emoji: string; texto: string; color: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+      <Text style={{ fontSize: 13 }}>{emoji}</Text>
+      <Text style={{ fontSize: 14, fontWeight: '600', color, fontVariant: ['tabular-nums'] }}>
+        {texto}
+      </Text>
+    </View>
+  );
+}
+
+function Bullet({ color }: { color: string }) {
+  return (
+    <Text style={{ fontSize: 12, color, marginHorizontal: 10 }}>·</Text>
   );
 }

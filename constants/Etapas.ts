@@ -12,6 +12,15 @@ export interface EtapaInfo {
 
 export const ETAPAS: EtapaInfo[] = [
   {
+    id: 'lactancia',
+    nombre: 'Solo leche',
+    descripcion: 'Lactancia exclusiva, aún sin sólidos',
+    edadMin: 0,
+    edadMax: 5,
+    emoji: '🍼',
+    color: '#CDB4F0',
+  },
+  {
     id: 'inicio',
     nombre: 'Primeros alimentos',
     descripcion: 'Papillas y purés suaves',
@@ -42,6 +51,7 @@ export const ETAPAS: EtapaInfo[] = [
 
 /** Calcula la etapa alimentaria según la edad en meses */
 export const calcularEtapaPorEdad = (edadMeses: number): EtapaAlimentaria => {
+  if (edadMeses < 6) return 'lactancia';
   if (edadMeses <= 11) return 'inicio';
   if (edadMeses <= 23) return 'transicion';
   return 'preescolar';
@@ -67,6 +77,7 @@ export const getEtapaInfo = (etapa: EtapaAlimentaria): EtapaInfo =>
   ETAPAS.find((e) => e.id === etapa)!;
 
 export const COLOR_ETAPA: Record<string, { bg: string; text: string }> = {
+  lactancia: { bg: '#F5F0FF', text: '#6D28D9' },
   inicio: { bg: '#FFF7ED', text: '#C2410C' },
   transicion: { bg: '#F0FDF4', text: '#15803D' },
   preescolar: { bg: '#EFF6FF', text: '#1D4ED8' },
@@ -74,6 +85,7 @@ export const COLOR_ETAPA: Record<string, { bg: string; text: string }> = {
 
 /** Etiqueta corta para badges en cards */
 export const ETAPA_BADGE: Record<string, string> = {
+  lactancia: '0-5m',
   inicio: '6-11m',
   transicion: '12-23m',
   preescolar: '2a+',
@@ -81,6 +93,7 @@ export const ETAPA_BADGE: Record<string, string> = {
 
 /** Etiqueta completa para pantallas de detalle */
 export const ETAPA_LABEL: Record<string, string> = {
+  lactancia: '0–5 meses',
   inicio: '6–11 meses',
   transicion: '12–23 meses',
   preescolar: '2 años o más',

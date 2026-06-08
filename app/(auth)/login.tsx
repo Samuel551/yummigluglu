@@ -11,10 +11,25 @@ import {
   ScrollView,
 } from 'react-native';
 import { Link } from 'expo-router';
+import { Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
 
 type ModoLogin = 'login' | 'magic-link' | 'recuperar';
+
+type FeatherIcon = keyof typeof Feather.glyphMap;
+
+const ICONO_ACCION: Record<ModoLogin, FeatherIcon> = {
+  login: 'log-in',
+  'magic-link': 'mail',
+  recuperar: 'key',
+};
+
+const LABEL_ACCION: Record<ModoLogin, string> = {
+  login: 'Iniciar sesión',
+  'magic-link': 'Enviar enlace mágico',
+  recuperar: 'Recuperar contraseña',
+};
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -23,8 +38,15 @@ export default function LoginScreen() {
   const [modo, setModo] = useState<ModoLogin>('login');
   const [emailEnviado, setEmailEnviado] = useState<'magic-link' | 'recuperar' | null>(null);
 
-  const { iniciarSesion, enviarMagicLink, enviarResetContrasena, cargando, error, limpiarError } =
-    useAuthStore();
+  const {
+    iniciarSesion,
+    enviarMagicLink,
+    enviarResetContrasena,
+    iniciarSesionConGoogle,
+    cargando,
+    error,
+    limpiarError,
+  } = useAuthStore();
   const c = useColoresTema();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -67,31 +89,76 @@ export default function LoginScreen() {
     }
   };
 
+  const handleGoogle = async () => {
+    limpiarError();
+    await iniciarSesionConGoogle();
+    // La navegación la maneja el listener de auth en _layout.tsx
+  };
+
+  const onSubmit =
+    modo === 'login' ? handleLogin : modo === 'magic-link' ? handleMagicLink : handleRecuperar;
+
   // Pantalla de confirmación tras enviar email
   if (emailEnviado) {
     const esMagicLink = emailEnviado === 'magic-link';
     return (
-      <View className="flex-1 bg-fondo-app dark:bg-[#121212] items-center justify-center px-6">
-        <Text className="text-5xl mb-4">{esMagicLink ? '📬' : '🔑'}</Text>
-        <Text className="text-2xl font-bold text-negro dark:text-[#F0EDE8] text-center mb-2">
-          ¡Revisa tu correo!
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: c.fondoApp,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 32,
+        }}
+      >
+        <View
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: c.verdeClaro,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+          }}
+        >
+          <Feather name={esMagicLink ? 'mail' : 'key'} size={30} color={c.verde} />
+        </View>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: '800',
+            color: c.negro,
+            letterSpacing: -0.5,
+            textAlign: 'center',
+            marginBottom: 10,
+          }}
+        >
+          Revisa tu correo
         </Text>
-        <Text className="text-gris-texto dark:text-[#A0A0A0] text-center text-base leading-6">
+        <Text style={{ fontSize: 15, color: c.grisTexto, textAlign: 'center', lineHeight: 22 }}>
           {esMagicLink
             ? 'Te enviamos un enlace mágico a'
             : 'Te enviamos un enlace para cambiar tu contraseña a'}
           {'\n'}
-          <Text className="font-semibold text-verde">{email}</Text>
+          <Text style={{ fontWeight: '700', color: c.verde }}>{email}</Text>
         </Text>
         <TouchableOpacity
-          className="mt-8"
+          style={{
+            marginTop: 28,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingVertical: 8,
+          }}
           onPress={() => {
             setEmailEnviado(null);
             limpiarError();
           }}
           accessibilityLabel="Volver al inicio de sesión"
         >
-          <Text className="text-verde font-semibold">Volver</Text>
+          <Feather name="arrow-left" size={18} color={c.verde} />
+          <Text style={{ fontSize: 15, fontWeight: '600', color: c.verde }}>Volver</Text>
         </TouchableOpacity>
       </View>
     );
@@ -99,35 +166,51 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-fondo-app dark:bg-[#121212]"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      style={{ flex: 1, backgroundColor: c.fondoApp }}
+      behavior="padding"
       keyboardVerticalOffset={Platform.OS === 'android' ? 24 : 0}
     >
       <ScrollView
         ref={scrollRef}
-        className="flex-1"
-        contentContainerClassName="flex-grow justify-center px-6 py-10"
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: 'center',
+          paddingHorizontal: 24,
+          paddingVertical: 40,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Logo / Header */}
-        <View className="items-center mb-10">
-          {/* lineHeight > fontSize: emoji 🍼 tiene la tetina sobresaliendo del bbox y Android lo recortaba */}
-          <Text className="text-6xl mb-3" style={{ lineHeight: 90 }}>
-            🍼
+        <View style={{ alignItems: 'center', marginBottom: 40 }}>
+          {/* lineHeight > fontSize: el emoji 🍼 tiene la tetina sobresaliendo del bbox y Android lo recortaba */}
+          <Text style={{ fontSize: 60, marginBottom: 12, lineHeight: 90 }}>🍼</Text>
+          <Text style={{ fontSize: 30, fontWeight: '800', color: c.negro, letterSpacing: -0.6 }}>
+            Yummi Glu Glu
           </Text>
-          <Text className="text-3xl font-bold text-negro dark:text-[#F0EDE8]">Baby Bites</Text>
-          <Text className="text-gris-texto dark:text-[#A0A0A0] text-base mt-1">
+          <Text style={{ fontSize: 15, color: c.grisTexto, marginTop: 6 }}>
             Alimentación inteligente para tu bebé
           </Text>
         </View>
 
         {/* Formulario */}
-        <View className="gap-4">
+        <View style={{ gap: 16 }}>
           <View>
-            <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1">Email</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 8 }}>
+              Email
+            </Text>
             <TextInput
-              className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl px-4 py-3 text-negro dark:text-[#F0EDE8] text-base"
+              style={{
+                backgroundColor: c.card,
+                borderWidth: 1,
+                borderColor: c.cardBorde,
+                borderRadius: 14,
+                paddingHorizontal: 16,
+                paddingVertical: 13,
+                fontSize: 16,
+                color: c.negro,
+              }}
               placeholder="tu@email.com"
               placeholderTextColor={c.grisTexto}
               value={email}
@@ -144,13 +227,22 @@ export default function LoginScreen() {
 
           {modo === 'login' && (
             <View>
-              <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1">
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 8 }}>
                 Contraseña
               </Text>
-              <View className="relative">
+              <View style={{ position: 'relative', justifyContent: 'center' }}>
                 <TextInput
-                  className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl px-4 py-3 text-negro dark:text-[#F0EDE8] text-base"
-                  style={{ paddingRight: 48 }}
+                  style={{
+                    backgroundColor: c.card,
+                    borderWidth: 1,
+                    borderColor: c.cardBorde,
+                    borderRadius: 14,
+                    paddingHorizontal: 16,
+                    paddingVertical: 13,
+                    paddingRight: 50,
+                    fontSize: 16,
+                    color: c.negro,
+                  }}
                   placeholder="Tu contraseña"
                   placeholderTextColor={c.grisTexto}
                   value={password}
@@ -163,87 +255,161 @@ export default function LoginScreen() {
                   }
                 />
                 <TouchableOpacity
-                  className="absolute right-3 top-0 bottom-0 justify-center"
+                  style={{ position: 'absolute', right: 14, padding: 4 }}
+                  hitSlop={8}
                   onPress={() => setMostrarPassword((v) => !v)}
                   accessibilityLabel={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
-                  <Text style={{ fontSize: 20 }}>{mostrarPassword ? '🙈' : '👁️'}</Text>
+                  <Feather
+                    name={mostrarPassword ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={c.grisTexto}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
           )}
 
-          {error && <Text className="text-error text-sm text-center">{error}</Text>}
+          {error && (
+            <Text style={{ fontSize: 13, color: c.error, textAlign: 'center' }}>{error}</Text>
+          )}
 
           {/* Botón principal */}
           <TouchableOpacity
-            className={`rounded-xl py-4 items-center mt-2 ${cargando ? 'bg-verde/60' : 'bg-verde'}`}
-            onPress={
-              modo === 'login'
-                ? handleLogin
-                : modo === 'magic-link'
-                  ? handleMagicLink
-                  : handleRecuperar
-            }
+            style={{
+              borderRadius: 999,
+              paddingVertical: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 10,
+              marginTop: 4,
+              backgroundColor: cargando ? c.grisClaro : c.verde,
+            }}
+            activeOpacity={0.85}
+            onPress={onSubmit}
             disabled={cargando}
-            accessibilityLabel={
-              modo === 'login'
-                ? 'Iniciar sesión'
-                : modo === 'magic-link'
-                  ? 'Enviar enlace mágico'
-                  : 'Recuperar contraseña'
-            }
+            accessibilityLabel={LABEL_ACCION[modo]}
           >
             {cargando ? (
-              <ActivityIndicator color="white" />
+              <ActivityIndicator color={c.grisTexto} size="small" />
             ) : (
-              <Text className="text-white font-bold text-base">
-                {modo === 'login'
-                  ? 'Iniciar sesión'
-                  : modo === 'magic-link'
-                    ? 'Enviar enlace mágico'
-                    : 'Recuperar contraseña'}
-              </Text>
+              <>
+                <Feather name={ICONO_ACCION[modo]} size={18} color={c.blanco} />
+                <Text
+                  style={{ color: c.blanco, fontWeight: '800', fontSize: 15, letterSpacing: 0.3 }}
+                >
+                  {LABEL_ACCION[modo]}
+                </Text>
+              </>
             )}
           </TouchableOpacity>
 
+          {/* Continuar con Google — solo en modo login */}
+          {modo === 'login' && (
+            <>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginTop: 4,
+                  marginBottom: 2,
+                }}
+              >
+                <View style={{ flex: 1, height: 1, backgroundColor: c.cardBorde }} />
+                <Text style={{ fontSize: 13, color: c.grisTexto, marginHorizontal: 12 }}>o</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: c.cardBorde }} />
+              </View>
+
+              <TouchableOpacity
+                style={{
+                  borderRadius: 999,
+                  paddingVertical: 15,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 10,
+                  backgroundColor: c.card,
+                  borderWidth: 1,
+                  borderColor: c.cardBorde,
+                }}
+                activeOpacity={0.85}
+                onPress={handleGoogle}
+                disabled={cargando}
+                accessibilityLabel="Continuar con Google"
+              >
+                <AntDesign name="google" size={18} color="#DB4437" />
+                <Text style={{ color: c.negro, fontWeight: '700', fontSize: 15 }}>
+                  Continuar con Google
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
           {/* Toggles de modo */}
           {modo === 'login' ? (
-            <View className="gap-2 mt-1">
+            <View style={{ gap: 4, marginTop: 4 }}>
               <TouchableOpacity
-                className="items-center py-1"
+                style={{ alignItems: 'center', paddingVertical: 6 }}
                 onPress={() => cambiarModo('magic-link')}
                 accessibilityLabel="Ingresar sin contraseña con enlace mágico"
               >
-                <Text className="text-verde text-sm">¿Sin contraseña? Usa enlace mágico</Text>
+                <Text style={{ fontSize: 14, color: c.verde, fontWeight: '600' }}>
+                  ¿Sin contraseña? Usa enlace mágico
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="items-center py-1"
+                style={{ alignItems: 'center', paddingVertical: 6 }}
                 onPress={() => cambiarModo('recuperar')}
                 accessibilityLabel="Recuperar contraseña olvidada"
               >
-                <Text className="text-gris-texto dark:text-[#A0A0A0] text-sm">
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: c.verde,
+                    fontWeight: '600',
+                    textDecorationLine: 'underline',
+                  }}
+                >
                   ¿Olvidaste tu contraseña?
                 </Text>
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity
-              className="items-center py-2"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                paddingVertical: 8,
+              }}
               onPress={() => cambiarModo('login')}
               accessibilityLabel="Volver al inicio de sesión"
             >
-              <Text className="text-verde text-sm">← Volver al login</Text>
+              <Feather name="arrow-left" size={16} color={c.verde} />
+              <Text style={{ fontSize: 14, color: c.verde, fontWeight: '600' }}>
+                Volver al login
+              </Text>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Link a registro */}
-        <View className="flex-row justify-center mt-8">
-          <Text className="text-gris-texto dark:text-[#A0A0A0]">¿No tienes cuenta? </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20 }}>
+          <Text style={{ fontSize: 14, color: c.grisTexto }}>¿No tienes cuenta? </Text>
           <Link href="/(auth)/register" asChild>
             <TouchableOpacity accessibilityLabel="Ir a registro">
-              <Text className="text-verde font-semibold">Registrarte</Text>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: c.verde,
+                  fontWeight: '700',
+                  textDecorationLine: 'underline',
+                }}
+              >
+                Registrarte
+              </Text>
             </TouchableOpacity>
           </Link>
         </View>

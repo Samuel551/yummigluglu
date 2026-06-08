@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { PerfilHijo, PerfilHijoInput } from '@/types';
 import { supabase } from '@/lib/supabase';
+import { useSuscripcionStore } from './useSuscripcionStore';
+
+export const MAX_PERFILES_FREE = 2;
 
 interface PerfilState {
   perfiles: PerfilHijo[];
@@ -52,8 +55,11 @@ export const usePerfilStore = create<PerfilState>((set, get) => ({
   },
 
   crearPerfil: async (input) => {
-    if (get().perfiles.length >= 2) {
-      set({ error: 'Plan gratuito: puedes tener hasta 2 perfiles.' });
+    const esPremium = useSuscripcionStore.getState().esPremium;
+    if (get().perfiles.length >= MAX_PERFILES_FREE && !esPremium) {
+      set({
+        error: `Plan gratuito: hasta ${MAX_PERFILES_FREE} perfiles. Activa Premium para perfiles ilimitados.`,
+      });
       return null;
     }
     set({ cargando: true, error: null });

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Context
 
-**Baby Bites** — App móvil Android de alimentación infantil con IA integrada (NutriBot). Dirigida a padres de niños 6m–5 años en Chile y LATAM hispanohablante. Producto real pensado para escalar, no solo MVP.
+**Yummi Glu Glu** — App móvil Android de alimentación infantil con IA integrada (NutriBot). Dirigida a padres de niños 6m–5 años en Chile y LATAM hispanohablante. Producto real pensado para escalar, no solo MVP.
 
 - Supabase project: `uoqzkbbnesmvmgbjikrn` (región: São Paulo)
 - Target: Android only (por ahora)
@@ -90,11 +90,16 @@ Crear `.env.local` en la raíz con:
 EXPO_PUBLIC_SUPABASE_URL=https://uoqzkbbnesmvmgbjikrn.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID=<revenuecat_android_key>
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<google_web_client_id>.apps.googleusercontent.com
 ```
 
 Sin `SUPABASE_URL` y `SUPABASE_ANON_KEY` la app lanza una excepción al arrancar (`lib/supabase.ts`). Sin `REVENUECAT_API_KEY_ANDROID` la pantalla premium carga pero sin paquetes disponibles.
 
+`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` — el **Web Client ID** de Google Cloud (público, no secreto). Lo usa `GoogleSignin.configure()` en `useAuthStore.ts`. Sin él, el botón "Continuar con Google" no funciona (la config se saltea por el guard). Ver sección "Google Sign In".
+
 `EXPO_PUBLIC_ADMIN_PASSWORD_HASH` — hash SHA-256 de la contraseña del panel admin (requerido para acceder a `/admin`). Calcular con `crypto.subtle.digest('SHA-256', ...)` en browser.
+
+> ⚠️ **Dev client vs producción**: el build `development` usa Metro local, que lee `.env.local` y hornea las `EXPO_PUBLIC_*` al bundlear. Por eso en dev alcanza con `.env.local`. Pero el `eas.json` **no tiene bloque `env`**, así que los builds **`preview`/`production` (sin Metro local) NO van a tener estas variables** — antes de un build de producción hay que cargarlas en `eas.json` (`build.<profile>.env`) o en EAS Environment Variables.
 
 ## Architecture
 
@@ -164,7 +169,7 @@ Los stores llaman directo a Supabase — no hay capa de servicios separada todav
 
 Implementado con NativeWind (`darkMode: 'class'`). El toggle vive dentro de la pantalla de perfil — NO hay botón flotante global.
 
-- **Fuente de verdad**: `store/useTemaStore.ts` (Zustand). Expone `tema`, `setTema(t)`, `alternar()`, `hidratar()`. Cada cambio de tema sincroniza a nativewind vía `colorScheme.set()` (para que las clases `dark:` sigan funcionando) Y persiste a AsyncStorage (`baby-bites-tema`). **No leer `useColorScheme()` de nativewind directamente** — siempre pasar por el store.
+- **Fuente de verdad**: `store/useTemaStore.ts` (Zustand). Expone `tema`, `setTema(t)`, `alternar()`, `hidratar()`. Cada cambio de tema sincroniza a nativewind vía `colorScheme.set()` (para que las clases `dark:` sigan funcionando) Y persiste a AsyncStorage (`yummigluglu-tema`). **No leer `useColorScheme()` de nativewind directamente** — siempre pasar por el store.
 - **Paleta dual** en `constants/Colors.ts` — `Colors.light` y `Colors.dark`.
 - **Hook `useColoresTema()`** en `hooks/useColoresTema.ts` — suscribe a `useTemaStore` y retorna la paleta activa + `isDark`. Usar en pantallas con inline `style`.
 - **Clases `dark:`** — funcionan para pantallas con `className` (auth, onboarding) porque el store llama `colorScheme.set()` en cada cambio.
@@ -251,6 +256,39 @@ Tablas principales (`supabase/migrations/001_initial_schema.sql`):
 
 Índices GIN en arrays (`etapas_compatibles`, `alergenos`, `momento_dia`, `tags`) para filtros eficientes.
 
+### Migraciones — GRANTs obligatorios en tablas nuevas (Data API change)
+
+A partir del **30 de octubre de 2026** Supabase deja de exponer automáticamente al Data API (PostgREST / GraphQL / `supabase-js`) las tablas creadas en el schema `public`. Las **tablas existentes mantienen sus grants actuales** — no se rompen. El cambio aplica solo a tablas creadas en o después de esa fecha.
+
+**Regla obligatoria**: toda migración nueva que cree una tabla en `public` (ej. `videos` de Fase 7a, futuras tablas) debe incluir **GRANTs explícitos + RLS + policies** en el mismo archivo de migración. No depender del comportamiento legacy de auto-exposición.
+
+**Template mínimo a copiar en cada migración nueva:**
+
+```sql
+create table public.nombre_tabla (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+-- 1. Habilitar RLS SIEMPRE antes de los grants
+alter table public.nombre_tabla enable row level security;
+
+-- 2. GRANTs por rol — ajustar según necesidad
+grant select on public.nombre_tabla to anon;                              -- solo si la tabla es pública (ej. recetas)
+grant select, insert, update, delete on public.nombre_tabla to authenticated;
+grant select, insert, update, delete on public.nombre_tabla to service_role;
+
+-- 3. Policies — RLS sin policies bloquea todo, ojo
+create policy "users select propios"
+  on public.nombre_tabla for select to authenticated
+  using (auth.uid() = user_id);
+```
+
+**Síntoma si falta un GRANT**: PostgREST devuelve error `42501` con el `GRANT` exacto que falta en el mensaje. Si una tabla nueva "no aparece" desde `supabase-js`, este es el primer sospechoso después del 30 oct 2026.
+
+**Patrón ya aplicado** en `002_recetas_rls_premium.sql` y `006_webhook_security_hardening.sql` — usar esos como referencia. La tabla `webhook_events_procesados` (006) es el ejemplo limpio de tabla **solo accesible por `service_role`** (sin policies para `anon`/`authenticated`).
+
 ## Known Gotchas
 
 ### NativeWind en Android — historial de problemas (RESUELTO)
@@ -272,17 +310,17 @@ NativeWind v4.0.36 + css-interop v0.1.21 tenían 5 bugs encadenados en Windows q
 El flujo de confirmación de email / magic link / reset password en mobile tiene **3 piezas** que TIENEN que estar bien o el usuario termina en `localhost:3000` (o el deep link no se procesa):
 
 **1) Código (`store/useAuthStore.ts`) — ya OK**
-Los métodos `signUp`, `signInWithOtp` y `resetPasswordForEmail` pasan `emailRedirectTo: Linking.createURL('/', { scheme: 'babybites' })`. En web usa `window.location.origin`.
+Los métodos `signUp`, `signInWithOtp` y `resetPasswordForEmail` pasan `emailRedirectTo: Linking.createURL('/', { scheme: 'yummigluglu' })`. En web usa `window.location.origin`.
 
 **2) Supabase Dashboard → Authentication → URL Configuration — CRÍTICO**
 
-- **Site URL**: `babybites://` (NO dejar el default `http://localhost:3000`).
-- **Redirect URLs (whitelist)**: agregar `babybites://**` y `babybites://*`.
+- **Site URL**: `yummigluglu://` (NO dejar el default `http://localhost:3000`).
+- **Redirect URLs (whitelist)**: agregar `yummigluglu://**` y `yummigluglu://*`.
 
-> ⚠️ Si la URL que manda el código (`emailRedirectTo`) **no matchea ninguna entry de la whitelist**, Supabase la **ignora silenciosamente** y usa el Site URL como fallback. Por eso aunque el código esté perfecto, si la whitelist no tiene `babybites://**`, el email termina mandando al user a `localhost:3000` con `ERR_CONNECTION_REFUSED`.
+> ⚠️ Si la URL que manda el código (`emailRedirectTo`) **no matchea ninguna entry de la whitelist**, Supabase la **ignora silenciosamente** y usa el Site URL como fallback. Por eso aunque el código esté perfecto, si la whitelist no tiene `yummigluglu://**`, el email termina mandando al user a `localhost:3000` con `ERR_CONNECTION_REFUSED`.
 
 **3) Handler de deep link (`app/_layout.tsx`) — ya OK**
-En React Native, `detectSessionInUrl` del cliente Supabase **solo funciona en web**. En mobile hay que parsear manualmente el fragment de la URL (`babybites://#access_token=XXX&refresh_token=YYY&type=signup`) y llamar `supabase.auth.setSession({ access_token, refresh_token })`. El handler ya está montado en `_layout.tsx` con `Linking.getInitialURL` (cold start) + `Linking.addEventListener('url', ...)` (warm).
+En React Native, `detectSessionInUrl` del cliente Supabase **solo funciona en web**. En mobile hay que parsear manualmente el fragment de la URL (`yummigluglu://#access_token=XXX&refresh_token=YYY&type=signup`) y llamar `supabase.auth.setSession({ access_token, refresh_token })`. El handler ya está montado en `_layout.tsx` con `Linking.getInitialURL` (cold start) + `Linking.addEventListener('url', ...)` (warm).
 
 **Para debuggear**: si el usuario hace click en el link y NO queda logueado, mirar consola para `Error procesando deep link de auth:` que loguea el handler. Causas comunes: token expirado (Supabase los hace expirar en 1h), URL sin fragment (chequear que Site URL en dashboard sea el deep link y no una URL https), `verifyOtp` requerido en vez de `setSession` (algunos flujos legacy).
 
@@ -311,17 +349,39 @@ Algunos emojis tienen glifos que sobresalen del bounding box vertical de la fuen
 
 NO usar `includeFontPadding: false` para "compactar" — hace lo opuesto: quita el padding interno de la fuente Android y empeora el recorte.
 
-### Supabase Auth — límite de emails en el plan free
+### Supabase Auth — envío de emails vía Resend (CONFIGURADO)
 
-El plan free de Supabase incluye un sender SMTP de cortesía con un rate limit muy bajo (~3-4 emails/hora por proyecto). Durante testing de registro / magic link / reset password es fácil chocar el límite y los nuevos usuarios **dejan de recibir el email de confirmación**, lo que bloquea la creación de cuentas (la llamada `registrarse` en `useAuthStore` no falla — Supabase responde 200 — pero el usuario nunca se confirma porque el correo nunca llega).
+Los emails de auth (confirmación de registro, magic link, reset password) se mandan por **Resend** como SMTP custom (Supabase Dashboard → Project Settings → Auth → SMTP Settings). Configurado el 2026-06-07.
 
-**Recomendación pendiente de aplicar (NO está hecho todavía)**: configurar [Resend](https://resend.com) como SMTP custom en Supabase Dashboard → Project Settings → Auth → SMTP Settings.
+- **Dominio verificado**: `yummigluglu.com` (registrado en Cloudflare, DNS gestionado ahí). Verificado en Resend con DKIM + SPF (Resend agregó los registros vía la integración automática de Cloudflare). Sender: `noreply@yummigluglu.com`, nombre "Yummi Glu Glu".
+- **Credenciales SMTP en Supabase**: host `smtp.resend.com`, port `465`, user `resend`, password = API key de Resend (encriptada en Supabase).
 
-- Resend free: 3.000 emails/mes y 100/día — más que suficiente para dev y producción temprana.
-- Requiere verificar dominio en Resend (DNS: SPF + DKIM) o usar el sandbox `onboarding@resend.dev` para pruebas iniciales.
-- Una vez configurado el SMTP custom, Supabase deja de aplicar su rate limit interno y los emails los firma tu dominio.
+**Gotcha que costó semanas de confusión (LEER):** antes de verificar el dominio, Resend estaba en **modo sandbox** y solo dejaba enviar a la dirección dueña de la cuenta. Cualquier OTRO destinatario fallaba con el error 550 de Resend (`You can only send testing emails to your own email address... verify a domain at resend.com/domains`). El síntoma en la app era genérico ("No pudimos enviarte el correo de confirmación", mapeado en `lib/errores.ts`) — **el motivo real solo aparece en los Auth Logs** (vía MCP de Supabase: `get_logs` service `auth`, o Dashboard → Logs → Auth). Moraleja: **ante un fallo de email, mirar SIEMPRE los Auth Logs antes de teorizar** (la hipótesis del "rate limit del pool default de Supabase" era falsa).
 
-Mientras esto no esté hecho, **evitar tandas de tests de auth seguidos** y avisar al usuario si pide crear varias cuentas — es muy probable que el correo de confirmación no llegue por rate limit y no por un bug en el código.
+**Producción / rate limits**: Resend free da 3.000 emails/mes y 100/día — suficiente para dev y producción temprana. Si el dominio se despublica o caen los registros DNS, los emails vuelven a fallar — primer sospechoso si "de golpe" dejan de llegar.
+
+### Google Sign In (nativo)
+
+Login con Google vía `@react-native-google-signin/google-signin` (v16+) + `supabase.auth.signInWithIdToken`. Implementado 2026-06-07. **Requiere dev client** (módulo nativo — no anda en Expo Go).
+
+**Flujo**: `GoogleSignin.hasPlayServices()` → `GoogleSignin.signIn()` → si `isSuccessResponse`, se toma el `idToken` → `supabase.auth.signInWithIdToken({ provider: 'google', token })`. La cancelación del selector se trata en silencio (no es error). Todo en `useAuthStore.ts` → acción `iniciarSesionConGoogle`. Botón "Continuar con Google" en `login.tsx` y `register.tsx` (icono AntDesign `google`).
+
+**Config externa (no reconstruir a ciegas):**
+
+- **Google Cloud Console** — proyecto `Yummi Glu Glu` (id `yummi-glu-glu`), consent screen **External** (modo Testing → solo cuentas agregadas como testers pueden loguear hasta publicar). Dos OAuth clients:
+  - **Web Client** → su Client ID va en `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (es el que se pasa a `GoogleSignin.configure({ webClientId })` Y el que se carga en Supabase). Redirect URI autorizado: `https://uoqzkbbnesmvmgbjikrn.supabase.co/auth/v1/callback`.
+  - **Android Client** → package `com.yummigluglu.app` + **SHA-1 del keystore de EAS**. NO se usa en código, pero debe existir o Google tira `DEVELOPER_ERROR`. El SHA-1 se saca de expo.dev → proyecto → Credentials (NO por `eas credentials` interactivo). **Si rotás el keystore, hay que actualizar el SHA-1 en este client.**
+- **Supabase** → Dashboard → Authentication → Providers → Google habilitado con el Web Client ID + Secret.
+
+### Deep link scheme — DEBE ser `yummigluglu` en las 3 piezas
+
+El scheme de deep link (`app.json` → `scheme`) estuvo históricamente como `babybites` (legacy del rename Baby Bites → Yummi Glu Glu) mientras el código (`useAuthStore.ts`) generaba el redirect con `yummigluglu` → mismatch → la confirmación de email no volvía a la app (pantalla en blanco en el navegador). **Unificado en `yummigluglu` el 2026-06-07.** Las 3 piezas tienen que coincidir SIEMPRE:
+
+1. `app.json` → `"scheme": "yummigluglu"` (se hornea en el manifest nativo → cambiarlo REQUIERE rebuild).
+2. `store/useAuthStore.ts` → `Linking.createURL('/', { scheme: 'yummigluglu' })`.
+3. Supabase → Auth → URL Configuration → Site URL `yummigluglu://` + Redirect URLs `yummigluglu://**` y `yummigluglu://*`.
+
+> El **EAS slug sigue siendo `baby-bites`** a propósito (atado al `projectId`, invisible al usuario). NO cambiarlo.
 
 ## Code Conventions
 

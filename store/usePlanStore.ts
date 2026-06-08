@@ -153,7 +153,8 @@ interface PlanState {
     perfilId: string,
     etapa: EtapaAlimentaria,
     alergias: string[],
-    semanaInicio: string
+    semanaInicio: string,
+    pais?: string
   ) => Promise<void>;
   actualizarSlot: (dia: DiaSemana, momento: MomentoDia, recetaId: string | null) => Promise<void>;
   cargarLista: (planId: string) => Promise<void>;
@@ -199,7 +200,7 @@ export const usePlanStore = create<PlanState>((set, get) => ({
     }
   },
 
-  generarPlan: async (perfilId, etapa, alergias, semanaInicio) => {
+  generarPlan: async (perfilId, etapa, alergias, semanaInicio, pais) => {
     set({ cargando: true, error: null });
     try {
       const {
@@ -210,16 +211,21 @@ export const usePlanStore = create<PlanState>((set, get) => ({
       const { data: recetas, error: rError } = await supabase
         .from('recetas')
         .select(
-          'id, nombre, momento_dia, etapas_compatibles, alergenos, ingredientes, tiempo_preparacion'
+          'id, nombre, momento_dia, etapas_compatibles, alergenos, ingredientes, tiempo_preparacion, tags'
         )
         .eq('activa', true)
         .contains('etapas_compatibles', [etapa]);
 
       if (rError) throw rError;
 
-      const compatibles = (recetas ?? []).filter(
-        (r) => !r.alergenos.some((a: string) => alergias.includes(a))
-      ) as Receta[];
+      const compatibles = (recetas ?? []).filter((r) => {
+        if (r.alergenos.some((a: string) => alergias.includes(a))) return false;
+        if (pais && pais !== 'todos') {
+          const TODOS_LOS_PAISES = ['chile', 'peru', 'colombia', 'venezuela', 'argentina', 'mexico'];
+          return r.tags.includes(pais) || TODOS_LOS_PAISES.every((id) => r.tags.includes(id));
+        }
+        return true;
+      }) as Receta[];
 
       const dias = generarDias(compatibles);
 

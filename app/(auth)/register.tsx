@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Link } from 'expo-router';
+import { Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
 
@@ -22,9 +23,15 @@ export default function RegisterScreen() {
   const [mostrarConfirm, setMostrarConfirm] = useState(false);
   const [registrado, setRegistrado] = useState(false);
 
-  const { registrarse, cargando, error, limpiarError } = useAuthStore();
+  const { registrarse, iniciarSesionConGoogle, cargando, error, limpiarError } = useAuthStore();
   const c = useColoresTema();
   const scrollRef = useRef<ScrollView>(null);
+
+  const handleGoogle = async () => {
+    limpiarError();
+    await iniciarSesionConGoogle();
+    // La navegación la maneja el listener de auth en _layout.tsx
+  };
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
@@ -49,21 +56,61 @@ export default function RegisterScreen() {
 
   if (registrado) {
     return (
-      <View className="flex-1 bg-fondo-app dark:bg-[#121212] items-center justify-center px-6">
-        <Text className="text-5xl mb-4">✉️</Text>
-        <Text className="text-2xl font-bold text-negro dark:text-[#F0EDE8] text-center mb-2">
-          ¡Revisa tu correo!
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: c.fondoApp,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 32,
+        }}
+      >
+        <View
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: c.verdeClaro,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 20,
+          }}
+        >
+          <Feather name="mail" size={30} color={c.verde} />
+        </View>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: '800',
+            color: c.negro,
+            letterSpacing: -0.5,
+            textAlign: 'center',
+            marginBottom: 10,
+          }}
+        >
+          Revisa tu correo
         </Text>
-        <Text className="text-gris-texto dark:text-[#A0A0A0] text-center text-base leading-6">
+        <Text style={{ fontSize: 15, color: c.grisTexto, textAlign: 'center', lineHeight: 22 }}>
           Te enviamos un enlace de confirmación a{'\n'}
-          <Text className="font-semibold text-verde">{email}</Text>
+          <Text style={{ fontWeight: '700', color: c.verde }}>{email}</Text>
         </Text>
         <Link href="/(auth)/login" asChild>
           <TouchableOpacity
-            className="mt-8 bg-verde rounded-xl px-8 py-4"
+            style={{
+              marginTop: 28,
+              backgroundColor: c.verde,
+              borderRadius: 999,
+              paddingHorizontal: 28,
+              paddingVertical: 15,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+            }}
+            activeOpacity={0.85}
             accessibilityLabel="Ir al inicio de sesión"
           >
-            <Text className="text-white font-bold">Ir al login</Text>
+            <Feather name="log-in" size={18} color={c.blanco} />
+            <Text style={{ color: c.blanco, fontWeight: '800', fontSize: 15 }}>Ir al login</Text>
           </TouchableOpacity>
         </Link>
       </View>
@@ -71,34 +118,52 @@ export default function RegisterScreen() {
   }
 
   return (
-    <View className="flex-1 bg-fondo-app dark:bg-[#121212]">
+    <View style={{ flex: 1, backgroundColor: c.fondoApp }}>
       <KeyboardAvoidingView
-        className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        style={{ flex: 1 }}
+        behavior="padding"
         keyboardVerticalOffset={Platform.OS === 'android' ? 24 : 0}
       >
         <ScrollView
           ref={scrollRef}
-          className="flex-1"
-          contentContainerClassName="flex-grow justify-center px-6 py-10"
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            paddingHorizontal: 24,
+            paddingVertical: 40,
+          }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
-          <View className="items-center mb-10">
-            <Text className="text-6xl mb-3">🌱</Text>
-            <Text className="text-3xl font-bold text-negro dark:text-[#F0EDE8]">Crear cuenta</Text>
-            <Text className="text-gris-texto dark:text-[#A0A0A0] text-base mt-1 text-center">
+          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+            <Text style={{ fontSize: 60, marginBottom: 12, lineHeight: 90 }}>🌱</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', color: c.negro, letterSpacing: -0.6 }}>
+              Crear cuenta
+            </Text>
+            <Text style={{ fontSize: 15, color: c.grisTexto, marginTop: 6, textAlign: 'center' }}>
               Comienza el viaje alimentario de tu bebé
             </Text>
           </View>
 
           {/* Formulario */}
-          <View className="gap-4">
+          <View style={{ gap: 16 }}>
             <View>
-              <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1">Email</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 8 }}>
+                Email
+              </Text>
               <TextInput
-                className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl px-4 py-3 text-negro dark:text-[#F0EDE8] text-base"
+                style={{
+                  backgroundColor: c.card,
+                  borderWidth: 1,
+                  borderColor: c.cardBorde,
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  paddingVertical: 13,
+                  fontSize: 16,
+                  color: c.negro,
+                }}
                 placeholder="tu@email.com"
                 placeholderTextColor={c.grisTexto}
                 value={email}
@@ -114,13 +179,22 @@ export default function RegisterScreen() {
             </View>
 
             <View>
-              <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1">
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 8 }}>
                 Contraseña
               </Text>
-              <View className="relative">
+              <View style={{ position: 'relative', justifyContent: 'center' }}>
                 <TextInput
-                  className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl px-4 py-3 text-negro dark:text-[#F0EDE8] text-base"
-                  style={{ paddingRight: 48 }}
+                  style={{
+                    backgroundColor: c.card,
+                    borderWidth: 1,
+                    borderColor: c.cardBorde,
+                    borderRadius: 14,
+                    paddingHorizontal: 16,
+                    paddingVertical: 13,
+                    paddingRight: 50,
+                    fontSize: 16,
+                    color: c.negro,
+                  }}
                   placeholder="Mínimo 6 caracteres"
                   placeholderTextColor={c.grisTexto}
                   value={password}
@@ -130,23 +204,37 @@ export default function RegisterScreen() {
                   accessibilityLabel="Campo de contraseña"
                 />
                 <TouchableOpacity
-                  className="absolute right-3 top-0 bottom-0 justify-center"
+                  style={{ position: 'absolute', right: 14, padding: 4 }}
+                  hitSlop={8}
                   onPress={() => setMostrarPassword((v) => !v)}
                   accessibilityLabel={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
-                  <Text style={{ fontSize: 20 }}>{mostrarPassword ? '🙈' : '👁️'}</Text>
+                  <Feather
+                    name={mostrarPassword ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={c.grisTexto}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
 
             <View>
-              <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1">
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 8 }}>
                 Confirmar contraseña
               </Text>
-              <View className="relative">
+              <View style={{ position: 'relative', justifyContent: 'center' }}>
                 <TextInput
-                  className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl px-4 py-3 text-negro dark:text-[#F0EDE8] text-base"
-                  style={{ paddingRight: 48 }}
+                  style={{
+                    backgroundColor: c.card,
+                    borderWidth: 1,
+                    borderColor: c.cardBorde,
+                    borderRadius: 14,
+                    paddingHorizontal: 16,
+                    paddingVertical: 13,
+                    paddingRight: 50,
+                    fontSize: 16,
+                    color: c.negro,
+                  }}
                   placeholder="Repite tu contraseña"
                   placeholderTextColor={c.grisTexto}
                   value={confirmPassword}
@@ -158,44 +246,110 @@ export default function RegisterScreen() {
                   }
                 />
                 <TouchableOpacity
-                  className="absolute right-3 top-0 bottom-0 justify-center"
+                  style={{ position: 'absolute', right: 14, padding: 4 }}
+                  hitSlop={8}
                   onPress={() => setMostrarConfirm((v) => !v)}
                   accessibilityLabel={
                     mostrarConfirm ? 'Ocultar confirmación' : 'Mostrar confirmación'
                   }
                 >
-                  <Text style={{ fontSize: 20 }}>{mostrarConfirm ? '🙈' : '👁️'}</Text>
+                  <Feather
+                    name={mostrarConfirm ? 'eye-off' : 'eye'}
+                    size={20}
+                    color={c.grisTexto}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {error && <Text className="text-error text-sm text-center">{error}</Text>}
+            {error && (
+              <Text style={{ fontSize: 13, color: c.error, textAlign: 'center' }}>{error}</Text>
+            )}
 
             <TouchableOpacity
-              className={`rounded-xl py-4 items-center mt-2 ${cargando ? 'bg-verde/60' : 'bg-verde'}`}
+              style={{
+                borderRadius: 999,
+                paddingVertical: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 10,
+                marginTop: 4,
+                backgroundColor: cargando ? c.grisClaro : c.verde,
+              }}
+              activeOpacity={0.85}
               onPress={handleRegister}
               disabled={cargando}
               accessibilityLabel="Crear cuenta"
             >
               {cargando ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color={c.grisTexto} size="small" />
               ) : (
-                <Text className="text-white font-bold text-base">Crear cuenta</Text>
+                <>
+                  <Feather name="user-plus" size={18} color={c.blanco} />
+                  <Text
+                    style={{ color: c.blanco, fontWeight: '800', fontSize: 15, letterSpacing: 0.3 }}
+                  >
+                    Crear cuenta
+                  </Text>
+                </>
               )}
+            </TouchableOpacity>
+
+            {/* Continuar con Google */}
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2 }}
+            >
+              <View style={{ flex: 1, height: 1, backgroundColor: c.cardBorde }} />
+              <Text style={{ fontSize: 13, color: c.grisTexto, marginHorizontal: 12 }}>o</Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: c.cardBorde }} />
+            </View>
+
+            <TouchableOpacity
+              style={{
+                borderRadius: 999,
+                paddingVertical: 15,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 10,
+                backgroundColor: c.card,
+                borderWidth: 1,
+                borderColor: c.cardBorde,
+              }}
+              activeOpacity={0.85}
+              onPress={handleGoogle}
+              disabled={cargando}
+              accessibilityLabel="Continuar con Google"
+            >
+              <AntDesign name="google" size={18} color="#DB4437" />
+              <Text style={{ color: c.negro, fontWeight: '700', fontSize: 15 }}>
+                Continuar con Google
+              </Text>
             </TouchableOpacity>
           </View>
 
           {/* Link a login */}
-          <View className="flex-row justify-center mt-8">
-            <Text className="text-gris-texto dark:text-[#A0A0A0]">¿Ya tienes cuenta? </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20 }}>
+            <Text style={{ fontSize: 14, color: c.grisTexto }}>¿Ya tienes cuenta? </Text>
             <Link href="/(auth)/login" asChild>
               <TouchableOpacity accessibilityLabel="Ir a inicio de sesión">
-                <Text className="text-verde font-semibold">Inicia sesión</Text>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: c.verde,
+                    fontWeight: '700',
+                    textDecorationLine: 'underline',
+                  }}
+                >
+                  Inicia sesión
+                </Text>
               </TouchableOpacity>
             </Link>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
       {cargando && (
         <View
           style={{
@@ -214,32 +368,19 @@ export default function RegisterScreen() {
           <View
             style={{
               backgroundColor: c.card,
-              borderRadius: 16,
+              borderRadius: 20,
               paddingHorizontal: 32,
               paddingVertical: 28,
               alignItems: 'center',
-              gap: 12,
+              gap: 14,
               minWidth: 240,
             }}
           >
-            <ActivityIndicator size="large" color="#2D9B5A" />
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: c.negro,
-                textAlign: 'center',
-              }}
-            >
+            <ActivityIndicator size="large" color={c.verde} />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: c.negro, textAlign: 'center' }}>
               Creando tu cuenta...
             </Text>
-            <Text
-              style={{
-                fontSize: 13,
-                color: c.grisTexto,
-                textAlign: 'center',
-              }}
-            >
+            <Text style={{ fontSize: 13, color: c.grisTexto, textAlign: 'center' }}>
               Enviando correo de confirmación
             </Text>
           </View>

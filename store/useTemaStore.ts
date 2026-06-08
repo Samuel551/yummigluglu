@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colorScheme as nwColorScheme } from 'nativewind';
 
-const CLAVE_TEMA = 'baby-bites-tema';
+const CLAVE_TEMA = 'yummigluglu-tema';
 
 export type Tema = 'light' | 'dark';
 

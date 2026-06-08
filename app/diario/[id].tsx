@@ -10,24 +10,28 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { useDiarioStore } from '@/store/useDiarioStore';
 import { usePerfilStore } from '@/store/usePerfilStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
 import { buildGrid } from '@/constants/Semana';
 import { DiarioAlimento, ReaccionAlimento } from '@/types';
 
+type FeatherIcon = keyof typeof Feather.glyphMap;
+
 // ─── Config de reacciones ─────────────────────────────────────────────────────
 
 const REACCION_CONFIG: Record<
   ReaccionAlimento,
-  { emoji: string; label: string; color: string; bg: string }
+  { icon: FeatherIcon; label: string; color: string; bg: string }
 > = {
-  ninguna: { emoji: '✅', label: 'Sin reacción', color: '#15803D', bg: '#F0FDF4' },
-  leve: { emoji: '⚠️', label: 'Reacción leve', color: '#92400E', bg: '#FFFBEB' },
-  severa: { emoji: '🚨', label: 'Reacción severa', color: '#991B1B', bg: '#FEF2F2' },
+  ninguna: { icon: 'check-circle', label: 'Sin reacción', color: '#15803D', bg: '#F0FDF4' },
+  leve: { icon: 'alert-triangle', label: 'Reacción leve', color: '#92400E', bg: '#FFFBEB' },
+  severa: { icon: 'alert-octagon', label: 'Reacción severa', color: '#991B1B', bg: '#FEF2F2' },
 };
 
 // ─── Helpers de calendario ────────────────────────────────────────────────────
@@ -47,6 +51,7 @@ const MESES = [
   'Diciembre',
 ];
 const DIAS_HDR = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const CELDA_DIA = `${100 / 7}%`;
 
 function toISO(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -74,7 +79,15 @@ function MiniCalendario({ fecha, onChange }: { fecha: string; onChange: (f: stri
     );
 
   return (
-    <View style={{ backgroundColor: c.card, borderRadius: 14, padding: 12 }}>
+    <View
+      style={{
+        backgroundColor: c.card,
+        borderRadius: 14,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: c.cardBorde,
+      }}
+    >
       {/* Nav mes */}
       <View
         style={{
@@ -84,21 +97,21 @@ function MiniCalendario({ fecha, onChange }: { fecha: string; onChange: (f: stri
           marginBottom: 10,
         }}
       >
-        <TouchableOpacity onPress={irAnterior} style={{ padding: 4 }}>
-          <Text style={{ fontSize: 16, color: c.verde }}>◀</Text>
+        <TouchableOpacity onPress={irAnterior} hitSlop={8} style={{ padding: 4 }}>
+          <Feather name="chevron-left" size={20} color={c.verde} />
         </TouchableOpacity>
         <Text style={{ fontSize: 14, fontWeight: '700', color: c.negro }}>
           {MESES[mes.month]} {mes.year}
         </Text>
-        <TouchableOpacity onPress={irSiguiente} style={{ padding: 4 }}>
-          <Text style={{ fontSize: 16, color: c.verde }}>▶</Text>
+        <TouchableOpacity onPress={irSiguiente} hitSlop={8} style={{ padding: 4 }}>
+          <Feather name="chevron-right" size={20} color={c.verde} />
         </TouchableOpacity>
       </View>
 
       {/* Headers */}
       <View style={{ flexDirection: 'row', marginBottom: 4 }}>
         {DIAS_HDR.map((d, i) => (
-          <View key={i} style={{ flex: 1, alignItems: 'center' }}>
+          <View key={i} style={{ width: CELDA_DIA, alignItems: 'center' }}>
             <Text style={{ fontSize: 11, fontWeight: '700', color: c.grisTexto }}>{d}</Text>
           </View>
         ))}
@@ -108,7 +121,7 @@ function MiniCalendario({ fecha, onChange }: { fecha: string; onChange: (f: stri
       {grid.map((fila, fi) => (
         <View key={fi} style={{ flexDirection: 'row', marginBottom: 2 }}>
           {fila.map((dia, di) => {
-            if (!dia) return <View key={di} style={{ flex: 1, height: 34 }} />;
+            if (!dia) return <View key={di} style={{ width: CELDA_DIA, height: 34 }} />;
             const iso = toISO(mes.year, mes.month, dia);
             const seleccionado = iso === fecha;
             const esHoy =
@@ -119,7 +132,12 @@ function MiniCalendario({ fecha, onChange }: { fecha: string; onChange: (f: stri
               <TouchableOpacity
                 key={di}
                 onPress={() => onChange(iso)}
-                style={{ flex: 1, height: 34, alignItems: 'center', justifyContent: 'center' }}
+                style={{
+                  width: CELDA_DIA,
+                  height: 34,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
                 accessibilityLabel={`Seleccionar ${dia} de ${MESES[mes.month]}`}
               >
                 <View
@@ -194,6 +212,7 @@ function formatearFecha(iso: string): string {
 export default function DiarioScreen() {
   const { id: perfilId } = useLocalSearchParams<{ id: string }>();
   const c = useColoresTema();
+  const insets = useSafeAreaInsets();
   const { perfiles } = usePerfilStore();
   const {
     entradas,
@@ -267,167 +286,222 @@ export default function DiarioScreen() {
   const fechasOrdenadas = Object.keys(gruposPorFecha).sort((a, b) => b.localeCompare(a));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp }}>
-      {/* Header */}
-      <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }}>
-        <TouchableOpacity
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp }} edges={['top']}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: insets.bottom + 32 }}
+      >
+        {/* ── BOTÓN VOLVER ── */}
+        <Pressable
           onPress={() => router.back()}
-          style={{ alignSelf: 'flex-start', paddingVertical: 4 }}
+          hitSlop={12}
+          style={({ pressed }) => ({
+            paddingTop: 16,
+            opacity: pressed ? 0.5 : 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            alignSelf: 'flex-start',
+          })}
         >
-          <Text style={{ fontSize: 15, color: c.verde, fontWeight: '600' }}>← Volver</Text>
-        </TouchableOpacity>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 8, gap: 12 }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text numberOfLines={1} style={{ fontSize: 20, fontWeight: '800', color: c.negro }}>
-              Diario de alimentos
-            </Text>
-            {perfil && (
-              <Text style={{ fontSize: 13, color: c.grisTexto, marginTop: 2 }} numberOfLines={1}>
-                {perfil.avatar_emoji} {perfil.nombre}
-              </Text>
-            )}
-          </View>
+          <Feather name="arrow-left" size={18} color={c.negro} />
+          <Text style={{ fontSize: 14, fontWeight: '600', color: c.negro }}>Volver</Text>
+        </Pressable>
+
+        {/* ── HEADER EDITORIAL ── */}
+        <View style={{ paddingTop: 24 }}>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: '700',
+              color: c.grisTexto,
+              letterSpacing: 2,
+              marginBottom: 10,
+            }}
+          >
+            DIARIO DE ALIMENTOS
+          </Text>
+          <Text
+            style={{
+              fontSize: 30,
+              fontWeight: '800',
+              color: c.negro,
+              letterSpacing: -0.6,
+              lineHeight: 36,
+            }}
+          >
+            {perfil ? 'Para ' : 'Diario'}
+            {perfil ? <Text style={{ color: c.verde }}>{perfil.nombre}</Text> : null}
+            {perfil ? ` ${perfil.avatar_emoji}` : ''}
+          </Text>
+
+          {/* CTA Agregar */}
           <TouchableOpacity
             onPress={abrirAgregar}
+            activeOpacity={0.85}
             style={{
+              marginTop: 18,
+              alignSelf: 'flex-start',
               backgroundColor: c.verde,
-              borderRadius: 12,
-              paddingHorizontal: 14,
-              paddingVertical: 10,
+              borderRadius: 999,
+              paddingHorizontal: 18,
+              paddingVertical: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              shadowColor: c.verde,
+              shadowOpacity: 0.18,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 3 },
+              elevation: 3,
             }}
             accessibilityLabel="Agregar alimento"
           >
-            <Text style={{ color: c.blanco, fontWeight: '700', fontSize: 14 }}>+ Agregar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Lista */}
-      {cargando ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color={c.verde} />
-        </View>
-      ) : entradas.length === 0 ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>📔</Text>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: '700',
-              color: c.negro,
-              textAlign: 'center',
-              marginBottom: 8,
-            }}
-          >
-            Diario vacío
-          </Text>
-          <Text style={{ fontSize: 14, color: c.grisTexto, textAlign: 'center', lineHeight: 20 }}>
-            Registrá cada alimento nuevo que prueba {perfil?.nombre ?? 'tu bebé'} y si tuvo alguna
-            reacción.
-          </Text>
-          <TouchableOpacity
-            onPress={abrirAgregar}
-            style={{
-              marginTop: 24,
-              backgroundColor: c.verde,
-              borderRadius: 16,
-              paddingHorizontal: 24,
-              paddingVertical: 13,
-            }}
-          >
-            <Text style={{ color: c.blanco, fontWeight: '700', fontSize: 15 }}>
-              + Agregar primer alimento
+            <Feather name="plus" size={17} color={c.blanco} />
+            <Text style={{ color: c.blanco, fontWeight: '700', fontSize: 14, letterSpacing: 0.2 }}>
+              Agregar alimento
             </Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
-          {fechasOrdenadas.map((fecha) => (
-            <View key={fecha} style={{ marginBottom: 20 }}>
+
+        {/* Separador */}
+        <View
+          style={{
+            height: 1,
+            backgroundColor: c.cardBorde,
+            marginTop: 28,
+            marginBottom: 24,
+          }}
+        />
+
+        {/* ── CONTENIDO ── */}
+        {cargando ? (
+          <View style={{ paddingVertical: 80, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color={c.verde} />
+          </View>
+        ) : entradas.length === 0 ? (
+          <View style={{ alignItems: 'center', paddingVertical: 48, gap: 14 }}>
+            <View
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: c.grisClaro,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Feather name="book-open" size={26} color={c.grisTexto} />
+            </View>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: c.negro }}>Diario vacío</Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: c.grisTexto,
+                textAlign: 'center',
+                lineHeight: 20,
+                maxWidth: 280,
+              }}
+            >
+              Registra cada alimento nuevo que prueba {perfil?.nombre ?? 'tu bebé'} y si tuvo alguna
+              reacción.
+            </Text>
+          </View>
+        ) : (
+          fechasOrdenadas.map((fecha) => (
+            <View key={fecha} style={{ marginBottom: 28 }}>
               <Text
                 style={{
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: '700',
                   color: c.grisTexto,
-                  letterSpacing: 0.6,
-                  marginBottom: 8,
+                  letterSpacing: 2,
+                  marginBottom: 12,
                   textTransform: 'uppercase',
                 }}
               >
                 {formatearFecha(fecha)}
               </Text>
 
-              <View style={{ backgroundColor: c.card, borderRadius: 16, overflow: 'hidden' }}>
-                {gruposPorFecha[fecha].map((entrada, idx) => {
-                  const config = REACCION_CONFIG[entrada.reaccion];
-                  return (
+              {gruposPorFecha[fecha].map((entrada, idx, arr) => {
+                const config = REACCION_CONFIG[entrada.reaccion];
+                return (
+                  <View
+                    key={entrada.id}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 14,
+                      paddingVertical: 14,
+                      borderBottomWidth: idx === arr.length - 1 ? 0 : 1,
+                      borderBottomColor: c.cardBorde,
+                    }}
+                  >
+                    {/* Icono reacción */}
                     <View
-                      key={entrada.id}
                       style={{
-                        flexDirection: 'row',
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: config.bg,
                         alignItems: 'center',
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        borderTopWidth: idx > 0 ? 1 : 0,
-                        borderTopColor: c.grisClaro,
+                        justifyContent: 'center',
                       }}
                     >
-                      {/* Badge reacción */}
-                      <View
+                      <Feather name={config.icon} size={18} color={config.color} />
+                    </View>
+
+                    {/* Contenido */}
+                    <View style={{ flex: 1 }}>
+                      <Text
                         style={{
-                          backgroundColor: config.bg,
-                          borderRadius: 20,
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          marginRight: 12,
+                          fontSize: 16,
+                          fontWeight: '700',
+                          color: c.negro,
+                          letterSpacing: -0.2,
                         }}
                       >
-                        <Text style={{ fontSize: 14 }}>{config.emoji}</Text>
-                      </View>
-
-                      {/* Contenido */}
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 15, fontWeight: '600', color: c.negro }}>
-                          {entrada.alimento}
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            color: entrada.notas ? c.grisTexto : config.color,
-                            marginTop: 1,
-                          }}
-                          numberOfLines={1}
-                        >
-                          {entrada.notas || config.label}
-                        </Text>
-                      </View>
-
-                      {/* Botones editar y borrar */}
-                      <TouchableOpacity
-                        onPress={() => abrirEditar(entrada)}
-                        style={{ padding: 8 }}
-                        accessibilityLabel={`Editar ${entrada.alimento}`}
+                        {entrada.alimento}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: entrada.notas ? c.grisTexto : config.color,
+                          marginTop: 2,
+                        }}
+                        numberOfLines={1}
                       >
-                        <Text style={{ fontSize: 16 }}>✏️</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => handleEliminar(entrada)}
-                        style={{ padding: 8 }}
-                        accessibilityLabel={`Eliminar ${entrada.alimento}`}
-                      >
-                        <Text style={{ fontSize: 16 }}>🗑️</Text>
-                      </TouchableOpacity>
+                        {entrada.notas || config.label}
+                      </Text>
                     </View>
-                  );
-                })}
-              </View>
+
+                    {/* Acciones */}
+                    <TouchableOpacity
+                      onPress={() => abrirEditar(entrada)}
+                      hitSlop={6}
+                      style={{ padding: 6 }}
+                      accessibilityLabel={`Editar ${entrada.alimento}`}
+                    >
+                      <Feather name="edit-2" size={17} color={c.grisTexto} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleEliminar(entrada)}
+                      hitSlop={6}
+                      style={{ padding: 6 }}
+                      accessibilityLabel={`Eliminar ${entrada.alimento}`}
+                    >
+                      <Feather name="trash-2" size={17} color={c.grisTexto} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
-          ))}
-        </ScrollView>
-      )}
+          ))
+        )}
+      </ScrollView>
 
       {error && (
-        <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+        <View style={{ paddingHorizontal: 24, paddingBottom: 8 }}>
           <Text style={{ color: c.error, fontSize: 12, textAlign: 'center' }}>{error}</Text>
         </View>
       )}
@@ -439,13 +513,17 @@ export default function DiarioScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp }} edges={['top', 'bottom']}>
+        <View style={{ flex: 1, backgroundColor: c.fondoApp }}>
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
           >
             <ScrollView
-              contentContainerStyle={{ padding: 24, paddingBottom: 48 }}
+              contentContainerStyle={{
+                paddingHorizontal: 24,
+                paddingTop: insets.top + 16,
+                paddingBottom: insets.bottom + 32,
+              }}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
@@ -458,16 +536,20 @@ export default function DiarioScreen() {
                   marginBottom: 24,
                 }}
               >
-                <Text style={{ fontSize: 20, fontWeight: '800', color: c.negro }}>
+                <Text
+                  style={{ fontSize: 22, fontWeight: '800', color: c.negro, letterSpacing: -0.4 }}
+                >
                   {editando ? 'Editar alimento' : 'Nuevo alimento'}
                 </Text>
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Text style={{ fontSize: 16, color: c.grisTexto }}>Cancelar</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)} hitSlop={8}>
+                  <Text style={{ fontSize: 15, color: c.grisTexto, fontWeight: '600' }}>
+                    Cancelar
+                  </Text>
                 </TouchableOpacity>
               </View>
 
               {/* Alimento */}
-              <Text style={{ fontSize: 13, fontWeight: '600', color: c.negro, marginBottom: 6 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 8 }}>
                 Alimento *
               </Text>
               <TextInput
@@ -477,6 +559,8 @@ export default function DiarioScreen() {
                 placeholderTextColor={c.grisTexto}
                 style={{
                   backgroundColor: c.card,
+                  borderWidth: 1,
+                  borderColor: c.cardBorde,
                   borderRadius: 14,
                   paddingHorizontal: 16,
                   paddingVertical: 13,
@@ -489,55 +573,65 @@ export default function DiarioScreen() {
               />
 
               {/* Calendario para fecha */}
-              <Text style={{ fontSize: 13, fontWeight: '600', color: c.negro, marginBottom: 8 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 8 }}>
                 Fecha de introducción
               </Text>
               <MiniCalendario fecha={formFecha} onChange={setFormFecha} />
               <View style={{ marginBottom: 20 }} />
 
               {/* Reacción */}
-              <Text style={{ fontSize: 13, fontWeight: '600', color: c.negro, marginBottom: 10 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 10 }}>
                 ¿Tuvo alguna reacción?
               </Text>
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 20 }}>
+              <View
+                style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}
+              >
                 {(
                   Object.entries(REACCION_CONFIG) as [
                     ReaccionAlimento,
                     (typeof REACCION_CONFIG)[ReaccionAlimento],
                   ][]
-                ).map(([key, config]) => (
-                  <TouchableOpacity
-                    key={key}
-                    onPress={() => setFormReaccion(key)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: formReaccion === key ? config.bg : c.card,
-                      borderRadius: 12,
-                      paddingVertical: 12,
-                      alignItems: 'center',
-                      borderWidth: 2,
-                      borderColor: formReaccion === key ? config.color : 'transparent',
-                    }}
-                    accessibilityLabel={config.label}
-                  >
-                    <Text style={{ fontSize: 22 }}>{config.emoji}</Text>
-                    <Text
+                ).map(([key, config]) => {
+                  const activo = formReaccion === key;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      onPress={() => setFormReaccion(key)}
+                      activeOpacity={0.8}
                       style={{
-                        fontSize: 11,
-                        fontWeight: '600',
-                        color: config.color,
-                        marginTop: 4,
-                        textAlign: 'center',
+                        width: '31.5%',
+                        backgroundColor: activo ? config.bg : c.card,
+                        borderRadius: 14,
+                        paddingVertical: 14,
+                        alignItems: 'center',
+                        gap: 6,
+                        borderWidth: 1.5,
+                        borderColor: activo ? config.color : c.cardBorde,
                       }}
+                      accessibilityLabel={config.label}
                     >
-                      {config.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Feather
+                        name={config.icon}
+                        size={20}
+                        color={activo ? config.color : c.grisTexto}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          fontWeight: '600',
+                          color: activo ? config.color : c.grisTexto,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {config.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               {/* Notas */}
-              <Text style={{ fontSize: 13, fontWeight: '600', color: c.negro, marginBottom: 6 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: c.negro, marginBottom: 8 }}>
                 Notas (opcional)
               </Text>
               <TextInput
@@ -549,6 +643,8 @@ export default function DiarioScreen() {
                 numberOfLines={3}
                 style={{
                   backgroundColor: c.card,
+                  borderWidth: 1,
+                  borderColor: c.cardBorde,
                   borderRadius: 14,
                   paddingHorizontal: 16,
                   paddingVertical: 13,
@@ -564,25 +660,39 @@ export default function DiarioScreen() {
               <TouchableOpacity
                 onPress={handleGuardar}
                 disabled={guardando}
+                activeOpacity={0.85}
                 style={{
-                  backgroundColor: guardando ? c.verde + '99' : c.verde,
-                  borderRadius: 16,
+                  backgroundColor: guardando ? c.grisClaro : c.verde,
+                  borderRadius: 999,
                   paddingVertical: 16,
                   alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  gap: 10,
                 }}
                 accessibilityLabel="Guardar"
               >
                 {guardando ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={c.grisTexto} size="small" />
                 ) : (
-                  <Text style={{ color: c.blanco, fontWeight: '700', fontSize: 16 }}>
-                    {editando ? 'Guardar cambios' : 'Agregar al diario'}
-                  </Text>
+                  <>
+                    <Feather name={editando ? 'check' : 'plus'} size={18} color={c.blanco} />
+                    <Text
+                      style={{
+                        color: c.blanco,
+                        fontWeight: '800',
+                        fontSize: 15,
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {editando ? 'Guardar cambios' : 'Agregar al diario'}
+                    </Text>
+                  </>
                 )}
               </TouchableOpacity>
             </ScrollView>
           </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
       </Modal>
     </SafeAreaView>
   );

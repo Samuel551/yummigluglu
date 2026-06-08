@@ -33,6 +33,7 @@ export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const c = useColoresTema();
   const session = useAuthStore((state) => state.session);
+  const recoveryPendiente = useAuthStore((state) => state.recoveryPendiente);
   const { perfiles, cargarPerfiles } = usePerfilStore();
   const cargarFavoritos = useFavoritosStore((state) => state.cargarFavoritos);
 
@@ -44,6 +45,11 @@ export default function TabsLayout() {
     cargarPerfiles().finally(() => setPerfilesCargados(true));
     cargarFavoritos();
   }, [session, cargarPerfiles, cargarFavoritos]);
+
+  // Reset de contraseña en curso: gana sobre todo lo demás.
+  if (recoveryPendiente) {
+    return <Redirect href="/nueva-contrasena" />;
+  }
 
   // Sin sesión → login
   if (!session) {
@@ -78,7 +84,7 @@ export default function TabsLayout() {
           height: 64 + insets.bottom,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '500',
         },
       }}
@@ -100,19 +106,19 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="favoritos"
-        options={{
-          title: 'Favoritos',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="❤️" focused={focused} />,
-          tabBarAccessibilityLabel: 'Mis recetas favoritas',
-        }}
-      />
-      <Tabs.Screen
         name="plan"
         options={{
           title: 'Plan',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📅" focused={focused} />,
           tabBarAccessibilityLabel: 'Plan semanal de comidas',
+        }}
+      />
+      <Tabs.Screen
+        name="herramientas"
+        options={{
+          title: 'Herramientas',
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🧰" focused={focused} />,
+          tabBarAccessibilityLabel: 'Herramientas: agenda, diario y lista de compras',
         }}
       />
       <Tabs.Screen

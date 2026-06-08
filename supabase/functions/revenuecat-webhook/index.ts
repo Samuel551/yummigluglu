@@ -1,5 +1,5 @@
 // ============================================================
-// Baby Bites — Webhook de RevenueCat (hardened)
+// Yummi Glu Glu — Webhook de RevenueCat (hardened)
 //
 // Recibe eventos de suscripción y actualiza la tabla `suscripciones`
 // usando service role (el cliente NUNCA escribe directamente).

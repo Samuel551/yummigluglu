@@ -2,24 +2,27 @@ import '../global.css';
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import * as Linking from 'expo-linking';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
 import { useTemaStore } from '@/store/useTemaStore';
+import { usePaisStore } from '@/store/usePaisStore';
 
 export default function RootLayout() {
   const setSession = useAuthStore((state) => state.setSession);
   const { inicializarRevenueCat, cerrarSesionRevenueCat } = useSuscripcionStore();
   const tema = useTemaStore((s) => s.tema);
   const hidratar = useTemaStore((s) => s.hidratar);
+  const hidratarPais = usePaisStore((s) => s.hidratar);
   const [procesandoAuth, setProcesandoAuth] = useState(false);
 
-  // Hidratar tema desde AsyncStorage al arrancar
+  // Hidratar stores persistidos desde AsyncStorage al arrancar
   useEffect(() => {
     hidratar();
-  }, [hidratar]);
+    hidratarPais();
+  }, [hidratar, hidratarPais]);
 
   useEffect(() => {
     // Cargar sesión activa al iniciar la app
@@ -46,7 +49,7 @@ export default function RootLayout() {
   }, [setSession, inicializarRevenueCat, cerrarSesionRevenueCat]);
 
   // Deep links de Supabase auth — confirmación de email, magic link y reset password.
-  // Supabase redirige a babybites://#access_token=...&refresh_token=...&type=...
+  // Supabase redirige a yummigluglu://#access_token=...&refresh_token=...&type=...
   // En RN hay que parsear el fragment a mano y llamar setSession (detectSessionInUrl solo aplica en web).
   useEffect(() => {
     const procesarDeepLink = async (url: string | null) => {
@@ -56,11 +59,22 @@ export default function RootLayout() {
       const params = new URLSearchParams(fragment);
       const access_token = params.get('access_token');
       const refresh_token = params.get('refresh_token');
+      const type = params.get('type');
       if (!access_token || !refresh_token) return;
       setProcesandoAuth(true);
       try {
         const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-        if (error) console.warn('Error procesando deep link de auth:', error.message);
+        if (error) {
+          console.warn('Error procesando deep link de auth:', error.message);
+          return;
+        }
+        // En reset de contraseña (type=recovery) el link solo autentica de forma
+        // temporal — falta que el usuario escriba la clave nueva. Prendemos el flag
+        // para que los guards no lo manden a (tabs) y gane la pantalla de recovery.
+        if (type === 'recovery') {
+          useAuthStore.getState().setRecoveryPendiente(true);
+          router.replace('/nueva-contrasena');
+        }
       } finally {
         setProcesandoAuth(false);
       }
@@ -85,6 +99,8 @@ export default function RootLayout() {
         <Stack.Screen name="receta/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="lista-compras" options={{ presentation: 'card' }} />
         <Stack.Screen name="diario/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="agenda" options={{ presentation: 'card' }} />
+        <Stack.Screen name="nueva-contrasena" options={{ presentation: 'card' }} />
       </Stack>
       {procesandoAuth && (
         <View

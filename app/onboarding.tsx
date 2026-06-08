@@ -11,11 +11,11 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { usePerfilStore } from '@/store/usePerfilStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
 import { ALERGENOS } from '@/constants/Alergias';
 import { calcularEtapaPorEdad, getEtapaInfo, formatearEdad } from '@/constants/Etapas';
-import type { EtapaAlimentaria } from '@/types';
 
 const AVATARES = [
   '🍼',
@@ -68,21 +68,27 @@ export default function OnboardingScreen() {
   const { crearPerfil, cargando, error } = usePerfilStore();
   const c = useColoresTema();
 
-  // Calcula la etapa alimentaria según la fecha ingresada
-  const calcularEtapa = (): EtapaAlimentaria | null => {
+  // Calcula la edad en meses según la fecha ingresada (null si la fecha es inválida).
+  // Rango válido: desde el nacimiento (0m) hasta 6 años (72m).
+  const calcularMeses = (): number | null => {
     if (!dia || !mes || anio.length < 4) return null;
     const fechaNac = new Date(Number(anio), Number(mes) - 1, Number(dia));
     if (isNaN(fechaNac.getTime())) return null;
+    // Rechaza fechas imposibles (ej. 31/02, que JS "rota" a marzo)
+    if (fechaNac.getDate() !== Number(dia) || fechaNac.getMonth() !== Number(mes) - 1) return null;
     const hoy = new Date();
-    // Diferencia en meses aproximada
+    if (fechaNac > hoy) return null; // fecha futura
     const meses = Math.floor((hoy.getTime() - fechaNac.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
-    // Rango válido: 4 meses a 6 años (72 meses)
-    if (meses < 4 || meses > 72) return null;
-    return calcularEtapaPorEdad(meses);
+    if (meses > 72) return null; // tope 6 años por ahora (la extensión a 10a es futura)
+    return meses;
   };
 
-  const etapaCalculada = calcularEtapa();
+  const mesesEdad = calcularMeses();
+  const etapaCalculada = mesesEdad !== null ? calcularEtapaPorEdad(mesesEdad) : null;
   const etapaInfo = etapaCalculada ? getEtapaInfo(etapaCalculada) : null;
+  const esLactancia = etapaCalculada === 'lactancia';
+  // Meses que faltan para empezar con sólidos (~6 meses, estándar OMS)
+  const mesesParaSolidos = mesesEdad !== null ? Math.max(0, 6 - mesesEdad) : 0;
 
   const toggleAlergia = (id: string) => {
     setAlergias((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]));
@@ -104,7 +110,7 @@ export default function OnboardingScreen() {
       if (!etapaCalculada) {
         Alert.alert(
           'Fecha inválida',
-          'Verifica la fecha. La app es para bebés de 4 meses a 6 años.'
+          'Verifica la fecha. Puedes registrar a tu bebé desde su nacimiento hasta los 6 años.'
         );
         return;
       }
@@ -128,9 +134,16 @@ export default function OnboardingScreen() {
     }
   };
 
+  const labelStyle = {
+    fontSize: 13,
+    fontWeight: '700' as const,
+    color: c.negro,
+    marginBottom: 8,
+  };
+
   return (
     <ScrollView
-      className="flex-1 bg-fondo-app dark:bg-[#121212]"
+      style={{ flex: 1, backgroundColor: c.fondoApp }}
       contentContainerStyle={{
         flexGrow: 1,
         paddingHorizontal: 24,
@@ -138,9 +151,10 @@ export default function OnboardingScreen() {
         paddingBottom: insets.bottom + 16,
       }}
       keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
       {/* Barra de progreso */}
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 40 }}>
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 32 }}>
         {[1, 2, 3].map((p) => (
           <View
             key={p}
@@ -154,20 +168,42 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
+      {/* Eyebrow paso */}
+      <Text style={{ fontSize: 11, fontWeight: '700', color: c.grisTexto, letterSpacing: 2 }}>
+        PASO {paso} DE {PASOS_TOTAL}
+      </Text>
+
       {/* ── Paso 1: nombre y avatar ───────────────────────────────────── */}
       {paso === 1 && (
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 40, marginBottom: 8 }}>👶</Text>
-          <Text className="text-2xl font-bold text-negro dark:text-[#F0EDE8] mb-1">
+        <View style={{ flex: 1, marginTop: 10 }}>
+          <Text
+            style={{
+              fontSize: 30,
+              fontWeight: '800',
+              color: c.negro,
+              letterSpacing: -0.6,
+              lineHeight: 36,
+            }}
+          >
             ¿Cómo se llama tu bebé?
           </Text>
-          <Text className="text-gris-texto dark:text-[#A0A0A0] mb-8">
+          <Text style={{ fontSize: 15, color: c.grisTexto, marginTop: 10, marginBottom: 28 }}>
             Puedes agregar más perfiles después.
           </Text>
 
-          <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1">Nombre</Text>
+          <Text style={labelStyle}>Nombre</Text>
           <TextInput
-            className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl px-4 py-3 text-negro dark:text-[#F0EDE8] text-base mb-6"
+            style={{
+              backgroundColor: c.card,
+              borderWidth: 1,
+              borderColor: c.cardBorde,
+              borderRadius: 14,
+              paddingHorizontal: 16,
+              paddingVertical: 13,
+              fontSize: 16,
+              color: c.negro,
+              marginBottom: 24,
+            }}
             placeholder="Ej: Mateo"
             placeholderTextColor={c.grisTexto}
             value={nombre}
@@ -177,122 +213,170 @@ export default function OnboardingScreen() {
             accessibilityLabel="Nombre del bebé"
           />
 
-          <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-3">
-            Elige un avatar
-          </Text>
+          <Text style={labelStyle}>Elige un avatar</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            {AVATARES.map((emoji) => (
-              <TouchableOpacity
-                key={emoji}
-                onPress={() => setAvatarEmoji(emoji)}
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 12,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: avatarEmoji === emoji ? c.verdeClaro : c.blanco,
-                  borderWidth: avatarEmoji === emoji ? 2 : 1,
-                  borderColor: avatarEmoji === emoji ? c.verde : c.grisClaro,
-                }}
-                accessibilityLabel={`Avatar ${emoji}`}
-              >
-                <Text style={{ fontSize: 26 }}>{emoji}</Text>
-              </TouchableOpacity>
-            ))}
+            {AVATARES.map((emoji) => {
+              const activo = avatarEmoji === emoji;
+              return (
+                <TouchableOpacity
+                  key={emoji}
+                  onPress={() => setAvatarEmoji(emoji)}
+                  activeOpacity={0.8}
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: activo ? c.verdeClaro : c.card,
+                    borderWidth: activo ? 2 : 1,
+                    borderColor: activo ? c.verde : c.cardBorde,
+                  }}
+                  accessibilityLabel={`Avatar ${emoji}`}
+                >
+                  <Text style={{ fontSize: 26 }}>{emoji}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       )}
 
       {/* ── Paso 2: fecha de nacimiento ──────────────────────────────── */}
       {paso === 2 && (
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 40, marginBottom: 8 }}>🗓️</Text>
-          <Text className="text-2xl font-bold text-negro dark:text-[#F0EDE8] mb-1">
-            ¿Cuándo nació {nombre}?
+        <View style={{ flex: 1, marginTop: 10 }}>
+          <Text
+            style={{
+              fontSize: 30,
+              fontWeight: '800',
+              color: c.negro,
+              letterSpacing: -0.6,
+              lineHeight: 36,
+            }}
+          >
+            ¿Cuándo nació <Text style={{ color: c.verde }}>{nombre}</Text>?
           </Text>
-          <Text className="text-gris-texto dark:text-[#A0A0A0] mb-8">
-            Usamos esto para mostrar recetas según su etapa de alimentación.
+          <Text style={{ fontSize: 15, color: c.grisTexto, marginTop: 10, marginBottom: 28 }}>
+            Con esto sabemos en qué etapa está: desde solo leche hasta platos completos.
           </Text>
 
           {/* Campos de fecha: día / mes / año */}
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
-            <View style={{ flex: 1 }}>
-              <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1 text-center">
-                Día
-              </Text>
-              <TextInput
-                className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl py-3 text-negro dark:text-[#F0EDE8] text-base text-center"
-                placeholder="DD"
-                placeholderTextColor={c.grisTexto}
-                value={dia}
-                onChangeText={(v) => {
-                  setDia(v);
-                  if (v.length === 2) refMes.current?.focus();
-                }}
-                keyboardType="numeric"
-                maxLength={2}
-                accessibilityLabel="Día de nacimiento"
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1 text-center">
-                Mes
-              </Text>
-              <TextInput
-                ref={refMes}
-                className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl py-3 text-negro dark:text-[#F0EDE8] text-base text-center"
-                placeholder="MM"
-                placeholderTextColor={c.grisTexto}
-                value={mes}
-                onChangeText={(v) => {
-                  setMes(v);
-                  if (v.length === 2) refAnio.current?.focus();
-                }}
-                keyboardType="numeric"
-                maxLength={2}
-                accessibilityLabel="Mes de nacimiento"
-              />
-            </View>
-            <View style={{ flex: 2 }}>
-              <Text className="text-sm font-medium text-negro dark:text-[#F0EDE8] mb-1 text-center">
-                Año
-              </Text>
-              <TextInput
-                ref={refAnio}
-                className="bg-white dark:bg-[#1E1E1E] border border-gris-claro dark:border-[#2A2A2A] rounded-xl py-3 text-negro dark:text-[#F0EDE8] text-base text-center"
-                placeholder="AAAA"
-                placeholderTextColor={c.grisTexto}
-                value={anio}
-                onChangeText={setAnio}
-                keyboardType="numeric"
-                maxLength={4}
-                accessibilityLabel="Año de nacimiento"
-              />
-            </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+            {[
+              { label: 'Día', value: dia, placeholder: 'DD', maxLength: 2, width: '22%' as const },
+              { label: 'Mes', value: mes, placeholder: 'MM', maxLength: 2, width: '22%' as const },
+              {
+                label: 'Año',
+                value: anio,
+                placeholder: 'AAAA',
+                maxLength: 4,
+                width: '46%' as const,
+              },
+            ].map((campo) => (
+              <View key={campo.label} style={{ width: campo.width }}>
+                <Text style={{ ...labelStyle, textAlign: 'center' }}>{campo.label}</Text>
+                <TextInput
+                  ref={campo.label === 'Mes' ? refMes : campo.label === 'Año' ? refAnio : undefined}
+                  style={{
+                    backgroundColor: c.card,
+                    borderWidth: 1,
+                    borderColor: c.cardBorde,
+                    borderRadius: 14,
+                    paddingVertical: 13,
+                    fontSize: 16,
+                    color: c.negro,
+                    textAlign: 'center',
+                    fontVariant: ['tabular-nums'],
+                  }}
+                  placeholder={campo.placeholder}
+                  placeholderTextColor={c.grisTexto}
+                  value={campo.value}
+                  onChangeText={(v) => {
+                    if (campo.label === 'Día') {
+                      setDia(v);
+                      if (v.length === 2) refMes.current?.focus();
+                    } else if (campo.label === 'Mes') {
+                      setMes(v);
+                      if (v.length === 2) refAnio.current?.focus();
+                    } else {
+                      setAnio(v);
+                    }
+                  }}
+                  keyboardType="numeric"
+                  maxLength={campo.maxLength}
+                  accessibilityLabel={`${campo.label} de nacimiento`}
+                />
+              </View>
+            ))}
           </View>
 
           {/* Badge de etapa calculada automáticamente */}
-          {etapaInfo ? (
+          {esLactancia && etapaInfo ? (
             <View
               style={{
-                backgroundColor: etapaInfo.color + '40',
-                borderRadius: 12,
+                backgroundColor: c.premiumFondo,
+                borderRadius: 14,
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: etapaInfo.color + '44',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 24, lineHeight: 32 }}>🍼</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: c.negro }}>
+                  Por ahora, solo leche
+                </Text>
+                <Text style={{ fontSize: 13, color: c.grisTexto, marginTop: 2, lineHeight: 19 }}>
+                  {mesesParaSolidos > 0
+                    ? `Faltan ~${mesesParaSolidos} ${
+                        mesesParaSolidos === 1 ? 'mes' : 'meses'
+                      } para empezar con sólidos. Te avisaremos cuando sea el momento.`
+                    : 'Ya casi puede empezar con sólidos. Te avisaremos cuando sea el momento.'}
+                </Text>
+              </View>
+            </View>
+          ) : etapaInfo ? (
+            <View
+              style={{
+                backgroundColor: c.card,
+                borderWidth: 1,
+                borderColor: c.cardBorde,
+                borderRadius: 14,
                 padding: 14,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 12,
               }}
             >
-              <Text style={{ fontSize: 28 }}>{etapaInfo.emoji}</Text>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: etapaInfo.color + '33',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 24 }}>{etapaInfo.emoji}</Text>
+              </View>
               <View style={{ flex: 1 }}>
-                <Text className="font-semibold text-negro dark:text-[#F0EDE8]">
+                <Text style={{ fontSize: 15, fontWeight: '700', color: c.negro }}>
                   {formatearEdad(`${anio}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`)}
                 </Text>
-                <Text
-                  className="text-gris-texto dark:text-[#A0A0A0] text-sm"
-                  style={{ flexWrap: 'wrap' }}
-                >
+                <Text style={{ fontSize: 13, color: c.grisTexto, marginTop: 2 }}>
                   {etapaInfo.nombre} · {etapaInfo.descripcion}
                 </Text>
               </View>
@@ -304,12 +388,16 @@ export default function OnboardingScreen() {
               <View
                 style={{
                   backgroundColor: c.premiumFondo,
-                  borderRadius: 12,
+                  borderRadius: 14,
                   padding: 14,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
                 }}
               >
-                <Text className="text-naranja text-sm text-center">
-                  Verifica la fecha — la app es para bebés de 4 meses a 6 años.
+                <Feather name="alert-triangle" size={18} color={c.naranja} />
+                <Text style={{ flex: 1, fontSize: 13, color: c.naranja }}>
+                  Verifica la fecha — puedes registrar desde el nacimiento hasta los 6 años.
                 </Text>
               </View>
             )
@@ -319,12 +407,19 @@ export default function OnboardingScreen() {
 
       {/* ── Paso 3: alergias ─────────────────────────────────────────── */}
       {paso === 3 && (
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 40, marginBottom: 8 }}>🌾</Text>
-          <Text className="text-2xl font-bold text-negro dark:text-[#F0EDE8] mb-1">
+        <View style={{ flex: 1, marginTop: 10 }}>
+          <Text
+            style={{
+              fontSize: 30,
+              fontWeight: '800',
+              color: c.negro,
+              letterSpacing: -0.6,
+              lineHeight: 36,
+            }}
+          >
             ¿Tiene alguna alergia?
           </Text>
-          <Text className="text-gris-texto dark:text-[#A0A0A0] mb-8">
+          <Text style={{ fontSize: 15, color: c.grisTexto, marginTop: 10, marginBottom: 28 }}>
             Selecciona las que apliquen. Puedes editarlo después.
           </Text>
 
@@ -335,16 +430,17 @@ export default function OnboardingScreen() {
                 <TouchableOpacity
                   key={alergia.id}
                   onPress={() => toggleAlergia(alergia.id)}
+                  activeOpacity={0.8}
                   style={{
                     paddingHorizontal: 14,
                     paddingVertical: 10,
-                    borderRadius: 20,
+                    borderRadius: 999,
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 6,
-                    backgroundColor: seleccionado ? c.verdeClaro : c.blanco,
+                    backgroundColor: seleccionado ? c.verdeClaro : c.card,
                     borderWidth: 1.5,
-                    borderColor: seleccionado ? c.verde : c.grisClaro,
+                    borderColor: seleccionado ? c.verde : c.cardBorde,
                   }}
                   accessibilityLabel={`Alergia ${alergia.nombre}`}
                 >
@@ -352,7 +448,7 @@ export default function OnboardingScreen() {
                   <Text
                     style={{
                       fontSize: 13,
-                      fontWeight: '500',
+                      fontWeight: '600',
                       color: seleccionado ? c.verde : c.negro,
                     }}
                   >
@@ -363,53 +459,68 @@ export default function OnboardingScreen() {
             })}
           </View>
 
-          {error && <Text className="text-error text-sm text-center mb-4">{error}</Text>}
+          {error && (
+            <Text style={{ fontSize: 13, color: c.error, textAlign: 'center', marginBottom: 16 }}>
+              {error}
+            </Text>
+          )}
         </View>
       )}
 
       {/* ── Botones de navegación ─────────────────────────────────────── */}
-      <View style={{ gap: 12, marginTop: 24 }}>
+      <View style={{ gap: 8, marginTop: 24 }}>
         <TouchableOpacity
           style={{
-            backgroundColor: cargando ? c.verde + '99' : c.verde,
-            borderRadius: 12,
+            backgroundColor: cargando ? c.grisClaro : c.verde,
+            borderRadius: 999,
             paddingVertical: 16,
             alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'row',
+            gap: 10,
           }}
+          activeOpacity={0.85}
           onPress={paso < PASOS_TOTAL ? avanzar : crear}
           disabled={cargando}
           accessibilityLabel={paso < PASOS_TOTAL ? 'Siguiente paso' : 'Crear perfil y empezar'}
         >
           {cargando ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color={c.grisTexto} size="small" />
           ) : (
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-              {paso < PASOS_TOTAL ? 'Siguiente' : `Empezar con ${nombre} ${avatarEmoji}`}
-            </Text>
+            <>
+              <Feather
+                name={paso < PASOS_TOTAL ? 'arrow-right' : 'check'}
+                size={18}
+                color={c.blanco}
+              />
+              <Text
+                style={{ color: c.blanco, fontWeight: '800', fontSize: 15, letterSpacing: 0.3 }}
+              >
+                {paso < PASOS_TOTAL ? 'Siguiente' : `Empezar con ${nombre} ${avatarEmoji}`}
+              </Text>
+            </>
           )}
         </TouchableOpacity>
 
         {paso > 1 && (
           <TouchableOpacity
-            className="items-center py-2"
+            style={{ alignItems: 'center', paddingVertical: 8 }}
             onPress={() => setPaso(paso - 1)}
             disabled={cargando}
             accessibilityLabel="Volver al paso anterior"
           >
-            <Text className="text-gris-texto dark:text-[#A0A0A0]">Volver</Text>
+            <Text style={{ fontSize: 14, color: c.grisTexto, fontWeight: '600' }}>Volver</Text>
           </TouchableOpacity>
         )}
 
         {/* Atajo para saltear alergias en el paso 3 */}
         {paso === 3 && alergias.length === 0 && !cargando && (
           <TouchableOpacity
-            className="items-center py-1"
+            style={{ alignItems: 'center', paddingVertical: 6 }}
             onPress={crear}
             accessibilityLabel="Continuar sin alergias"
           >
-            <Text className="text-gris-texto dark:text-[#A0A0A0] text-sm">
-              Sin alergias por ahora
-            </Text>
+            <Text style={{ fontSize: 14, color: c.grisTexto }}>Sin alergias por ahora</Text>
           </TouchableOpacity>
         )}
       </View>

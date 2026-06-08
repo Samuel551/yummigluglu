@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx eslint *)",
+      "Bash(npx tsc *)",
+      "mcp__plugin_engram_engram__mem_session_summary"
+    ]
+  }
+}

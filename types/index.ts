@@ -1,6 +1,6 @@
 // ─── Enums de dominio ────────────────────────────────────────────────────────
 
-export type EtapaAlimentaria = 'inicio' | 'transicion' | 'preescolar';
+export type EtapaAlimentaria = 'lactancia' | 'inicio' | 'transicion' | 'preescolar';
 export type MomentoDia = 'desayuno' | 'almuerzo' | 'cena' | 'snack';
 export type PlanSuscripcion = 'free' | 'premium' | 'premium_anual';
 
@@ -183,6 +183,46 @@ export interface DiarioAlimento {
   created_at: string;
 }
 
+// ─── Recordatorios (Agenda) ───────────────────────────────────────────────────
+
+export type TipoRecordatorio =
+  | 'comida'
+  | 'hidratacion'
+  | 'diario'
+  | 'hito'
+  | 'control'
+  | 'lista_compras';
+
+export type ModoNotificacion = 'notificacion' | 'alarma';
+
+export interface Recordatorio {
+  id: string;
+  user_id: string;
+  perfil_hijo_id: string;
+  tipo: TipoRecordatorio;
+  titulo: string;
+  descripcion?: string;
+  fecha_hora?: string; // ISO timestamp — one-shot
+  hora_diaria?: string; // HH:MM:SS — recurrente
+  dias_semana?: number[]; // 0=domingo, 6=sábado — premium
+  modo_notificacion: ModoNotificacion;
+  notification_id?: string; // ID local de expo-notifications (o JSON array para alarma)
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecordatorioInput {
+  perfil_hijo_id: string;
+  tipo: TipoRecordatorio;
+  titulo: string;
+  descripcion?: string;
+  fecha_hora?: string;
+  hora_diaria?: string;
+  dias_semana?: number[];
+  modo_notificacion?: ModoNotificacion;
+}
+
 // ─── Filtros de recetas ───────────────────────────────────────────────────────
 
 export interface FiltrosReceta {
@@ -192,4 +232,5 @@ export interface FiltrosReceta {
   excluir_alergenos?: string[];
   solo_sin_premium?: boolean;
   tags?: string[];
+  pais?: string; // 'todos' | 'chile' | 'peru' | etc — filtra por tags de país
 }
