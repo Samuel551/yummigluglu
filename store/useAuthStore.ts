@@ -102,6 +102,22 @@ export const useAuthStore = create<AuthState>((set) => ({
   iniciarSesionConGoogle: async () => {
     set({ cargando: true, error: null });
     try {
+      // WEB (herramienta de dev — la app es Android-only): el módulo nativo de
+      // Google Sign In no existe en el navegador. Acá va el flujo OAuth clásico
+      // de Supabase: redirect a Google y vuelta a esta misma URL con los tokens
+      // en el fragment, que los captura detectSessionInUrl (habilitado solo en
+      // web en lib/supabase.ts).
+      // ⚠️ Requiere el origin (http://localhost:8081) en la whitelist de
+      // Redirect URLs del dashboard — si no matchea, Supabase cae al Site URL
+      // (yummigluglu://) EN SILENCIO y el navegador queda colgado.
+      if (Platform.OS === 'web') {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: APP_REDIRECT_URL },
+        });
+        if (error) throw error;
+        return; // el navegador se va a Google — no hay nada más que hacer acá
+      }
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       // Cerramos cualquier sesión local de Google previa (NO toca la de Supabase)
       // para que SIEMPRE aparezca el selector de cuentas. Si no, la librería reusa

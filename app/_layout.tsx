@@ -9,6 +9,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
 import { useTemaStore } from '@/store/useTemaStore';
 import { usePaisStore } from '@/store/usePaisStore';
+import { useAnunciosStore } from '@/store/useAnunciosStore';
+import { useDesbloqueosStore } from '@/store/useDesbloqueosStore';
 
 export default function RootLayout() {
   const setSession = useAuthStore((state) => state.setSession);
@@ -16,6 +18,7 @@ export default function RootLayout() {
   const tema = useTemaStore((s) => s.tema);
   const hidratar = useTemaStore((s) => s.hidratar);
   const hidratarPais = usePaisStore((s) => s.hidratar);
+  const inicializarAnuncios = useAnunciosStore((s) => s.inicializar);
   const [procesandoAuth, setProcesandoAuth] = useState(false);
 
   // Hidratar stores persistidos desde AsyncStorage al arrancar
@@ -24,14 +27,37 @@ export default function RootLayout() {
     hidratarPais();
   }, [hidratar, hidratarPais]);
 
+  // Inicializar el SDK de anuncios una vez al arrancar. No-op seguro en web /
+  // dev client sin recompilar (el módulo nativo no está disponible).
   useEffect(() => {
-    // Cargar sesión activa al iniciar la app
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        inicializarRevenueCat(session.user.id);
+    inicializarAnuncios();
+  }, [inicializarAnuncios]);
+
+  useEffect(() => {
+    // Cargar sesión activa al iniciar la app.
+    // Si el refresh token guardado es inválido (ej. cuenta borrada/revocada, o
+    // token expirado más allá del límite de reuso), Supabase lanza
+    // "Invalid Refresh Token". Lo manejamos: limpiamos la sesión zombi en
+    // silencio y dejamos al usuario en login, sin overlay de error.
+    const cargarSesion = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+        if (error) throw error;
+        setSession(session);
+        if (session?.user) {
+          inicializarRevenueCat(session.user.id);
+          useDesbloqueosStore.getState().cargar();
+        }
+      } catch (e) {
+        console.warn('Sesión inválida al iniciar, limpiando:', e);
+        await supabase.auth.signOut().catch(() => {});
+        setSession(null);
       }
-    });
+    };
+    cargarSesion();
 
     // Escuchar cambios de autenticación
     const {
@@ -40,8 +66,10 @@ export default function RootLayout() {
       setSession(session);
       if (event === 'SIGNED_IN' && session?.user) {
         inicializarRevenueCat(session.user.id);
+        useDesbloqueosStore.getState().cargar();
       } else if (event === 'SIGNED_OUT') {
         cerrarSesionRevenueCat();
+        useDesbloqueosStore.getState().limpiar();
       }
     });
 

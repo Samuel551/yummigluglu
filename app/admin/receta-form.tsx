@@ -152,9 +152,7 @@ export default function RecetaForm() {
           ? r.ingredientes
           : [{ id: 1, nombre: '', cantidad: 0, unidad: 'g', calorias_por_100g: 0 }]
       );
-      setPasos(
-        r.pasos?.length ? r.pasos : [{ orden: 1, descripcion: '', duracion_min: 0 }]
-      );
+      setPasos(r.pasos?.length ? r.pasos : [{ orden: 1, descripcion: '', duracion_min: 0 }]);
       setVideoUrl(r.video_url ?? '');
       setEsPremium(r.es_premium ?? false);
       setActiva(r.activa ?? true);
@@ -187,29 +185,16 @@ export default function RecetaForm() {
   };
   const quitarIngrediente = (idIng: number) =>
     setIngredientes((prev) => prev.filter((i) => i.id !== idIng));
-  const actualizarIngrediente = (
-    idIng: number,
-    campo: keyof Ingrediente,
-    valor: string | number
-  ) =>
-    setIngredientes((prev) =>
-      prev.map((i) => (i.id === idIng ? { ...i, [campo]: valor } : i))
-    );
+  const actualizarIngrediente = (idIng: number, campo: keyof Ingrediente, valor: string | number) =>
+    setIngredientes((prev) => prev.map((i) => (i.id === idIng ? { ...i, [campo]: valor } : i)));
 
   const agregarPaso = () =>
-    setPasos((prev) => [
-      ...prev,
-      { orden: prev.length + 1, descripcion: '', duracion_min: 0 },
-    ]);
+    setPasos((prev) => [...prev, { orden: prev.length + 1, descripcion: '', duracion_min: 0 }]);
   const quitarPaso = (orden: number) =>
     setPasos((prev) =>
       prev.filter((p) => p.orden !== orden).map((p, idx) => ({ ...p, orden: idx + 1 }))
     );
-  const actualizarPaso = (
-    orden: number,
-    campo: keyof PasoReceta,
-    valor: string | number
-  ) =>
+  const actualizarPaso = (orden: number, campo: keyof PasoReceta, valor: string | number) =>
     setPasos((prev) => prev.map((p) => (p.orden === orden ? { ...p, [campo]: valor } : p)));
 
   const guardar = async () => {
@@ -742,9 +727,11 @@ export default function RecetaForm() {
               }}
             >
               <View style={{ flex: 1, marginRight: 12 }}>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1C1917' }}>Premium</Text>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1C1917' }}>
+                  Video Premium
+                </Text>
                 <Text style={{ fontSize: 12, color: '#78716C' }}>
-                  Solo visible con suscripción
+                  La receta es free; solo el video requiere premium o ver un anuncio
                 </Text>
               </View>
               <Switch
@@ -880,15 +867,7 @@ function Campo({
   );
 }
 
-function Chip({
-  activo,
-  onPress,
-  label,
-}: {
-  activo: boolean;
-  onPress: () => void;
-  label: string;
-}) {
+function Chip({ activo, onPress, label }: { activo: boolean; onPress: () => void; label: string }) {
   return (
     <TouchableOpacity
       onPress={onPress}

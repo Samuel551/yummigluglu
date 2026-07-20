@@ -22,7 +22,10 @@ export const useRecetasStore = create<RecetasState>((set) => ({
   cargarRecetas: async (filtros) => {
     set({ cargando: true, error: null });
     try {
-      let query = supabase.from('recetas').select('*').eq('activa', true);
+      // Leemos de la vista `recetas_teaser` (no de la tabla) para que las recetas
+      // premium aparezcan como teaser con candado para los usuarios free. La vista
+      // gatea el contenido pesado server-side. Ver migración 023.
+      let query = supabase.from('recetas_teaser').select('*').eq('activa', true);
 
       // Filtrar por etapa compatible con el perfil activo
       if (filtros?.etapa) {

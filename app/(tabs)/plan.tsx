@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AnuncioBanner } from '@/components/AnuncioBanner';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { usePerfilStore } from '@/store/usePerfilStore';
@@ -164,10 +165,7 @@ export default function PlanScreen() {
       Alert.alert(
         '¡Listo!',
         `Se programaron ${creados} recordatorios para la semana de ${perfilActivo?.nombre}.`,
-        [
-          { text: 'OK' },
-          { text: 'Ver agenda', onPress: () => router.push('/agenda') },
-        ]
+        [{ text: 'OK' }, { text: 'Ver agenda', onPress: () => router.push('/agenda') }]
       );
     }
   };
@@ -227,6 +225,7 @@ export default function PlanScreen() {
     <View style={{ flex: 1, backgroundColor: c.fondoApp }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             paddingBottom: insets.bottom + 32,
@@ -257,8 +256,7 @@ export default function PlanScreen() {
                 lineHeight: 36,
               }}
             >
-              Para{' '}
-              <Text style={{ color: c.verde }}>{perfilActivo.nombre}</Text>{' '}
+              Para <Text style={{ color: c.verde }}>{perfilActivo.nombre}</Text>{' '}
               <Text style={{ fontSize: 28, lineHeight: 42 }}>{perfilActivo.avatar_emoji}</Text>
             </Text>
             <Text
@@ -533,6 +531,7 @@ export default function PlanScreen() {
             </View>
           )}
         </ScrollView>
+        <AnuncioBanner />
       </SafeAreaView>
 
       {/* Modal calendario */}
@@ -560,7 +559,11 @@ function DiaEditorial({
   dia: DiaSemana;
   fecha: Date;
   esHoy: boolean;
-  momentos: Array<{ momento: MomentoDia; recetaId: string | undefined; recetaNombre: string | null | undefined }>;
+  momentos: Array<{
+    momento: MomentoDia;
+    recetaId: string | undefined;
+    recetaNombre: string | null | undefined;
+  }>;
   c: ReturnType<typeof useColoresTema>;
 }) {
   return (
@@ -762,8 +765,8 @@ function EmptyStatePlan({
           marginBottom: 20,
         }}
       >
-        Genera un plan personalizado para {perfilNombre} con recetas adaptadas a su etapa y sin
-        sus alergenos.
+        Genera un plan personalizado para {perfilNombre} con recetas adaptadas a su etapa y sin sus
+        alergenos.
       </Text>
       <TouchableOpacity
         onPress={onGenerar}
@@ -875,9 +878,7 @@ function CalendarioPicker({
               ELEGIR SEMANA
             </Text>
             <TouchableOpacity onPress={onClose} hitSlop={8} activeOpacity={0.6}>
-              <Text style={{ fontSize: 14, color: c.grisTexto, fontWeight: '600' }}>
-                Cancelar
-              </Text>
+              <Text style={{ fontSize: 14, color: c.grisTexto, fontWeight: '600' }}>Cancelar</Text>
             </TouchableOpacity>
           </View>
 

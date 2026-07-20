@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -16,6 +17,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // En mobile los tokens del deep link se parsean a mano en _layout.tsx
+    // (detectSessionInUrl solo funciona en web). En web SÍ lo necesitamos:
+    // es lo que captura la sesión al volver del redirect OAuth de Google.
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });

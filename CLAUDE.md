@@ -58,9 +58,12 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 | 4    | Edición de cuenta (email/password) y perfiles de hijos       | ✅ Completa  |
 | 5    | Plan semanal + Lista de compras + Diario de alimentos        | ✅ Completa  |
 | 6    | NutriBot IA (`asistente.tsx`)                                | 🔲 Pendiente |
-| 7a   | Videos Premium (contenido real)                              | 🔲 Pendiente |
+| 7a   | Videos Premium (embed YouTube por receta)                    | ✅ Completa  |
 | 7b   | Integración RevenueCat (suscripciones)                       | ✅ Completa  |
 | 8    | Panel de administración del developer                        | ✅ Completa  |
+| 9    | Anuncios AdMob (banner + intersticial + rewarded desbloqueo) | ✅ Completa  |
+
+> **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
 
 ### Fase 6 — NutriBot IA (pendiente)
 
@@ -72,15 +75,20 @@ Qué falta:
 - Rate limiting server-side (tokens por día por usuario) — premium ilimitado, free N mensajes/día.
 - Contexto del niño auto-inyectado al prompt: edad, etapa, alergias (desde `perfiles_hijos`).
 
-### Fase 7a — Videos Premium (pendiente)
+### Fase 7a — Videos Premium (implementada)
 
-Qué falta:
+**Arquitectura elegida: NO hay tabla `videos` separada.** Cada video vive como campo `video_url` **dentro de la receta** (embed de YouTube). Modelo (a) "por receta". El contenido se carga desde el panel admin — no requiere código, es data entry.
 
-- `app/(tabs)/videos.tsx` ya existe pero solo es **upsell** — muestra un placeholder cuando el usuario es premium ("Estamos preparando el contenido"). Falta el contenido real.
-- Tabla `videos` en Supabase con RLS premium (`es_premium = true` → acceso solo con suscripción activa, igual patrón que `recetas`).
-- Campo `video_url` en recetas ya existe (el admin lo puede agregar desde el panel). Definir si los videos son (a) por receta, (b) standalone, o (c) ambos.
-- Reproductor — evaluar `expo-video` (nuevo, reemplaza `expo-av`) vs embed YouTube. YouTube es más barato pero expone el video público; `expo-video` requiere hosting (Mux, Bunny, Cloudflare Stream).
-- Store `useVideosStore` con filtros por etapa.
+Piezas ya construidas:
+
+- **`app/(tabs)/videos.tsx`** — vista dual: `VistaPremium` (lista todas las recetas activas con `video_url`, filtradas por etapa del perfil activo, con thumbnail de YouTube) y `VistaPaywall` (upsell para usuarios free). Ya NO es placeholder.
+- **`app/receta/[id].tsx`** — reproductor embebido con `react-native-youtube-iframe` en un `Modal`. El modal respeta proporción **9:16 vertical** (pensado para YouTube **Shorts**). Tiene gate premium: receta `es_premium && !esPremium` → muestra card 🔒 que lleva a `/premium`; si es premium o la receta es gratis → botón ▶ que abre el video.
+- **`app/admin/receta-form.tsx`** — el admin carga **URL de imagen** (`imagen_url`) y **Video URL** (`video_url`) por receta, más el toggle `es_premium`. Este es el flujo de carga de contenido.
+- **`lib/youtube.ts`** — `extraerVideoId(url)` (soporta `watch?v=`, `youtu.be/`, `/embed/`, `/shorts/`) y `urlThumbnail(videoId)` (hqdefault).
+
+**Gotcha de YouTube no listado (LEER antes de cargar videos en masa):** los videos en "no listado" se embeben OK, pero solo si tienen **"Permitir insertar" (Allow embedding)** activado. Si el video se marca como **"Contenido para niños" (Made for Kids)**, YouTube restringe funciones de embed. Siendo app de comida para bebés, es tentador marcarlos así — **NO hacerlo**. Probar un video embebido en el dispositivo real antes de cargar el lote completo.
+
+Lo único que "queda" de la Fase 7a es carga de datos (links + imágenes por receta), que es trabajo del owner en el panel admin, no de código.
 
 ## Environment Variables
 
@@ -91,6 +99,9 @@ EXPO_PUBLIC_SUPABASE_URL=https://uoqzkbbnesmvmgbjikrn.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID=<revenuecat_android_key>
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<google_web_client_id>.apps.googleusercontent.com
+EXPO_PUBLIC_ADMOB_BANNER_ANDROID=ca-app-pub-XXX/YYY
+EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID=ca-app-pub-XXX/YYY
+EXPO_PUBLIC_ADMOB_REWARDED_ANDROID=ca-app-pub-XXX/YYY
 ```
 
 Sin `SUPABASE_URL` y `SUPABASE_ANON_KEY` la app lanza una excepción al arrancar (`lib/supabase.ts`). Sin `REVENUECAT_API_KEY_ANDROID` la pantalla premium carga pero sin paquetes disponibles.
@@ -98,6 +109,8 @@ Sin `SUPABASE_URL` y `SUPABASE_ANON_KEY` la app lanza una excepción al arrancar
 `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` — el **Web Client ID** de Google Cloud (público, no secreto). Lo usa `GoogleSignin.configure()` en `useAuthStore.ts`. Sin él, el botón "Continuar con Google" no funciona (la config se saltea por el guard). Ver sección "Google Sign In".
 
 `EXPO_PUBLIC_ADMIN_PASSWORD_HASH` — hash SHA-256 de la contraseña del panel admin (requerido para acceder a `/admin`). Calcular con `crypto.subtle.digest('SHA-256', ...)` en browser.
+
+`EXPO_PUBLIC_ADMOB_*` — IDs de las unidades de anuncio de AdMob (banner, intersticial, rewarded) para Android. **Solo se usan en producción**: en `__DEV__` el código usa SIEMPRE los IDs de prueba de Google (evita clicks inválidos). Si faltan en prod, hace fallback a los IDs de test (inofensivo). Ver sección "Anuncios (AdMob)". El **App ID** de AdMob (el que empieza con `~`) NO va acá — va en `app.json` (plugin `react-native-google-mobile-ads`, se hornea al buildear).
 
 > ⚠️ **Dev client vs producción**: el build `development` usa Metro local, que lee `.env.local` y hornea las `EXPO_PUBLIC_*` al bundlear. Por eso en dev alcanza con `.env.local`. Pero el `eas.json` **no tiene bloque `env`**, así que los builds **`preview`/`production` (sin Metro local) NO van a tener estas variables** — antes de un build de producción hay que cargarlas en `eas.json` (`build.<profile>.env`) o en EAS Environment Variables.
 
@@ -117,7 +130,7 @@ app/
     recetas.tsx       # Catálogo de recetas con filtros (etapa, momento, alergenos)
     favoritos.tsx     # Favoritos del usuario
     plan.tsx          # Tab Plan semanal — genera plan 7 días + acceso a lista de compras
-    videos.tsx        # Pantalla de upsell Videos Premium (ya no es tab, accesible como screen)
+    videos.tsx        # Videos Premium — VistaPremium (lista recetas con video_url) o VistaPaywall (free). Ver Fase 7a
     perfil.tsx        # Perfiles de hijos + cuenta
   receta/[id].tsx     # Detalle de receta (presentation: card)
   lista-compras.tsx   # Lista de compras derivada del plan semanal (presentation: card)
@@ -215,6 +228,49 @@ Los hooks viven en `hooks/`. Cuando una pantalla ya resuelve colores vía Native
 4. **Operacional — secret rotado y largo** — `REVENUECAT_WEBHOOK_SECRET` debe ser ≥ 32 chars random. Vive solo en Supabase Edge Function secrets (`supabase secrets set REVENUECAT_WEBHOOK_SECRET=...`) y en RevenueCat Dashboard → Integrations → Webhooks. **NUNCA en el repo, ni en `.env.local`, ni en logs.** Si hay sospecha de filtración: rotar inmediatamente en ambos lados (Supabase + RC dashboard).
 
 **Lo que estas defensas NO previenen** (limitaciones de RC): si el secret se filtra, un atacante puede activar/desactivar premium para users **existentes** (no inventar IDs). El daño máximo es regalar premium o bloquear suscripciones legítimas — no exfiltrar datos de tarjetas (esos viven en RC/Stripe, nunca en nuestra DB).
+
+`supabase/functions/canjear-desbloqueo/` — concede un desbloqueo temporal de 24h de una receta premium tras un anuncio recompensado (rewarded). Identifica al usuario por su JWT (no confía en ids del body), valida que la receta sea premium, y hace upsert en `desbloqueos_temporales` con `service_role` (el cliente NO puede escribir esa tabla). Deploy: `supabase functions deploy canjear-desbloqueo` (verify_jwt ON). Ver sección "Anuncios (AdMob)".
+
+### Anuncios (AdMob)
+
+Monetización de usuarios **free** con `react-native-google-mobile-ads`. Set "lean" (banner + intersticial capeado + rewarded opt-in). **Público declarado en Play: adultos/padres** — NO dirigido a niños (evita las restricciones de la política de familias de AdMob). Rating de ads limitado a **PG** (brand-safe para app de bebés).
+
+**Regla de oro innegociable**: los anuncios van SOLO para free. Todo formato hace `null`/no-op si `useSuscripcionStore.esPremium`. Un premium que ve un ad es un bug crítico.
+
+**Módulo NATIVO** → no existe en web ni en dev client sin recompilar. Todo se carga perezosamente con guard de plataforma (`lib/ads.ts` → `cargarModuloAds()`), patrón defensivo idéntico a RevenueCat: si no está disponible, no-op silencioso (no crashea). **Agregar los ads requiere rebuild del dev client** (`eas build -p android --profile development`).
+
+> ⚠️ **Web se salva con un fork por plataforma, NO con el guard de runtime.** Metro arma el grafo de dependencias por análisis estático: el `require('react-native-google-mobile-ads')` literal de `ads.ts` entra al bundle web aunque esté detrás de `Platform.OS === 'web'` (el guard protege runtime, no bundleo) → `Web Bundling failed: Importing native-only module`. Por eso existe `lib/ads.web.ts` (no-op, misma API) — Metro prefiere `.web.ts` al bundlear web y `ads.ts` queda fuera del grafo. **Si cambiás la API exportada de `ads.ts`, replicala en `ads.web.ts`.** Mismo patrón si algún día otro módulo nativo se importa con string literal fuera de componentes native-only.
+
+> ⚠️ **Versión PINEADA a `react-native-google-mobile-ads@15.7.0` (exacta) — NO subir a 16.x.** La 16.x trae `play-services-ads` ≥ 24.6.0 compilado con **Kotlin 2.3.0**, y Expo SDK 54 usa **Kotlin 2.1.20** (con KSP `2.1.20-2.0.1` atado). El build de Gradle falla en `:react-native-google-mobile-ads:compileDebugKotlin` con `Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.3.0, expected version is 2.1.0`. La 15.7.0 usa `play-services-ads 24.5.0` (sin metadata Kotlin → sin conflicto). Por eso está en `expo.install.exclude` del `package.json` (para que `expo install` no la bumpee). NO subir Kotlin del proyecto a 2.3 como "fix" — rompería KSP y otros módulos Expo.
+
+**IDs de unidad**: en `__DEV__` se usan SIEMPRE los IDs de prueba de Google (constantes en `lib/ads.ts`). En producción, las env `EXPO_PUBLIC_ADMOB_*`; si faltan, fallback a test (inofensivo). El **App ID** (`~...`) va en `app.json` → plugin `react-native-google-mobile-ads` (`androidAppId`), se hornea al buildear → cambiarlo requiere rebuild.
+
+Piezas:
+
+- `lib/ads.ts` — carga perezosa del módulo, `inicializarSdkAds()` (rating PG, no-niños), resolvers de IDs.
+- `store/useAnunciosStore.ts` — `{ listo, inicializar }`. `inicializar()` se llama una vez en `app/_layout.tsx`; arranca la precarga de intersticial + rewarded.
+- `components/AnuncioBanner.tsx` — banner adaptativo. Devuelve `null` si premium / SDK no listo / sin módulo. Colocar en zonas NO invasivas (ej. `ListFooterComponent` de la lista de recetas).
+- `lib/intersticial.ts` — manager singleton con **doble tope anti-molestia**: recién al 3er "momento natural" (`TRIGGERS_POR_AD`) Y máximo 1 cada 4 min (`MIN_MS_ENTRE_ADS`). Se registra el momento con `registrarMomentoIntersticial()` (ej. al abrir el detalle de una receta).
+- `lib/recompensado.ts` — manager del rewarded (opt-in, sin tope). `mostrarRecompensado()` resuelve `true` SOLO si el usuario vio el ad completo (`EARNED_REWARD`).
+- `components/ModalRecompensa.tsx` — bottom sheet de elección de recompensa. Opciones no disponibles se muestran "Próximamente" (ej. mensajes extra de NutriBot hasta la Fase 6).
+
+**Modelo premium: a nivel VIDEO, no receta** (migración `024`):
+
+⚠️ **IMPORTANTE — `es_premium` significa "el VIDEO de esta receta es premium".** Las RECETAS son SIEMPRE free (ingredientes, pasos, nutrición, imagen — todo visible sin login premium). Solo se gatea el `video_url`. Modelo freemium: recetas gratis como imán de marketing, videos premium como monetización. El owner intercala videos free/premium por receta desde el admin (toggle "Video Premium").
+
+**Desbloqueo del VIDEO con rewarded** (arquitectura completa):
+
+1. **RLS `recetas`** (migración `024`) — todas las recetas activas visibles para `authenticated` (sin gate por `es_premium` en la fila). El contenido de receta es free.
+2. **Vista `recetas_teaser`** (`security_invoker = false` **INTENCIONAL**) — fuente de lectura user-facing del catálogo Y el detalle. Devuelve TODO el contenido de receta libre, pero **gatea SOLO `video_url`** con `CASE`: se muestra si `es_premium = false` OR premium activo OR desbloqueo vigente. El linter marca ERROR `security_definer_view` → **esperado y seguro**: grant solo a `authenticated`, el `auth.uid()` per-request gatea el video. NO cambiar a `security_invoker`.
+3. **Tabla `desbloqueos_temporales`** (migración `023`) — un desbloqueo por (user, receta) con `expires_at`; desbloquea el VIDEO 24h. El usuario solo LEE los suyos (RLS); escribe solo la Edge Function con `service_role`.
+4. **Edge Function `canjear-desbloqueo`** — la única que escribe desbloqueos, tras verificar el usuario por JWT.
+5. **Cliente**: `store/useRecetasStore.ts` y `app/receta/[id].tsx` leen de `recetas_teaser` (NO de `recetas`). `store/useDesbloqueosStore.ts` cachea desbloqueos y llama la edge function. `RecetaCard` muestra un badge "VIDEO" (sin candado — la receta es free); el detalle muestra la receta completa siempre, y solo la sección de video muestra `UnlockCTA` (ver anuncio 24h / hazte premium) cuando `es_premium && videoBloqueado`. Refetch tras ganar el rewarded.
+
+> ⚠️ **Gotcha crítico**: el cliente YA lee de `recetas_teaser`. Si las migraciones `023`+`024` NO están aplicadas, el catálogo se rompe (la vista no existe). La vista es requisito para que la app cargue recetas.
+
+> ⚠️ **`video_url` en la tabla base `recetas` es legible por `authenticated` vía query directa** (RLS es row-level, no column-level). El gateo del video es solo para el flujo normal de la app (vía la vista). Aceptable: los videos son de YouTube **no listado** (ya son "seguridad por oscuridad"); un user técnico que saca la URL igual podría verla. El gate es para la UX, no DRM real.
+
+**Limitación conocida (hardening futuro)**: sin Server-Side Verification (SSV) de AdMob, `canjear-desbloqueo` confía en que el cliente vio el ad. Daño máximo: un user técnico se regala un desbloqueo de video 24h — riesgo bajo. Cerrar con SSV en el ad unit rewarded.
 
 ### Libraries (`lib/`)
 

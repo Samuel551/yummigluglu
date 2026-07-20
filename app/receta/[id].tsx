@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Modal,
   Image,
+  Alert,
   useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -19,6 +20,14 @@ import { COLOR_ETAPA, ETAPA_LABEL, getEtapaInfo } from '@/constants/Etapas';
 import { useColoresTema } from '@/hooks/useColoresTema';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
 import { extraerVideoId, urlThumbnail } from '@/lib/youtube';
+import { registrarMomentoIntersticial } from '@/lib/intersticial';
+import { useDesbloqueosStore } from '@/store/useDesbloqueosStore';
+import {
+  mostrarRecompensado,
+  precargarRecompensado,
+  recompensadoDisponible,
+} from '@/lib/recompensado';
+import { ModalRecompensa, OpcionRecompensa } from '@/components/ModalRecompensa';
 
 const MOMENTO_LABEL: Record<string, string> = {
   desayuno: 'Desayuno',
@@ -33,29 +42,45 @@ export default function DetalleRecetaScreen() {
   const insets = useSafeAreaInsets();
   const { width: anchoP, height: altoP } = useWindowDimensions();
   const { esPremium } = useSuscripcionStore();
+  const desbloqueada = useDesbloqueosStore((s) => (id ? s.estaDesbloqueada(id) : false));
+  const desbloquear = useDesbloqueosStore((s) => s.desbloquear);
   const [videoVisible, setVideoVisible] = useState(false);
   const [receta, setReceta] = useState<Receta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [modalRecompensaVisible, setModalRecompensaVisible] = useState(false);
+  const [procesandoRecompensa, setProcesandoRecompensa] = useState(false);
 
-  useEffect(() => {
+  // Leemos de la vista `recetas_teaser`: siempre devuelve el teaser, y el
+  // contenido pesado (ingredientes, pasos, video) solo si el usuario tiene
+  // derecho (premium o desbloqueo vigente). Reutilizable para refetch tras
+  // desbloquear con un anuncio.
+  const cargarReceta = useCallback(async () => {
     if (!id) {
       setErrorMsg('ID de receta inválido.');
       setCargando(false);
       return;
     }
-    const cargar = async () => {
-      const { data, error } = await supabase.from('recetas').select('*').eq('id', id).single();
+    const { data, error } = await supabase.from('recetas_teaser').select('*').eq('id', id).single();
 
-      if (error) {
-        setErrorMsg('No se pudo cargar la receta. Intenta de nuevo.');
-      } else if (data) {
-        setReceta(data as Receta);
-      }
-      setCargando(false);
-    };
-    cargar();
+    if (error) {
+      setErrorMsg('No se pudo cargar la receta. Intenta de nuevo.');
+    } else if (data) {
+      setReceta(data as Receta);
+    }
+    setCargando(false);
   }, [id]);
+
+  useEffect(() => {
+    cargarReceta();
+  }, [cargarReceta]);
+
+  // Solo al abrir el detalle (una vez): registrar el momento natural del
+  // intersticial y asegurar que haya un rewarded precargado por si desbloquea.
+  useEffect(() => {
+    registrarMomentoIntersticial();
+    precargarRecompensado();
+  }, []);
 
   if (cargando) {
     return (
@@ -100,11 +125,59 @@ export default function DetalleRecetaScreen() {
   const videoId = receta.video_url ? extraerVideoId(receta.video_url) : null;
   const thumbnailUrl = videoId ? urlThumbnail(videoId) : null;
 
+  // Video bloqueado = el VIDEO es premium, el usuario no es premium y no lo desbloqueó.
+  // La receta en sí SIEMPRE es free; solo se gatea el video.
+  const videoBloqueado = receta.es_premium && !esPremium && !desbloqueada;
+
+  const opcionesRecompensa: OpcionRecompensa[] = [
+    {
+      id: 'receta',
+      titulo: 'Desbloquear el video',
+      descripcion: 'Mira el video paso a paso de esta receta por 24 horas.',
+      icon: 'unlock',
+      disponible: true,
+    },
+    {
+      id: 'ia',
+      titulo: 'Mensajes extra con NutriBot',
+      descripcion: 'Suma consultas al asistente de nutrición con IA.',
+      icon: 'message-circle',
+      disponible: false, // se habilita cuando exista la Fase 6 (NutriBot)
+    },
+  ];
+
+  const handleElegirRecompensa = async (opcionId: string) => {
+    if (opcionId !== 'receta' || !id) return;
+    if (!recompensadoDisponible()) {
+      precargarRecompensado();
+      Alert.alert(
+        'Anuncio no disponible',
+        'El anuncio todavía se está cargando. Intenta de nuevo en unos segundos.'
+      );
+      return;
+    }
+    setProcesandoRecompensa(true);
+    const gano = await mostrarRecompensado();
+    if (gano && (await desbloquear(id))) {
+      await cargarReceta(); // la vista ahora devuelve el contenido completo
+    } else if (!gano) {
+      Alert.alert(
+        'Anuncio incompleto',
+        'Necesitas ver el anuncio completo para desbloquear la receta.'
+      );
+    }
+    setProcesandoRecompensa(false);
+    setModalRecompensaVisible(false);
+  };
+
   // El video Short es vertical 9:16 — el iframe debe respetar esa proporción
   // para que no aparezcan bandas negras a los lados.
   const espacioHeader = 80;
-  const videoModalWidth = Math.min(anchoP * 0.92, (altoP - insets.top - insets.bottom - espacioHeader) * 9 / 16);
-  const videoModalHeight = videoModalWidth * 16 / 9;
+  const videoModalWidth = Math.min(
+    anchoP * 0.92,
+    ((altoP - insets.top - insets.bottom - espacioHeader) * 9) / 16
+  );
+  const videoModalHeight = (videoModalWidth * 16) / 9;
 
   const seccionLabelStyle = {
     fontSize: 11,
@@ -274,9 +347,7 @@ export default function DetalleRecetaScreen() {
 
           {/* Pills de momentos del día */}
           {receta.momento_dia.length > 0 && (
-            <View
-              style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 28 }}
-            >
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 28 }}>
               {receta.momento_dia.map((momento) => (
                 <View
                   key={momento}
@@ -295,161 +366,86 @@ export default function DetalleRecetaScreen() {
             </View>
           )}
 
-          {/* VIDEO PREVIEW — protagonista vertical 9:16 */}
-          {videoId &&
-            (receta.es_premium && !esPremium ? (
-              <TouchableOpacity
-                onPress={() => router.push('/premium')}
-                activeOpacity={0.9}
+          {/* VIDEO — gateado a nivel video (la receta es free; el video puede ser premium) */}
+          {receta.es_premium && videoBloqueado ? (
+            <UnlockCTA c={c} onVerAnuncio={() => setModalRecompensaVisible(true)} />
+          ) : videoId ? (
+            <TouchableOpacity
+              onPress={() => setVideoVisible(true)}
+              activeOpacity={0.9}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 16,
+                marginBottom: 28,
+              }}
+            >
+              <View
                 style={{
-                  flexDirection: 'row',
+                  width: 120,
+                  aspectRatio: 9 / 16,
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  backgroundColor: '#000',
                   alignItems: 'center',
-                  gap: 16,
-                  marginBottom: 28,
+                  justifyContent: 'center',
                 }}
               >
+                {thumbnailUrl && (
+                  <Image
+                    source={{ uri: thumbnailUrl }}
+                    style={{ width: '100%', height: '100%' }}
+                    resizeMode="cover"
+                  />
+                )}
                 <View
                   style={{
-                    width: 120,
-                    aspectRatio: 9 / 16,
-                    borderRadius: 14,
-                    overflow: 'hidden',
-                    backgroundColor: c.grisClaro,
+                    position: 'absolute',
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    backgroundColor: 'rgba(255,255,255,0.96)',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    shadowColor: '#000',
+                    shadowOpacity: 0.3,
+                    shadowRadius: 10,
+                    shadowOffset: { width: 0, height: 4 },
+                    elevation: 4,
                   }}
                 >
-                  {thumbnailUrl && (
-                    <Image
-                      source={{ uri: thumbnailUrl }}
-                      style={{ width: '100%', height: '100%', opacity: 0.35 }}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <View
-                    style={{
-                      position: 'absolute',
-                      width: 52,
-                      height: 52,
-                      borderRadius: 26,
-                      backgroundColor: '#F28B3B',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      shadowColor: '#000',
-                      shadowOpacity: 0.25,
-                      shadowRadius: 8,
-                      shadowOffset: { width: 0, height: 4 },
-                      elevation: 4,
-                    }}
-                  >
-                    <Text style={{ fontSize: 22 }}>🔒</Text>
-                  </View>
+                  <Text style={{ fontSize: 18, color: '#000', marginLeft: 3 }}>▶</Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: '700',
-                      color: '#F28B3B',
-                      letterSpacing: 1.5,
-                      marginBottom: 4,
-                    }}
-                  >
-                    EXCLUSIVO PREMIUM
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 17,
-                      fontWeight: '700',
-                      color: c.negro,
-                      marginBottom: 6,
-                      lineHeight: 22,
-                    }}
-                  >
-                    Ver paso a paso en video
-                  </Text>
-                  <Text style={{ fontSize: 13, color: c.grisTexto, lineHeight: 18 }}>
-                    Desbloquea los videos cortos con la preparación completa.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={() => setVideoVisible(true)}
-                activeOpacity={0.9}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 16,
-                  marginBottom: 28,
-                }}
-              >
-                <View
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
                   style={{
-                    width: 120,
-                    aspectRatio: 9 / 16,
-                    borderRadius: 14,
-                    overflow: 'hidden',
-                    backgroundColor: '#000',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: '700',
+                    color: c.verde,
+                    letterSpacing: 1.5,
+                    marginBottom: 4,
                   }}
                 >
-                  {thumbnailUrl && (
-                    <Image
-                      source={{ uri: thumbnailUrl }}
-                      style={{ width: '100%', height: '100%' }}
-                      resizeMode="cover"
-                    />
-                  )}
-                  <View
-                    style={{
-                      position: 'absolute',
-                      width: 52,
-                      height: 52,
-                      borderRadius: 26,
-                      backgroundColor: 'rgba(255,255,255,0.96)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      shadowColor: '#000',
-                      shadowOpacity: 0.3,
-                      shadowRadius: 10,
-                      shadowOffset: { width: 0, height: 4 },
-                      elevation: 4,
-                    }}
-                  >
-                    <Text style={{ fontSize: 18, color: '#000', marginLeft: 3 }}>▶</Text>
-                  </View>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: '700',
-                      color: c.verde,
-                      letterSpacing: 1.5,
-                      marginBottom: 4,
-                    }}
-                  >
-                    VIDEO · SHORT
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 17,
-                      fontWeight: '700',
-                      color: c.negro,
-                      marginBottom: 6,
-                      lineHeight: 22,
-                    }}
-                  >
-                    Ver paso a paso
-                  </Text>
-                  <Text style={{ fontSize: 13, color: c.grisTexto, lineHeight: 18 }}>
-                    Mira la preparación completa en un video corto.
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  VIDEO · SHORT
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 17,
+                    fontWeight: '700',
+                    color: c.negro,
+                    marginBottom: 6,
+                    lineHeight: 22,
+                  }}
+                >
+                  Ver paso a paso
+                </Text>
+                <Text style={{ fontSize: 13, color: c.grisTexto, lineHeight: 18 }}>
+                  Mira la preparación completa en un video corto.
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
 
           {/* Aviso de alérgenos */}
           {receta.alergenos.length > 0 && (
@@ -479,18 +475,14 @@ export default function DetalleRecetaScreen() {
                   CONTIENE
                 </Text>
                 <Text style={{ fontSize: 14, color: c.negro }}>
-                  {receta.alergenos
-                    .map((a) => getAlergenoById(a)?.nombre ?? a)
-                    .join(' · ')}
+                  {receta.alergenos.map((a) => getAlergenoById(a)?.nombre ?? a).join(' · ')}
                 </Text>
               </View>
             </View>
           )}
 
           {/* Separador */}
-          <View
-            style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }}
-          />
+          <View style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }} />
 
           {/* INGREDIENTES */}
           <Text style={seccionLabelStyle}>INGREDIENTES</Text>
@@ -525,9 +517,7 @@ export default function DetalleRecetaScreen() {
           </View>
 
           {/* Separador */}
-          <View
-            style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }}
-          />
+          <View style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }} />
 
           {/* PREPARACIÓN */}
           <Text style={seccionLabelStyle}>PREPARACIÓN</Text>
@@ -564,9 +554,7 @@ export default function DetalleRecetaScreen() {
           {/* NUTRICIÓN */}
           {receta.calorias != null && (
             <>
-              <View
-                style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }}
-              />
+              <View style={{ height: 1, backgroundColor: c.cardBorde, marginBottom: 28 }} />
               <Text style={seccionLabelStyle}>NUTRICIÓN POR PORCIÓN</Text>
               <View>
                 {[
@@ -656,6 +644,97 @@ export default function DetalleRecetaScreen() {
           </SafeAreaView>
         </Modal>
       )}
+
+      {/* Modal de elección de recompensa (rewarded ad) */}
+      <ModalRecompensa
+        visible={modalRecompensaVisible}
+        onClose={() => setModalRecompensaVisible(false)}
+        opciones={opcionesRecompensa}
+        onElegir={handleElegirRecompensa}
+        procesando={procesandoRecompensa}
+      />
+    </View>
+  );
+}
+
+// ─── Tarjeta de bloqueo premium con desbloqueo por anuncio ───────────────────
+function UnlockCTA({
+  c,
+  onVerAnuncio,
+}: {
+  c: ReturnType<typeof useColoresTema>;
+  onVerAnuncio: () => void;
+}) {
+  return (
+    <View style={{ marginBottom: 28 }}>
+      <View
+        style={{
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: c.cardBorde,
+          backgroundColor: c.card,
+          padding: 20,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: '#1A1714',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>👑</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#F28B3B', letterSpacing: 1.5 }}>
+              VIDEO PREMIUM
+            </Text>
+            <Text style={{ fontSize: 18, fontWeight: '800', color: c.negro, letterSpacing: -0.3 }}>
+              Video exclusivo
+            </Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 14, color: c.grisTexto, lineHeight: 20, marginBottom: 18 }}>
+          La receta es gratis, pero el video paso a paso es premium. Míralo gratis viendo un
+          anuncio, o hazte premium para ver todos los videos sin límites.
+        </Text>
+        <TouchableOpacity
+          onPress={onVerAnuncio}
+          activeOpacity={0.85}
+          style={{
+            backgroundColor: c.verde,
+            borderRadius: 999,
+            paddingVertical: 15,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            marginBottom: 10,
+          }}
+        >
+          <Text style={{ fontSize: 18 }}>🎁</Text>
+          <Text style={{ color: c.blanco, fontWeight: '800', fontSize: 15 }}>
+            Ver un anuncio y ver el video 24h
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push('/premium')}
+          activeOpacity={0.85}
+          style={{
+            borderRadius: 999,
+            paddingVertical: 14,
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: c.cardBorde,
+          }}
+        >
+          <Text style={{ color: c.negro, fontWeight: '700', fontSize: 14 }}>Hazte premium</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -672,7 +751,5 @@ function StatInline({ emoji, texto, color }: { emoji: string; texto: string; col
 }
 
 function Bullet({ color }: { color: string }) {
-  return (
-    <Text style={{ fontSize: 12, color, marginHorizontal: 10 }}>·</Text>
-  );
+  return <Text style={{ fontSize: 12, color, marginHorizontal: 10 }}>·</Text>;
 }

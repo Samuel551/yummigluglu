@@ -9,6 +9,7 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AnuncioBanner } from '@/components/AnuncioBanner';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { usePerfilStore } from '@/store/usePerfilStore';
@@ -109,6 +110,7 @@ export default function HomeScreen() {
     <View style={{ flex: 1, backgroundColor: c.fondoApp }}>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         >
@@ -458,6 +460,7 @@ export default function HomeScreen() {
             </>
           )}
         </ScrollView>
+        <AnuncioBanner />
       </SafeAreaView>
     </View>
   );

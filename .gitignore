@@ -50,5 +50,8 @@ yarn-error.*
 .playwright-mcp/
 skills-lock.json
 
+# Supabase CLI locals (cache de versiones y link al proyecto)
+supabase/.temp/
+
 # Windows redirect artifact (bash: `> NUL` creates a file literally named "nul")
 /nul

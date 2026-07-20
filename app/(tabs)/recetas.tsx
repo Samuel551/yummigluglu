@@ -15,6 +15,7 @@ import { usePerfilStore } from '@/store/usePerfilStore';
 import { usePaisStore } from '@/store/usePaisStore';
 import { useFavoritosStore } from '@/store/useFavoritosStore';
 import { RecetaCard } from '@/components/RecetaCard';
+import { AnuncioBanner } from '@/components/AnuncioBanner';
 import { MomentoDia } from '@/types';
 import { useColoresTema } from '@/hooks/useColoresTema';
 
@@ -62,8 +63,9 @@ export default function RecetasScreen() {
   }, [recetas, soloFavoritos, recetasFavoritas]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp }} edges={['top']}>
       <FlatList
+        style={{ flex: 1 }}
         data={recetasMostradas}
         keyExtractor={(r) => r.id}
         renderItem={({ item }) => <RecetaCard receta={item} />}
@@ -73,18 +75,46 @@ export default function RecetasScreen() {
           <View>
             {/* ── ENCABEZADO EDITORIAL ── */}
             <View style={{ paddingTop: 20 }}>
-              <Text
+              <View
                 style={{
-                  fontSize: 11,
-                  fontWeight: '700',
-                  color: c.grisTexto,
-                  letterSpacing: 2,
-                  textTransform: 'uppercase',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   marginBottom: 16,
                 }}
               >
-                CATÁLOGO · {recetas.length} RECETAS
-              </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '700',
+                    color: c.grisTexto,
+                    letterSpacing: 2,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  CATÁLOGO · {recetas.length} RECETAS
+                </Text>
+
+                {/* Favoritos — botón corazón, esquina superior derecha */}
+                <TouchableOpacity
+                  onPress={() => setSoloFavoritos((v) => !v)}
+                  activeOpacity={0.7}
+                  hitSlop={8}
+                  accessibilityLabel={soloFavoritos ? 'Ver todas las recetas' : 'Ver favoritos'}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: c.card,
+                    borderWidth: 1,
+                    borderColor: soloFavoritos ? '#E53935' : c.cardBorde,
+                  }}
+                >
+                  <Feather name="heart" size={18} color={soloFavoritos ? '#E53935' : c.negro} />
+                </TouchableOpacity>
+              </View>
 
               {perfilActivo ? (
                 <>
@@ -97,8 +127,7 @@ export default function RecetasScreen() {
                       lineHeight: 36,
                     }}
                   >
-                    Para{' '}
-                    <Text style={{ color: c.verde }}>{perfilActivo.nombre}</Text>{' '}
+                    Para <Text style={{ color: c.verde }}>{perfilActivo.nombre}</Text>{' '}
                     <Text style={{ fontSize: 28, lineHeight: 42 }}>
                       {perfilActivo.avatar_emoji}
                     </Text>
@@ -159,23 +188,6 @@ export default function RecetasScreen() {
                   />
                 );
               })}
-
-              {/* Separador vertical sutil */}
-              <View
-                style={{
-                  width: 1,
-                  backgroundColor: c.cardBorde,
-                  marginVertical: 4,
-                  marginHorizontal: 4,
-                }}
-              />
-
-              <FiltroPill
-                label="Favoritos"
-                icon="heart"
-                activo={soloFavoritos}
-                onPress={() => setSoloFavoritos((v) => !v)}
-              />
             </ScrollView>
           </View>
         }
@@ -213,6 +225,8 @@ export default function RecetasScreen() {
           )
         }
       />
+      {/* Banner anclado al fondo — arriba de la tab bar, siempre visible sin scrollear */}
+      <AnuncioBanner />
     </SafeAreaView>
   );
 }
@@ -247,13 +261,7 @@ function FiltroPill({
         gap: 6,
       }}
     >
-      {icon && (
-        <Feather
-          name={icon}
-          size={13}
-          color={activo ? c.fondoApp : c.negro}
-        />
-      )}
+      {icon && <Feather name={icon} size={13} color={activo ? c.fondoApp : c.negro} />}
       <Text
         style={{
           fontSize: 13,

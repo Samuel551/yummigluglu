@@ -91,8 +91,10 @@ export function RecetaCard({ receta }: RecetaCardProps) {
           />
         </TouchableOpacity>
 
-        {/* Premium badge — negro consistente con HeroDia y detalle */}
-        {receta.es_premium && (
+        {/* Badge de video — verde si el video es gratis, oscuro si es premium.
+            Para un user free la vista recetas_teaser manda video_url = null en los
+            premium, así que `!es_premium && video_url` identifica al video gratis. */}
+        {receta.es_premium ? (
           <View
             style={{
               position: 'absolute',
@@ -107,12 +109,32 @@ export function RecetaCard({ receta }: RecetaCardProps) {
               gap: 5,
             }}
           >
-            <Feather name="star" size={11} color="#fff" />
+            <Feather name="video" size={11} color="#fff" />
             <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 1 }}>
-              PREMIUM
+              VIDEO
             </Text>
           </View>
-        )}
+        ) : receta.video_url ? (
+          <View
+            style={{
+              position: 'absolute',
+              top: 14,
+              right: 14,
+              backgroundColor: c.verde,
+              borderRadius: 999,
+              paddingHorizontal: 11,
+              paddingVertical: 5,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+            }}
+          >
+            <Feather name="play" size={11} color="#fff" />
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 1 }}>
+              VIDEO GRATIS
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {/* Título */}
