@@ -12,6 +12,18 @@ interface RecetasState {
   limpiarError: () => void;
 }
 
+/**
+ * Contador de peticiones para descartar respuestas viejas.
+ *
+ * En nativo los tabs quedan MONTADOS: Inicio (`(tabs)/index.tsx`) y Catálogo
+ * (`(tabs)/recetas.tsx`) se suscriben los dos al país y escriben esta misma
+ * lista global. Al cambiar de país disparan dos cargas en paralelo con filtros
+ * distintos (Inicio no manda `momento`), y sin este guard ganaba la que
+ * respondía última — no la más nueva. Resultado: el catálogo podía quedar con
+ * el resultado de otra pantalla o de un país anterior.
+ */
+let peticionActual = 0;
+
 export const useRecetasStore = create<RecetasState>((set) => ({
   recetas: [],
   cargando: false,
@@ -20,6 +32,7 @@ export const useRecetasStore = create<RecetasState>((set) => ({
   limpiarError: () => set({ error: null }),
 
   cargarRecetas: async (filtros) => {
+    const idPeticion = ++peticionActual;
     set({ cargando: true, error: null });
     try {
       // Leemos de la vista `recetas_teaser` (no de la tabla) para que las recetas
@@ -65,11 +78,14 @@ export const useRecetasStore = create<RecetasState>((set) => ({
         );
       }
 
+      // Llegó tarde: ya salió una carga más nueva. Descartamos para no pisarla.
+      if (idPeticion !== peticionActual) return;
       set({ recetas: resultado });
     } catch (e) {
+      if (idPeticion !== peticionActual) return;
       set({ error: (e as Error).message });
     } finally {
-      set({ cargando: false });
+      if (idPeticion === peticionActual) set({ cargando: false });
     }
   },
 }));
