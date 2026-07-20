@@ -16,6 +16,9 @@ import { usePaisStore } from '@/store/usePaisStore';
 import { useFavoritosStore } from '@/store/useFavoritosStore';
 import { RecetaCard } from '@/components/RecetaCard';
 import { AnuncioBanner } from '@/components/AnuncioBanner';
+import { BanderaPais } from '@/components/BanderaPais';
+import { ModalPais } from '@/components/ModalPais';
+import { getPais } from '@/constants/Paises';
 import { MomentoDia } from '@/types';
 import { useColoresTema } from '@/hooks/useColoresTema';
 
@@ -35,9 +38,14 @@ export default function RecetasScreen() {
   const { recetas, cargando, error, cargarRecetas } = useRecetasStore();
   const perfilActivo = usePerfilStore((state) => state.perfilActivo);
   const pais = usePaisStore((s) => s.pais);
+  const setPais = usePaisStore((s) => s.setPais);
   const recetasFavoritas = useFavoritosStore((s) => s.recetasFavoritas);
   const [momentoSeleccionado, setMomentoSeleccionado] = useState<MomentoDia | null>(null);
   const [soloFavoritos, setSoloFavoritos] = useState(false);
+  const [modalPaisVisible, setModalPaisVisible] = useState(false);
+
+  const paisActual = getPais(pais);
+  const filtrandoPorPais = pais !== 'todos';
 
   // Si llegamos con ?momento=desayuno desde Inicio, aplicar el filtro
   useEffect(() => {
@@ -61,6 +69,18 @@ export default function RecetasScreen() {
     const idsFavoritos = new Set(recetasFavoritas.map((r) => r.id));
     return recetas.filter((r) => idsFavoritos.has(r.id));
   }, [recetas, soloFavoritos, recetasFavoritas]);
+
+  // El conteo tiene que decir POR QUÉ es ese número: con un país activo, el
+  // usuario ve una lista más corta y sin esta línea no sabe si es la región o
+  // la etapa lo que la recortó.
+  const textoResultados = useMemo(() => {
+    const n = recetasMostradas.length;
+    if (soloFavoritos) return `${n} ${n === 1 ? 'favorita' : 'favoritas'}`;
+    const sustantivo = n === 1 ? 'receta' : 'recetas';
+    return filtrandoPorPais
+      ? `${n} ${sustantivo} para esta etapa en ${paisActual.nombre}`
+      : `${n} ${sustantivo} ${n === 1 ? 'disponible' : 'disponibles'} para esta etapa`;
+  }, [recetasMostradas.length, soloFavoritos, filtrandoPorPais, paisActual.nombre]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp }} edges={['top']}>
@@ -140,9 +160,7 @@ export default function RecetasScreen() {
                       marginTop: 8,
                     }}
                   >
-                    {soloFavoritos
-                      ? `${recetasMostradas.length} ${recetasMostradas.length === 1 ? 'favorita' : 'favoritas'}`
-                      : `${recetasMostradas.length} ${recetasMostradas.length === 1 ? 'receta disponible' : 'recetas disponibles'} para esta etapa`}
+                    {textoResultados}
                   </Text>
                 </>
               ) : (
@@ -158,6 +176,57 @@ export default function RecetasScreen() {
                   Recetas
                 </Text>
               )}
+
+              {/*
+                Chip de región. Se muestra SIEMPRE, incluso en "todos": si se
+                escondiera, el usuario que nunca eligió país jamás descubriría
+                que el filtro existe — que es justo el problema que resolvemos.
+                En "todos" queda neutro (borde gris); con país elegido se pinta
+                en verde para que el filtro activo se lea de un vistazo.
+              */}
+              <TouchableOpacity
+                onPress={() => setModalPaisVisible(true)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Región: ${filtrandoPorPais ? paisActual.nombre : 'todos los países'}. Toca para cambiar`}
+                style={{
+                  alignSelf: 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  marginTop: 14,
+                  paddingLeft: 10,
+                  paddingRight: 12,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: filtrandoPorPais ? c.verde : c.cardBorde,
+                  backgroundColor: filtrandoPorPais ? c.verdeClaro : c.card,
+                }}
+              >
+                <BanderaPais
+                  uri={paisActual.imagen}
+                  emoji={paisActual.bandera}
+                  ancho={20}
+                  alto={14}
+                  colorPlaceholder={c.cardBorde}
+                />
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '700',
+                    color: filtrandoPorPais ? c.verde : c.negro,
+                    letterSpacing: -0.1,
+                  }}
+                >
+                  {filtrandoPorPais ? paisActual.nombre : 'Todos los países'}
+                </Text>
+                <Feather
+                  name="chevron-down"
+                  size={14}
+                  color={filtrandoPorPais ? c.verde : c.grisTexto}
+                />
+              </TouchableOpacity>
             </View>
 
             {/* Separador */}
@@ -219,12 +288,25 @@ export default function RecetasScreen() {
               mensaje={
                 soloFavoritos
                   ? 'Toca el corazón en cualquier receta para guardarla aquí'
-                  : 'Prueba otro momento del día o revisa el perfil activo'
+                  : filtrandoPorPais
+                    ? `No hay recetas de ${paisActual.nombre} para este filtro. Prueba otro momento del día o cambia de país`
+                    : 'Prueba otro momento del día o revisa el perfil activo'
               }
             />
           )
         }
       />
+      {/* Selector de región — mismo modal que Perfil, para no mandar al usuario a buscarlo allá */}
+      <ModalPais
+        visible={modalPaisVisible}
+        paisActual={pais}
+        onSelect={(p) => {
+          setPais(p);
+          setModalPaisVisible(false);
+        }}
+        onClose={() => setModalPaisVisible(false)}
+      />
+
       {/* Banner anclado al fondo — arriba de la tab bar, siempre visible sin scrollear */}
       <AnuncioBanner />
     </SafeAreaView>

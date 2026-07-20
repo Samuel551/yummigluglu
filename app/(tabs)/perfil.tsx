@@ -1,14 +1,4 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  Switch,
-  Modal,
-  Image,
-  Pressable,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Switch } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -20,7 +10,9 @@ import { usePaisStore } from '@/store/usePaisStore';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
 import { formatearEdad } from '@/constants/Etapas';
-import { PAISES, getPais } from '@/constants/Paises';
+import { getPais } from '@/constants/Paises';
+import { BanderaPais } from '@/components/BanderaPais';
+import { ModalPais } from '@/components/ModalPais';
 
 export default function PerfilScreen() {
   const c = useColoresTema();
@@ -67,8 +59,7 @@ export default function PerfilScreen() {
             >
               {esPremium ? (
                 <>
-                  Tu cuenta{' '}
-                  <Text style={{ color: c.verde }}>Premium</Text>
+                  Tu cuenta <Text style={{ color: c.verde }}>Premium</Text>
                 </>
               ) : (
                 'Tu cuenta'
@@ -358,17 +349,15 @@ export default function PerfilScreen() {
                   {paisActual.nombre}
                 </Text>
               </View>
-              {paisActual.imagen ? (
-                <Image
-                  source={{ uri: paisActual.imagen }}
-                  style={{ width: 28, height: 20, borderRadius: 3, marginRight: 10 }}
-                  resizeMode="cover"
+              <View style={{ marginRight: 10 }}>
+                <BanderaPais
+                  uri={paisActual.imagen}
+                  emoji={paisActual.bandera}
+                  ancho={28}
+                  alto={20}
+                  colorPlaceholder={c.grisClaro}
                 />
-              ) : (
-                <Text style={{ fontSize: 22, marginRight: 10, lineHeight: 26 }}>
-                  {paisActual.bandera}
-                </Text>
-              )}
+              </View>
               <Feather name="chevron-right" size={16} color={c.grisTexto} />
             </TouchableOpacity>
           </SectionList>
@@ -484,7 +473,6 @@ export default function PerfilScreen() {
           setModalPaisVisible(false);
         }}
         onClose={() => setModalPaisVisible(false)}
-        c={c}
       />
     </View>
   );
@@ -606,135 +594,5 @@ function RowItem({
       </View>
       <Feather name="chevron-right" size={16} color={c.grisTexto} />
     </TouchableOpacity>
-  );
-}
-
-// ─── Modal selector de país ───────────────────────────────────────────────────
-
-function ModalPais({
-  visible,
-  paisActual,
-  onSelect,
-  onClose,
-  c,
-}: {
-  visible: boolean;
-  paisActual: string;
-  onSelect: (paisId: string) => void;
-  onClose: () => void;
-  c: ReturnType<typeof useColoresTema>;
-}) {
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
-      <Pressable
-        style={{
-          flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingHorizontal: 24,
-        }}
-        onPress={onClose}
-      >
-        <Pressable
-          onPress={() => {}}
-          style={{
-            backgroundColor: c.fondoApp,
-            borderRadius: 20,
-            width: '100%',
-            maxWidth: 360,
-            paddingTop: 24,
-            paddingBottom: 16,
-          }}
-        >
-          {/* Header */}
-          <View style={{ paddingHorizontal: 24, marginBottom: 16 }}>
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '700',
-                color: c.grisTexto,
-                letterSpacing: 2,
-                textTransform: 'uppercase',
-                marginBottom: 6,
-              }}
-            >
-              REGIÓN
-            </Text>
-            <Text
-              style={{
-                fontSize: 22,
-                fontWeight: '800',
-                color: c.negro,
-                letterSpacing: -0.4,
-                lineHeight: 28,
-              }}
-            >
-              Elige tu país
-            </Text>
-          </View>
-
-          {/* Separador */}
-          <View
-            style={{
-              height: 1,
-              backgroundColor: c.cardBorde,
-              marginHorizontal: 24,
-              marginBottom: 8,
-            }}
-          />
-
-          {/* Lista */}
-          <View style={{ paddingHorizontal: 24 }}>
-            {PAISES.map((p, idx) => {
-              const seleccionado = paisActual === p.id;
-              return (
-                <TouchableOpacity
-                  key={p.id}
-                  onPress={() => onSelect(p.id)}
-                  activeOpacity={0.6}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingVertical: 14,
-                    borderTopWidth: idx > 0 ? 1 : 0,
-                    borderTopColor: c.cardBorde,
-                  }}
-                >
-                  {p.imagen ? (
-                    <Image
-                      source={{ uri: p.imagen }}
-                      style={{ width: 32, height: 22, borderRadius: 3, marginRight: 14 }}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <Text style={{ fontSize: 26, marginRight: 14, lineHeight: 32 }}>
-                      {p.bandera}
-                    </Text>
-                  )}
-                  <Text
-                    style={{
-                      flex: 1,
-                      fontSize: 15,
-                      color: c.negro,
-                      fontWeight: seleccionado ? '700' : '500',
-                      letterSpacing: -0.1,
-                    }}
-                  >
-                    {p.nombre}
-                  </Text>
-                  {seleccionado && <Feather name="check" size={18} color={c.verde} />}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
   );
 }
