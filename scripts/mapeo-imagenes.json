@@ -1,0 +1,1872 @@
+{
+  "version": 1,
+  "generado": "2026-07-20",
+  "descripcion": "Mapeo congelado carpeta local -> receta (slug) de public.recetas. Validado por match exacto de nombre + cruce con prompts-imagenes-ANOTADO.txt. NO regenerar automaticamente: si cambia, revisarlo a mano.",
+  "origen_imagenes": "D:\\Proyectos\\recetas\\imagenes",
+  "total": 207,
+  "entradas": [
+    {
+      "num": 1,
+      "carpeta": "01 — Puré de zapallo y camote",
+      "png": "1.png",
+      "slug": "pure-de-zapallo-y-camote",
+      "nombre": "Puré de zapallo y camote",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 2,
+      "carpeta": "02 — Puré de manzana y plátano",
+      "png": "2.png",
+      "slug": "pure-de-manzana-y-platano",
+      "nombre": "Puré de manzana y plátano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 3,
+      "carpeta": "03 — Papilla de arroz con zapallo",
+      "png": "3.png",
+      "slug": "papilla-de-arroz-con-zapallo",
+      "nombre": "Papilla de arroz con zapallo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 4,
+      "carpeta": "04 — Puré de zanahoria y papa",
+      "png": "4.png",
+      "slug": "pure-de-zanahoria-y-papa",
+      "nombre": "Puré de zanahoria y papa",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 5,
+      "carpeta": "05 — Compota de pera y manzana",
+      "png": "5.png",
+      "slug": "compota-de-pera-y-manzana",
+      "nombre": "Compota de pera y manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 6,
+      "carpeta": "06 — Papilla de avena con manzana",
+      "png": "6.png",
+      "slug": "papilla-de-avena-con-manzana",
+      "nombre": "Papilla de avena con manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 7,
+      "carpeta": "07 — Puré de palta y plátano",
+      "png": "7.png",
+      "slug": "pure-de-palta-y-platano",
+      "nombre": "Puré de palta y plátano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 8,
+      "carpeta": "08 — Puré de betarraga y papa",
+      "png": "8.png",
+      "slug": "pure-de-betarraga-y-papa",
+      "nombre": "Puré de betarraga y papa",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 9,
+      "carpeta": "09 — Crema de zapallo italiano",
+      "png": "9.png",
+      "slug": "crema-de-zapallo-italiano",
+      "nombre": "Crema de zapallo italiano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 10,
+      "carpeta": "10 — Puré de lentejas con zapallo",
+      "png": "10.png",
+      "slug": "pure-de-lentejas-con-zapallo",
+      "nombre": "Puré de lentejas con zapallo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 11,
+      "carpeta": "11 — Papilla de quinoa con manzana",
+      "png": "11.png",
+      "slug": "papilla-de-quinoa-con-manzana",
+      "nombre": "Papilla de quinoa con manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 12,
+      "carpeta": "12 — Puré de brócoli y papa",
+      "png": "12.png",
+      "slug": "pure-de-brocoli-y-papa",
+      "nombre": "Puré de brócoli y papa",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 13,
+      "carpeta": "13 — Puré de pollo con papa y zanahoria",
+      "png": "13.png",
+      "slug": "pure-de-pollo-con-papa-y-zanahoria",
+      "nombre": "Puré de pollo con papa y zanahoria",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 14,
+      "carpeta": "14 — Puré de pescado con camote",
+      "png": "14.png",
+      "slug": "pure-de-pescado-con-camote",
+      "nombre": "Puré de pescado con camote",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 15,
+      "carpeta": "15 — Papilla de porotos con zapallo",
+      "png": "15.png",
+      "slug": "papilla-de-porotos-con-zapallo",
+      "nombre": "Papilla de porotos con zapallo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 16,
+      "carpeta": "16 — Puré de espinaca con papa",
+      "png": "16.png",
+      "slug": "pure-de-espinaca-con-papa",
+      "nombre": "Puré de espinaca con papa",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 17,
+      "carpeta": "17 — Compota de durazno y manzana",
+      "png": "17.png",
+      "slug": "compota-de-durazno-y-manzana",
+      "nombre": "Compota de durazno y manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 18,
+      "carpeta": "18 — Puré de arvejas con zapallo",
+      "png": "18.png",
+      "slug": "pure-de-arvejas-con-zapallo",
+      "nombre": "Puré de arvejas con zapallo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 19,
+      "carpeta": "19 — Mini tortilla de acelga",
+      "png": "19.png",
+      "slug": "mini-tortilla-de-acelga",
+      "nombre": "Mini tortilla de acelga",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 20,
+      "carpeta": "20 — Picadillo de pollo con quinoa",
+      "png": "20.png",
+      "slug": "picadillo-de-pollo-con-quinoa",
+      "nombre": "Picadillo de pollo con quinoa",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 21,
+      "carpeta": "21 — Arroz con pollo suave",
+      "png": "21.png",
+      "slug": "arroz-con-pollo-suave",
+      "nombre": "Arroz con pollo suave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 22,
+      "carpeta": "22 — Pasta con salsa de tomate",
+      "png": "22.png",
+      "slug": "pasta-con-salsa-de-tomate",
+      "nombre": "Pasta con salsa de tomate",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 23,
+      "carpeta": "23 — Mini panqueques de avena",
+      "png": "23.png",
+      "slug": "mini-panqueques-de-avena",
+      "nombre": "Mini panqueques de avena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 24,
+      "carpeta": "24 — Albóndigas de pollo al vapor",
+      "png": "24.png",
+      "slug": "albondigas-de-pollo-al-vapor",
+      "nombre": "Albóndigas de pollo al vapor",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 25,
+      "carpeta": "25 — Sopita de fideos con pollo",
+      "png": "25.png",
+      "slug": "sopita-de-fideos-con-pollo",
+      "nombre": "Sopita de fideos con pollo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 26,
+      "carpeta": "26 — Muffin de plátano y avena",
+      "png": "26.png",
+      "slug": "muffin-de-platano-y-avena",
+      "nombre": "Muffin de plátano y avena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 27,
+      "carpeta": "27 — Crepe de manzana",
+      "png": "27.png",
+      "slug": "crepe-de-manzana",
+      "nombre": "Crepe de manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 28,
+      "carpeta": "28 — Puré rústico de choclo",
+      "png": "28.png",
+      "slug": "pure-rustico-de-choclo",
+      "nombre": "Puré rústico de choclo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 29,
+      "carpeta": "29 — Causa limeña de pollo",
+      "png": "29.png",
+      "slug": "causa-limena-de-pollo",
+      "nombre": "Causa limeña de pollo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 30,
+      "carpeta": "30 — Ajiaco santafereño suave",
+      "png": "30.png",
+      "slug": "ajiaco-santafereno-suave",
+      "nombre": "Ajiaco santafereño suave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 31,
+      "carpeta": "31 — Pollo al limón con papas doradas",
+      "png": "31.png",
+      "slug": "pollo-al-limon-con-papas",
+      "nombre": "Pollo al limón con papas doradas",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 32,
+      "carpeta": "32 — Pastel de papas casero",
+      "png": "32.png",
+      "slug": "pastel-de-papas-casero",
+      "nombre": "Pastel de papas casero",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 33,
+      "carpeta": "33 — Tallarines con pollo y verduras",
+      "png": "33.png",
+      "slug": "tallarines-con-pollo-y-verduras",
+      "nombre": "Tallarines con pollo y verduras",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 34,
+      "carpeta": "34 — Arepa de queso",
+      "png": "34.png",
+      "slug": "arepa-de-queso",
+      "nombre": "Arepa de queso",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 35,
+      "carpeta": "35 — Guiso de lentejas con arroz",
+      "png": "35.png",
+      "slug": "guiso-de-lentejas-con-arroz",
+      "nombre": "Guiso de lentejas con arroz",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 36,
+      "carpeta": "36 — Sopa de pollo y fideos",
+      "png": "36.png",
+      "slug": "sopa-de-pollo-y-fideos",
+      "nombre": "Sopa de pollo y fideos",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 37,
+      "carpeta": "37 — Tortilla de papas",
+      "png": "37.png",
+      "slug": "tortilla-espanola-de-papas",
+      "nombre": "Tortilla de papas",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 38,
+      "carpeta": "38 — Pandebono",
+      "png": "38.png",
+      "slug": "pandebono",
+      "nombre": "Pandebono",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 39,
+      "carpeta": "39 — Cazuela de ave",
+      "png": "39.png",
+      "slug": "cazuela-de-ave",
+      "nombre": "Cazuela de ave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 40,
+      "carpeta": "40 — Pastel de choclo",
+      "png": "40.png",
+      "slug": "pastel-de-choclo",
+      "nombre": "Pastel de choclo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 41,
+      "carpeta": "41 — Charquicán",
+      "png": "41.png",
+      "slug": "charquican",
+      "nombre": "Charquicán",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 42,
+      "carpeta": "42 — Porotos con riendas",
+      "png": "42.png",
+      "slug": "porotos-con-riendas",
+      "nombre": "Porotos con riendas",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 43,
+      "carpeta": "43 — Empanadas de pino al horno",
+      "png": "43.png",
+      "slug": "empanadas-de-pino-horneadas",
+      "nombre": "Empanadas de pino al horno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 44,
+      "carpeta": "44 — Pan amasado",
+      "png": "44.png",
+      "slug": "pan-amasado",
+      "nombre": "Pan amasado",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 45,
+      "carpeta": "45 — Sopaipillas al horno",
+      "png": "45.png",
+      "slug": "sopaipillas-al-horno",
+      "nombre": "Sopaipillas al horno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 46,
+      "carpeta": "46 — Humitas",
+      "png": "46.png",
+      "slug": "humitas",
+      "nombre": "Humitas",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 47,
+      "carpeta": "47 — Carbonada chilena",
+      "png": "47.png",
+      "slug": "carbonada-chilena",
+      "nombre": "Carbonada chilena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 48,
+      "carpeta": "48 — Merluza al horno con puré",
+      "png": "48.png",
+      "slug": "merluza-al-horno-con-pure",
+      "nombre": "Merluza al horno con puré",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 49,
+      "carpeta": "49 — Arroz con leche",
+      "png": "49.png",
+      "slug": "arroz-con-leche",
+      "nombre": "Arroz con leche",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 50,
+      "carpeta": "50 — Leche asada",
+      "png": "50.png",
+      "slug": "leche-asada",
+      "nombre": "Leche asada",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 51,
+      "carpeta": "51 — Mote con huesillo",
+      "png": "51.png",
+      "slug": "mote-con-huesillo",
+      "nombre": "Mote con huesillo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 52,
+      "carpeta": "52 — Porotos granados",
+      "png": "52.png",
+      "slug": "porotos-granados",
+      "nombre": "Porotos granados",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 53,
+      "carpeta": "53 — Lomo a lo pobre infantil",
+      "png": "53.png",
+      "slug": "lomo-a-lo-pobre-infantil",
+      "nombre": "Lomo a lo pobre infantil",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 54,
+      "carpeta": "54 — Completo casero infantil",
+      "png": "54.png",
+      "slug": "completo-casero-infantil",
+      "nombre": "Completo casero infantil",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 55,
+      "carpeta": "55 — Pescado con ensalada chilena",
+      "png": "55.png",
+      "slug": "pescado-con-ensalada-chilena",
+      "nombre": "Pescado con ensalada chilena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 56,
+      "carpeta": "56 — Arroz primavera con pollo",
+      "png": "56.png",
+      "slug": "arroz-primavera-con-pollo",
+      "nombre": "Arroz primavera con pollo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 57,
+      "carpeta": "57 — Ensalada mixta con atún",
+      "png": "57.png",
+      "slug": "ensalada-mixta-con-atun",
+      "nombre": "Ensalada mixta con atún",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 58,
+      "carpeta": "58 — Quinoto de verduras",
+      "png": "58.png",
+      "slug": "quinoto-de-verduras",
+      "nombre": "Quinoto de verduras",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 59,
+      "carpeta": "59 — Pollo al coco suave",
+      "png": "59.png",
+      "slug": "pollo-al-coco-suave",
+      "nombre": "Pollo al coco suave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 60,
+      "carpeta": "60 — Mazamorra morada",
+      "png": "60.png",
+      "slug": "mazamorra-morada",
+      "nombre": "Mazamorra morada",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 61,
+      "carpeta": "61 — Tortilla de espinaca y queso",
+      "png": "61.png",
+      "slug": "tortilla-de-espinaca-y-queso",
+      "nombre": "Tortilla de espinaca y queso",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 62,
+      "carpeta": "62 — Budín de zapallo",
+      "png": "62.png",
+      "slug": "budin-de-zapallo",
+      "nombre": "Budín de zapallo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 63,
+      "carpeta": "63 — Milanesa napolitana casera",
+      "png": "63.png",
+      "slug": "milanesa-napolitana-casera",
+      "nombre": "Milanesa napolitana casera",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 64,
+      "carpeta": "64 — Pollo al horno con papas",
+      "png": "64.png",
+      "slug": "pollo-al-horno-con-papas",
+      "nombre": "Pollo al horno con papas",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 65,
+      "carpeta": "65 — Ensalada de quinoa y palta",
+      "png": "65.png",
+      "slug": "ensalada-de-quinoa-y-palta",
+      "nombre": "Ensalada de quinoa y palta",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 66,
+      "carpeta": "66 — Papilla de Avena con Banana",
+      "png": "66.png",
+      "slug": "papilla-avena-banana",
+      "nombre": "Papilla de Avena con Banana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 67,
+      "carpeta": "67 — Puré de Zapallo y Zanahoria",
+      "png": "67.png",
+      "slug": "pure-zapallo-zanahoria",
+      "nombre": "Puré de Zapallo y Zanahoria",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 68,
+      "carpeta": "68 — Arroz Cremoso con Espinaca",
+      "png": "Gemini_Generated_Image_y1c038y1c038y1c0.png",
+      "slug": "arroz-espinaca",
+      "nombre": "Arroz Cremoso con Espinaca",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 69,
+      "carpeta": "69 — Compota de Manzana y Pera",
+      "png": "69.png",
+      "slug": "compota-manzana-pera",
+      "nombre": "Compota de Manzana y Pera",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 70,
+      "carpeta": "70 — Puré de Batata Dulce",
+      "png": "70.png",
+      "slug": "pure-batata",
+      "nombre": "Puré de Batata Dulce",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 71,
+      "carpeta": "71 — Pollo Desmechado con Puré de Papas",
+      "png": "71.png",
+      "slug": "pollo-pure-papas",
+      "nombre": "Pollo Desmechado con Puré de Papas",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 72,
+      "carpeta": "72 — Lentejas Cremosas",
+      "png": "72.png",
+      "slug": "lentejas-cremosas",
+      "nombre": "Lentejas Cremosas",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 73,
+      "carpeta": "73 — Pancitos de Banana y Avena",
+      "png": "73.png",
+      "slug": "pancitos-banana-avena",
+      "nombre": "Pancitos de Banana y Avena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 74,
+      "carpeta": "74 — Yogur con Durazno y Avena",
+      "png": "74.png",
+      "slug": "yogur-durazno-avena",
+      "nombre": "Yogur con Durazno y Avena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 75,
+      "carpeta": "75 — Mini Milanesas de Pollo al Horno",
+      "png": "75.png",
+      "slug": "milanesas-pollo-horno",
+      "nombre": "Mini Milanesas de Pollo al Horno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 76,
+      "carpeta": "76 — Omelette de Espinaca y Queso",
+      "png": "76.png",
+      "slug": "omelette-espinaca-queso",
+      "nombre": "Omelette de Espinaca y Queso",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 77,
+      "carpeta": "77 — Pasta con Salsa de Tomate Casera",
+      "png": "77.png",
+      "slug": "pasta-salsa-tomate",
+      "nombre": "Pasta con Salsa de Tomate Casera",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 78,
+      "carpeta": "78 — Locro suave para bebés",
+      "png": "78.png",
+      "slug": "locro-suave-bebes",
+      "nombre": "Locro suave para bebés",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 79,
+      "carpeta": "79 — Milanesa de pollo al horno",
+      "png": "79.png",
+      "slug": "milanesa-pollo-horno",
+      "nombre": "Milanesa de pollo al horno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 80,
+      "carpeta": "80 — Budín de pan con vainilla",
+      "png": "80.png",
+      "slug": "budin-pan-vainilla",
+      "nombre": "Budín de pan con vainilla",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 81,
+      "carpeta": "81 — Mazamorra con leche",
+      "png": "81.png",
+      "slug": "mazamorra-con-leche",
+      "nombre": "Mazamorra con leche",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 82,
+      "carpeta": "82 — Polenta cremosa con queso",
+      "png": "82.png",
+      "slug": "polenta-cremosa-queso",
+      "nombre": "Polenta cremosa con queso",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 83,
+      "carpeta": "83 — Sopa de fideos seca",
+      "png": "83.png",
+      "slug": "sopa-fideos-seca",
+      "nombre": "Sopa de fideos seca",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 84,
+      "carpeta": "84 — Frijoles de olla",
+      "png": "84.png",
+      "slug": "frijoles-de-olla",
+      "nombre": "Frijoles de olla",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 85,
+      "carpeta": "85 — Atole de avena",
+      "png": "Gemini_Generated_Image_yr83mwyr83mwyr83 (1).png",
+      "slug": "atole-de-avena",
+      "nombre": "Atole de avena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 86,
+      "carpeta": "86 — Caldo tlalpeño suave",
+      "png": "86.png",
+      "slug": "caldo-tlalpeno-suave",
+      "nombre": "Caldo tlalpeño suave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 87,
+      "carpeta": "87 — Quesadilla de frijoles y queso",
+      "png": "87.png",
+      "slug": "quesadilla-frijoles-queso",
+      "nombre": "Quesadilla de frijoles y queso",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 88,
+      "carpeta": "88 — Puré de zapallo y quínoa",
+      "png": "88.png",
+      "slug": "pure-zapallo-quinoa-chile",
+      "nombre": "Puré de zapallo y quínoa",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 89,
+      "carpeta": "89 — Papilla de avena con frutilla del sur",
+      "png": "89.png",
+      "slug": "papilla-avena-frutilla-sur",
+      "nombre": "Papilla de avena con frutilla del sur",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 90,
+      "carpeta": "90 — Puré de papa, zanahoria y aceite de oliva",
+      "png": "90.png",
+      "slug": "pure-papa-zanahoria-aceite-chileno",
+      "nombre": "Puré de papa y zanahoria con aceite de oliva",
+      "confianza": "alta",
+      "metodo": "similitud+referencia"
+    },
+    {
+      "num": 91,
+      "carpeta": "91 — Compota de manzana y membrillo",
+      "png": "91.png",
+      "slug": "compota-manzana-membrillo",
+      "nombre": "Compota de manzana y membrillo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 92,
+      "carpeta": "92 — Puré de zapallo italiano con choclo",
+      "png": "92.png",
+      "slug": "pure-zapallo-italiano-choclo",
+      "nombre": "Puré de zapallo italiano con choclo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 93,
+      "carpeta": "93 — Papilla de arroz con leche y vainilla",
+      "png": "93.png",
+      "slug": "papilla-arroz-leche-vainilla",
+      "nombre": "Papilla de arroz con leche y vainilla",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 94,
+      "carpeta": "94 — Puré de palta y choclo tierno",
+      "png": "94.png",
+      "slug": "pure-palta-choclo-chile",
+      "nombre": "Puré de palta y choclo tierno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 95,
+      "carpeta": "95 — Cazuela suave de pollo y zapallo",
+      "png": "95.png",
+      "slug": "cazuela-suave-pollo-zapallo",
+      "nombre": "Cazuela suave de pollo y zapallo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 96,
+      "carpeta": "96 — Pastel de papas baby",
+      "png": "96.png",
+      "slug": "pastel-papas-baby-chile",
+      "nombre": "Pastel de papas baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 97,
+      "carpeta": "97 — Charquicán baby",
+      "png": "97.png",
+      "slug": "charquican-baby",
+      "nombre": "Charquicán baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 98,
+      "carpeta": "98 — Sopa de tomate con cabello de ángel",
+      "png": "98.png",
+      "slug": "sopa-tomate-cabello-angel-baby",
+      "nombre": "Sopa de tomate con fideos cabello de ángel",
+      "confianza": "alta",
+      "metodo": "similitud+referencia"
+    },
+    {
+      "num": 99,
+      "carpeta": "99 — Porotos granados con choclo y zapallo",
+      "png": "99.png",
+      "slug": "porotos-granados-baby",
+      "nombre": "Porotos granados con choclo y zapallo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 100,
+      "carpeta": "100 — Tortilla de espinacas y queso fresco",
+      "png": "100.png",
+      "slug": "tortilla-espinacas-queso-baby",
+      "nombre": "Tortilla de espinacas y queso fresco",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 101,
+      "carpeta": "101 — Estofado de pollo con arroz baby",
+      "png": "101.png",
+      "slug": "estofado-pollo-arroz-baby",
+      "nombre": "Estofado suave de pollo con arroz",
+      "confianza": "alta",
+      "metodo": "similitud+referencia"
+    },
+    {
+      "num": 102,
+      "carpeta": "102 — Pastel de choclo baby",
+      "png": "102.png",
+      "slug": "pastel-choclo-baby",
+      "nombre": "Pastel de choclo baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 103,
+      "carpeta": "103 — Empanadas de pino al horno baby",
+      "png": "103.png",
+      "slug": "empanadas-pino-horno-baby",
+      "nombre": "Empanadas de pino al horno baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 104,
+      "carpeta": "104 — Humitas dulces baby",
+      "png": "104.png",
+      "slug": "humitas-dulces-baby",
+      "nombre": "Humitas dulces baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 105,
+      "carpeta": "105 — Caldillo de papa y huevo",
+      "png": "105.png",
+      "slug": "caldillo-papa-huevo-baby",
+      "nombre": "Caldillo de papa y huevo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 106,
+      "carpeta": "106 — Pollo con arroz a la jardinera",
+      "png": "106.png",
+      "slug": "pollo-arroz-jardinera-baby",
+      "nombre": "Pollo con arroz a la jardinera",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 107,
+      "carpeta": "107 — Mote con huesillos light",
+      "png": "107.png",
+      "slug": "mote-huesillos-baby",
+      "nombre": "Mote con huesillos light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 108,
+      "carpeta": "108 — Crema de zapallo loche",
+      "png": "108.png",
+      "slug": "crema-zapallo-loche-peru",
+      "nombre": "Crema de zapallo loche",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 109,
+      "carpeta": "109 — Papilla de quínoa con leche y canela",
+      "png": "109.png",
+      "slug": "papilla-quinoa-leche-canela-peru",
+      "nombre": "Papilla de quínoa con leche y canela",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 110,
+      "carpeta": "110 — Puré de camote y plátano de la selva",
+      "png": "110.png",
+      "slug": "pure-camote-platano-selva-peru",
+      "nombre": "Puré de camote y plátano de la selva",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 111,
+      "carpeta": "111 — Compota de aguaymanto y manzana",
+      "png": "111.png",
+      "slug": "compota-aguaymanto-manzana-peru",
+      "nombre": "Compota de aguaymanto y manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 112,
+      "carpeta": "112 — Puré de habas tiernas con choclo serrano",
+      "png": "112.png",
+      "slug": "pure-habas-tiernas-choclo-peru",
+      "nombre": "Puré de habas tiernas con choclo serrano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 113,
+      "carpeta": "113 — Papilla de kiwicha con pera",
+      "png": "113.png",
+      "slug": "papilla-kiwicha-pera-peru",
+      "nombre": "Papilla de kiwicha con pera",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 114,
+      "carpeta": "114 — Puré de chirimoya y plátano",
+      "png": "114.png",
+      "slug": "pure-chirimoya-platano-peru",
+      "nombre": "Puré de chirimoya y plátano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 115,
+      "carpeta": "115 — Chupe verde de papa amarilla",
+      "png": "115.png",
+      "slug": "chupe-papa-amarilla-peru",
+      "nombre": "Chupe verde de papa amarilla",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 116,
+      "carpeta": "116 — Sopa de quínoa con verduras peruana",
+      "png": "116.png",
+      "slug": "sopa-quinoa-verduras-peru",
+      "nombre": "Sopa de quínoa con verduras peruana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 117,
+      "carpeta": "117 — Ajiaco peruano de papa baby",
+      "png": "117.png",
+      "slug": "ajiaco-papa-peru-baby",
+      "nombre": "Ajiaco peruano de papa baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 118,
+      "carpeta": "118 — Causa peruana baby",
+      "png": "118.png",
+      "slug": "causa-peruana-baby",
+      "nombre": "Causa peruana baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 119,
+      "carpeta": "119 — Arroz verde con pollo peruano baby",
+      "png": "119.png",
+      "slug": "arroz-verde-pollo-peru-baby",
+      "nombre": "Arroz verde con pollo peruano baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 120,
+      "carpeta": "120 — Tacu tacu suave para bebés",
+      "png": "120.png",
+      "slug": "tacu-tacu-suave-peru-baby",
+      "nombre": "Tacu tacu suave para bebés",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 121,
+      "carpeta": "121 — Olluco con carne suave",
+      "png": "121.png",
+      "slug": "olluco-carne-suave-peru",
+      "nombre": "Olluco con carne suave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 122,
+      "carpeta": "122 — Papa a la huancaína baby",
+      "png": "122.png",
+      "slug": "papa-huancaina-baby-peru",
+      "nombre": "Papa a la huancaína baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 123,
+      "carpeta": "123 — Lomo saltado baby",
+      "png": "123.png",
+      "slug": "lomo-saltado-baby-peru",
+      "nombre": "Lomo saltado baby (sin sal)",
+      "confianza": "alta",
+      "metodo": "similitud+referencia"
+    },
+    {
+      "num": 124,
+      "carpeta": "124 — Mazamorra morada peruana baby",
+      "png": "124.png",
+      "slug": "mazamorra-morada-peru-baby",
+      "nombre": "Mazamorra morada peruana baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 125,
+      "carpeta": "125 — Picarones al horno light",
+      "png": "125.png",
+      "slug": "picarones-horno-light-peru",
+      "nombre": "Picarones al horno light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 126,
+      "carpeta": "126 — Arroz con leche peruano con canela y clavo",
+      "png": "126.png",
+      "slug": "arroz-con-leche-canela-clavo-peru",
+      "nombre": "Arroz con leche peruano con canela y clavo",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 127,
+      "carpeta": "127 — Crema volteada peruana light",
+      "png": "127.png",
+      "slug": "crema-volteada-peru-light",
+      "nombre": "Crema volteada peruana light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 128,
+      "carpeta": "128 — Puré de plátano verde con queso campesino",
+      "png": "128.png",
+      "slug": "pure-platano-verde-queso-colombia",
+      "nombre": "Puré de plátano verde con queso campesino",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 129,
+      "carpeta": "129 — Compota de guayaba y manzana",
+      "png": "129.png",
+      "slug": "compota-guayaba-manzana-colombia",
+      "nombre": "Compota de guayaba y manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 130,
+      "carpeta": "130 — Papilla de yuca con queso fresco",
+      "png": "130.png",
+      "slug": "papilla-yuca-queso-fresco-colombia",
+      "nombre": "Papilla de yuca con queso fresco",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 131,
+      "carpeta": "131 — Puré de ahuyama con coco",
+      "png": "131.png",
+      "slug": "pure-ahuyama-coco-colombia",
+      "nombre": "Puré de ahuyama con coco",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 132,
+      "carpeta": "132 — Compota de mango maduro y banano",
+      "png": "132.png",
+      "slug": "compota-mango-banano-colombia",
+      "nombre": "Compota de mango maduro y banano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 133,
+      "carpeta": "133 — Puré de papa criolla con cilantro",
+      "png": "133.png",
+      "slug": "pure-papa-criolla-cilantro-colombia",
+      "nombre": "Puré de papa criolla con cilantro",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 134,
+      "carpeta": "134 — Papilla de arracacha",
+      "png": "134.png",
+      "slug": "papilla-arracacha-colombia",
+      "nombre": "Papilla de arracacha",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 135,
+      "carpeta": "135 — Ajiaco bogotano baby",
+      "png": "135.png",
+      "slug": "ajiaco-bogotano-baby",
+      "nombre": "Ajiaco bogotano baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 136,
+      "carpeta": "136 — Changua suave",
+      "png": "136.png",
+      "slug": "changua-suave-colombia",
+      "nombre": "Changua suave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 137,
+      "carpeta": "137 — Arepa de choclo baby",
+      "png": "137.png",
+      "slug": "arepa-choclo-baby-colombia",
+      "nombre": "Arepa de choclo baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 138,
+      "carpeta": "138 — Sancocho de pollo suave",
+      "png": "138.png",
+      "slug": "sancocho-pollo-suave-colombia",
+      "nombre": "Sancocho de pollo suave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 139,
+      "carpeta": "139 — Calentado caleño baby",
+      "png": "139.png",
+      "slug": "calentado-caleno-baby",
+      "nombre": "Calentado caleño baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 140,
+      "carpeta": "140 — Atollado de pollo colombiano",
+      "png": "140.png",
+      "slug": "atollado-pollo-colombia",
+      "nombre": "Atollado de pollo colombiano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 141,
+      "carpeta": "141 — Sudado de pollo con yuca",
+      "png": "141.png",
+      "slug": "sudado-pollo-yuca-colombia",
+      "nombre": "Sudado de pollo con yuca",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 142,
+      "carpeta": "142 — Bandeja paisa baby",
+      "png": "142.png",
+      "slug": "bandeja-paisa-baby-colombia",
+      "nombre": "Bandeja paisa baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 143,
+      "carpeta": "143 — Patacones al horno con hogao",
+      "png": "143.png",
+      "slug": "patacones-horno-hogao-colombia",
+      "nombre": "Patacones al horno con hogao",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 144,
+      "carpeta": "144 — Pandebono baby",
+      "png": "144.png",
+      "slug": "pandebono-baby-colombia",
+      "nombre": "Pandebono baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 145,
+      "carpeta": "145 — Mazamorra colombiana de maíz blanco",
+      "png": "145.png",
+      "slug": "mazamorra-maiz-blanco-colombia",
+      "nombre": "Mazamorra colombiana de maíz blanco",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 146,
+      "carpeta": "146 — Tamales tolimenses baby light",
+      "png": "146.png",
+      "slug": "tamales-tolimenses-baby-colombia",
+      "nombre": "Tamales tolimenses baby light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 147,
+      "carpeta": "147 — Aborrajados de plátano y queso al horno",
+      "png": "147.png",
+      "slug": "aborrajados-platano-queso-colombia",
+      "nombre": "Aborrajados de plátano y queso al horno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 148,
+      "carpeta": "148 — Atol de yuca venezolano",
+      "png": "Gemini_Generated_Image_yr83mwyr83mwyr83.png",
+      "slug": "atol-yuca-venezuela",
+      "nombre": "Atol de yuca venezolano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 149,
+      "carpeta": "149 — Crema de apio criollo venezolano",
+      "png": "149.png",
+      "slug": "crema-apio-venezuela",
+      "nombre": "Crema de apio criollo venezolano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 150,
+      "carpeta": "150 — Compota de lechosa con piña",
+      "png": "150.png",
+      "slug": "compota-lechosa-pina-venezuela",
+      "nombre": "Compota de lechosa con piña",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 151,
+      "carpeta": "151 — Papilla de plátano maduro con avena",
+      "png": "151.png",
+      "slug": "papilla-platano-maduro-avena-venezuela",
+      "nombre": "Papilla de plátano maduro con avena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 152,
+      "carpeta": "152 — Puré de auyama con leche y vainilla",
+      "png": "152.png",
+      "slug": "pure-auyama-leche-vainilla-venezuela",
+      "nombre": "Puré de auyama con leche y vainilla",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 153,
+      "carpeta": "153 — Compota de níspero con manzana",
+      "png": "153.png",
+      "slug": "compota-nispero-manzana-venezuela",
+      "nombre": "Compota de níspero con manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 154,
+      "carpeta": "154 — Crema de jojoto con coco",
+      "png": "154.png",
+      "slug": "crema-jojoto-coco-venezuela",
+      "nombre": "Crema de jojoto con coco",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 155,
+      "carpeta": "155 — Cachapa baby con queso de mano",
+      "png": "155.png",
+      "slug": "cachapa-baby-queso-mano",
+      "nombre": "Cachapa baby con queso de mano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 156,
+      "carpeta": "156 — Sopa de plátano verde venezolana",
+      "png": "156.png",
+      "slug": "sopa-platano-verde-venezuela",
+      "nombre": "Sopa de plátano verde venezolana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 157,
+      "carpeta": "157 — Pisillo de pollo suave venezolano",
+      "png": "157.png",
+      "slug": "pisillo-pollo-suave-venezuela",
+      "nombre": "Pisillo de pollo suave venezolano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 158,
+      "carpeta": "158 — Perico baby venezolano",
+      "png": "158.png",
+      "slug": "perico-baby-venezuela",
+      "nombre": "Perico baby venezolano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 159,
+      "carpeta": "159 — Arroz con caraotas negras",
+      "png": "159.png",
+      "slug": "arroz-caraotas-venezuela",
+      "nombre": "Arroz con caraotas negras",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 160,
+      "carpeta": "160 — Bollo pelón light venezolano",
+      "png": "160.png",
+      "slug": "bollo-pelon-light-venezuela",
+      "nombre": "Bollo pelón light venezolano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 161,
+      "carpeta": "161 — Hervido de pollo con ñame y mapuey",
+      "png": "161.png",
+      "slug": "hervido-pollo-name-venezuela",
+      "nombre": "Hervido de pollo con ñame y mapuey",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 162,
+      "carpeta": "162 — Pabellón criollo baby",
+      "png": "162.png",
+      "slug": "pabellon-criollo-baby",
+      "nombre": "Pabellón criollo baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 163,
+      "carpeta": "163 — Arepa al horno rellena de queso baby",
+      "png": "163.png",
+      "slug": "arepa-horno-queso-baby-venezuela",
+      "nombre": "Arepa al horno rellena de queso baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 164,
+      "carpeta": "164 — Hallaca baby simplificada",
+      "png": "164.png",
+      "slug": "hallaca-baby-venezuela",
+      "nombre": "Hallaca baby simplificada",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 165,
+      "carpeta": "165 — Tequeños al horno baby",
+      "png": "165.png",
+      "slug": "tequenos-horno-baby-venezuela",
+      "nombre": "Tequeños al horno baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 166,
+      "carpeta": "166 — Polvorosa de pollo light",
+      "png": "1784525857.png",
+      "slug": "polvorosa-pollo-light-venezuela",
+      "nombre": "Polvorosa de pollo light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 167,
+      "carpeta": "167 — Dulce de lechosa baby light",
+      "png": "167.png",
+      "slug": "dulce-lechosa-baby-light-venezuela",
+      "nombre": "Dulce de lechosa baby light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 168,
+      "carpeta": "168 — Puré de calabaza anco con perejil",
+      "png": "168.png",
+      "slug": "pure-calabaza-anco-perejil-argentina",
+      "nombre": "Puré de calabaza anco con perejil",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 169,
+      "carpeta": "169 — Compota de durazno mendocino y manzana",
+      "png": "169.png",
+      "slug": "compota-durazno-mendocino-manzana",
+      "nombre": "Compota de durazno mendocino y manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 170,
+      "carpeta": "170 — Puré de batata con leche y canela",
+      "png": "170.png",
+      "slug": "pure-batata-leche-canela-argentina",
+      "nombre": "Puré de batata con leche y canela",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 171,
+      "carpeta": "171 — Puré de espinaca con ricota",
+      "png": "171.png",
+      "slug": "pure-espinaca-ricota-argentina",
+      "nombre": "Puré de espinaca con ricota",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 172,
+      "carpeta": "172 — Compota de manzana asada con canela",
+      "png": "172.png",
+      "slug": "compota-manzana-asada-canela-argentina",
+      "nombre": "Compota de manzana asada con canela",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 173,
+      "carpeta": "173 — Mate de leche tibia con harina tostada baby",
+      "png": "173.png",
+      "slug": "mate-leche-harina-tostada-baby-argentina",
+      "nombre": "Mate de leche tibia con harina tostada baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 174,
+      "carpeta": "174 — Puré de banana con yogur natural",
+      "png": "174.png",
+      "slug": "pure-banana-yogur-natural-argentina",
+      "nombre": "Puré de banana con yogur natural",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 175,
+      "carpeta": "175 — Ñoquis de papa caseros baby",
+      "png": "175.png",
+      "slug": "noquis-papa-caseros-baby-argentina",
+      "nombre": "Ñoquis de papa caseros baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 176,
+      "carpeta": "176 — Tarta pascualina baby",
+      "png": "176.png",
+      "slug": "tarta-pascualina-baby-argentina",
+      "nombre": "Tarta pascualina baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 177,
+      "carpeta": "177 — Guiso de lentejas argentino baby",
+      "png": "177.png",
+      "slug": "guiso-lentejas-argentino-baby",
+      "nombre": "Guiso de lentejas argentino baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 178,
+      "carpeta": "178 — Fideos con tuco baby",
+      "png": "178.png",
+      "slug": "fideos-tuco-baby-argentina",
+      "nombre": "Fideos con tuco baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 179,
+      "carpeta": "179 — Empanada tucumana baby al horno",
+      "png": "179.png",
+      "slug": "empanada-tucumana-baby-argentina",
+      "nombre": "Empanada tucumana baby al horno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 180,
+      "carpeta": "180 — Pastelitos de batata al horno baby",
+      "png": "180.png",
+      "slug": "pastelitos-batata-horno-baby-argentina",
+      "nombre": "Pastelitos de batata al horno baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 181,
+      "carpeta": "181 — Arroz con leche argentino con cáscara de limón",
+      "png": "181.png",
+      "slug": "arroz-leche-argentino-limon",
+      "nombre": "Arroz con leche argentino con cáscara de limón",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 182,
+      "carpeta": "182 — Dulce de membrillo casero baby light",
+      "png": "182.png",
+      "slug": "dulce-membrillo-casero-baby-argentina",
+      "nombre": "Dulce de membrillo casero baby light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 183,
+      "carpeta": "183 — Atole de fresa light",
+      "png": "Gemini_Generated_Image_yr83mwyr83mwyr83.png",
+      "slug": "atole-fresa-light-mexico",
+      "nombre": "Atole de fresa light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 184,
+      "carpeta": "184 — Puré de aguacate con limón mexicano",
+      "png": "184.png",
+      "slug": "pure-aguacate-limon-mexico",
+      "nombre": "Puré de aguacate con limón mexicano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 185,
+      "carpeta": "185 — Compota de mango con tuna",
+      "png": "185.png",
+      "slug": "compota-mango-tuna-mexico",
+      "nombre": "Compota de mango con tuna",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 186,
+      "carpeta": "186 — Crema de elote dulce mexicana",
+      "png": "186.png",
+      "slug": "crema-elote-dulce-mexico",
+      "nombre": "Crema de elote dulce mexicana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 187,
+      "carpeta": "187 — Puré de mamey con plátano",
+      "png": "187.png",
+      "slug": "pure-mamey-platano-mexico",
+      "nombre": "Puré de mamey con plátano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 188,
+      "carpeta": "188 — Arroz mexicano rojo baby",
+      "png": "21.png",
+      "slug": "arroz-mexicano-rojo-baby",
+      "nombre": "Arroz mexicano rojo baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 189,
+      "carpeta": "189 — Picadillo mexicano norteño baby",
+      "png": "189.png",
+      "slug": "picadillo-norteno-baby-mexico",
+      "nombre": "Picadillo mexicano norteño baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 190,
+      "carpeta": "190 — Sopa de tortilla suave",
+      "png": "190.png",
+      "slug": "sopa-tortilla-suave-mexico",
+      "nombre": "Sopa de tortilla suave",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 191,
+      "carpeta": "191 — Tamales de elote dulces baby",
+      "png": "191.png",
+      "slug": "tamales-elote-dulces-baby-mexico",
+      "nombre": "Tamales de elote dulces baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 192,
+      "carpeta": "192 — Calabacitas con elote y queso",
+      "png": "192.png",
+      "slug": "calabacitas-elote-queso-mexico",
+      "nombre": "Calabacitas con elote y queso",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 193,
+      "carpeta": "193 — Mole suave para bebés (sin chile picante)",
+      "png": "193.png",
+      "slug": "mole-suave-bebes-mexico",
+      "nombre": "Mole suave para bebés (sin chile picante)",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 194,
+      "carpeta": "194 — Chilaquiles dulces baby",
+      "png": "194.png",
+      "slug": "chilaquiles-dulces-baby-mexico",
+      "nombre": "Chilaquiles dulces baby",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 195,
+      "carpeta": "195 — Enchiladas suizas suaves",
+      "png": "195.png",
+      "slug": "enchiladas-suizas-suaves-mexico",
+      "nombre": "Enchiladas suizas suaves",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 196,
+      "carpeta": "196 — Pozole light de pollo mexicano",
+      "png": "196.png",
+      "slug": "pozole-light-pollo-mexico",
+      "nombre": "Pozole light de pollo mexicano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 197,
+      "carpeta": "197 — Pan de muerto baby light",
+      "png": "197.png",
+      "slug": "pan-muerto-baby-light-mexico",
+      "nombre": "Pan de muerto baby light",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 198,
+      "carpeta": "198 — Galletitas de plátano y avena (3 ingredientes)",
+      "png": "198.png",
+      "slug": "galletitas-platano-avena-3-ing",
+      "nombre": "Galletitas de plátano y avena (3 ingredientes)",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 199,
+      "carpeta": "199 — Bocaditos de batata al horno",
+      "png": "Gemini_Generated_Image_yr83mwyr83mwyr83 (1).png",
+      "slug": "bocaditos-batata-horno",
+      "nombre": "Bocaditos de batata al horno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 200,
+      "carpeta": "200 — Galletitas de zanahoria y manzana",
+      "png": "200.png",
+      "slug": "galletitas-zanahoria-manzana",
+      "nombre": "Galletitas de zanahoria y manzana",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 201,
+      "carpeta": "201 — Galletitas clásicas de avena y plátano",
+      "png": "201.png",
+      "slug": "galletitas-clasicas-avena-platano",
+      "nombre": "Galletitas clásicas de avena y plátano",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 202,
+      "carpeta": "202 — Bocaditos de manzana, avena y canela",
+      "png": "202.png",
+      "slug": "bocaditos-manzana-avena-canela",
+      "nombre": "Bocaditos de manzana, avena y canela",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 203,
+      "carpeta": "203 — Tortitas de zapallo al horno",
+      "png": "203.png",
+      "slug": "tortitas-zapallo-horno",
+      "nombre": "Tortitas de zapallo al horno",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 204,
+      "carpeta": "204 — Galletitas de zanahoria con dátiles",
+      "png": "204.png",
+      "slug": "galletitas-zanahoria-datiles",
+      "nombre": "Galletitas de zanahoria con dátiles",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 205,
+      "carpeta": "205 — Galletitas de avena con miel y canela",
+      "png": "205.png",
+      "slug": "galletitas-avena-miel-canela",
+      "nombre": "Galletitas de avena con miel y canela",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 206,
+      "carpeta": "206 — Bolitas energéticas de dátiles y avena",
+      "png": "206.png",
+      "slug": "bolitas-energeticas-datiles-avena",
+      "nombre": "Bolitas energéticas de dátiles y avena",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    },
+    {
+      "num": 207,
+      "carpeta": "207 — Galletitas de coco y limón",
+      "png": "207.png",
+      "slug": "galletitas-coco-limon",
+      "nombre": "Galletitas de coco y limón",
+      "confianza": "alta",
+      "metodo": "exacto+referencia"
+    }
+  ]
+}

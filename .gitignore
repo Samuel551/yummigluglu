@@ -55,3 +55,7 @@ supabase/.temp/
 
 # Windows redirect artifact (bash: `> NUL` creates a file literally named "nul")
 /nul
+
+# Carga masiva de imagenes de recetas (artefactos locales)
+scripts/salida-webp/
+scripts/__pycache__/
