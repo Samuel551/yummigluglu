@@ -8,6 +8,8 @@ import {
   Modal,
   Image,
   Alert,
+  Pressable,
+  StyleSheet,
   useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -45,6 +47,7 @@ export default function DetalleRecetaScreen() {
   const desbloqueada = useDesbloqueosStore((s) => (id ? s.estaDesbloqueada(id) : false));
   const desbloquear = useDesbloqueosStore((s) => s.desbloquear);
   const [videoVisible, setVideoVisible] = useState(false);
+  const [reproduciendo, setReproduciendo] = useState(false);
   const [receta, setReceta] = useState<Receta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -170,14 +173,29 @@ export default function DetalleRecetaScreen() {
     setModalRecompensaVisible(false);
   };
 
-  // El video Short es vertical 9:16 — el iframe debe respetar esa proporción
-  // para que no aparezcan bandas negras a los lados.
-  const espacioHeader = 80;
-  const videoModalWidth = Math.min(
-    anchoP * 0.92,
-    ((altoP - insets.top - insets.bottom - espacioHeader) * 9) / 16
-  );
-  const videoModalHeight = (videoModalWidth * 16) / 9;
+  // El embed de YouTube siempre arma un escenario 16:9 y mete el Short (9:16)
+  // pillarboxed adentro. Si le damos al WebView una caja 9:16, el video termina
+  // diminuto. Truco: agrandamos el WebView a lo ancho para que el escenario 16:9
+  // tenga la ALTURA que queremos, y recortamos las bandas laterales con un
+  // contenedor overflow:hidden centrado.
+  const espacioHeader = 72;
+  const altoDisponible = altoP - insets.top - insets.bottom - espacioHeader;
+  // Caja visible: el Short ocupa todo lo que se pueda sin desbordar.
+  const videoVisibleHeight = Math.min(altoDisponible, (anchoP * 0.96 * 16) / 9);
+  const videoVisibleWidth = (videoVisibleHeight * 9) / 16;
+  // WebView real: escenario 16:9 con esa altura.
+  const escenarioHeight = videoVisibleHeight;
+  const escenarioWidth = (escenarioHeight * 16) / 9;
+  const offsetHorizontal = -(escenarioWidth - videoVisibleWidth) / 2;
+
+  const abrirVideo = () => {
+    setVideoVisible(true);
+    setReproduciendo(true);
+  };
+  const cerrarVideo = () => {
+    setReproduciendo(false);
+    setVideoVisible(false);
+  };
 
   const seccionLabelStyle = {
     fontSize: 11,
@@ -371,7 +389,7 @@ export default function DetalleRecetaScreen() {
             <UnlockCTA c={c} onVerAnuncio={() => setModalRecompensaVisible(true)} />
           ) : videoId ? (
             <TouchableOpacity
-              onPress={() => setVideoVisible(true)}
+              onPress={abrirVideo}
               activeOpacity={0.9}
               style={{
                 flexDirection: 'row',
@@ -598,11 +616,7 @@ export default function DetalleRecetaScreen() {
 
       {/* Modal de video — aspect 9:16 propio para Shorts */}
       {videoId && (
-        <Modal
-          visible={videoVisible}
-          animationType="slide"
-          onRequestClose={() => setVideoVisible(false)}
-        >
+        <Modal visible={videoVisible} animationType="slide" onRequestClose={cerrarVideo}>
           <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
             <View
               style={{
@@ -619,25 +633,51 @@ export default function DetalleRecetaScreen() {
               >
                 {receta.nombre}
               </Text>
-              <TouchableOpacity onPress={() => setVideoVisible(false)} style={{ padding: 6 }}>
+              <TouchableOpacity onPress={cerrarVideo} style={{ padding: 6 }}>
                 <Text style={{ color: '#fff', fontSize: 24 }}>✕</Text>
               </TouchableOpacity>
             </View>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {/* Ventana de recorte: solo se ve el centro del escenario 16:9 */}
               <View
                 style={{
-                  width: videoModalWidth,
-                  height: videoModalHeight,
+                  width: videoVisibleWidth,
+                  height: videoVisibleHeight,
                   borderRadius: 18,
                   overflow: 'hidden',
                   backgroundColor: '#000',
                 }}
               >
-                <YoutubePlayer
-                  width={videoModalWidth}
-                  height={videoModalHeight}
-                  videoId={videoId}
-                  play={false}
+                <View style={{ marginLeft: offsetHorizontal }}>
+                  <YoutubePlayer
+                    width={escenarioWidth}
+                    height={escenarioHeight}
+                    videoId={videoId}
+                    play={reproduciendo}
+                    // Spoofea el user-agent a desktop para saltar la política de
+                    // autoplay de YouTube en el WebView (el tap nativo no cuenta
+                    // como "gesto" adentro del navegador). Sin esto, el video no
+                    // arranca solo y muestra el botón rojo esperando un tap interno.
+                    forceAndroidAutoplay
+                    onChangeState={(estado: string) => {
+                      if (estado === 'ended') setReproduciendo(false);
+                    }}
+                    initialPlayerParams={{
+                      controls: false,
+                      modestbranding: true,
+                      rel: false,
+                      showClosedCaptions: false,
+                    }}
+                    webViewProps={{
+                      allowsInlineMediaPlayback: true,
+                      mediaPlaybackRequiresUserAction: false,
+                    }}
+                  />
+                </View>
+                {/* Tap para pausar/reanudar (los controles nativos quedan fuera del recorte) */}
+                <Pressable
+                  onPress={() => setReproduciendo((v) => !v)}
+                  style={StyleSheet.absoluteFill}
                 />
               </View>
             </View>
