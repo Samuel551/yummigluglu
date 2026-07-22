@@ -14,7 +14,7 @@ import { useSuscripcionStore } from '@/store/useSuscripcionStore';
  * Premium = cero anuncios: todas las funciones hacen no-op si `esPremium`.
  */
 
-const MIN_MS_ENTRE_ADS = 4 * 60 * 1000; // no más de 1 intersticial cada 4 minutos
+const MIN_MS_ENTRE_ADS = 15 * 60 * 1000; // no más de 1 intersticial cada 15 minutos
 const TRIGGERS_POR_AD = 3; // recién al 3er momento natural
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- el tipo InterstitialAd vive en el módulo nativo cargado perezosamente

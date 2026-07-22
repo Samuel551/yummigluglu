@@ -8,8 +8,6 @@ import {
   Modal,
   Image,
   Alert,
-  Pressable,
-  StyleSheet,
   useWindowDimensions,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -190,7 +188,7 @@ export default function DetalleRecetaScreen() {
 
   const abrirVideo = () => {
     setVideoVisible(true);
-    setReproduciendo(true);
+    setReproduciendo(false);
   };
   const cerrarVideo = () => {
     setReproduciendo(false);
@@ -653,14 +651,14 @@ export default function DetalleRecetaScreen() {
                     width={escenarioWidth}
                     height={escenarioHeight}
                     videoId={videoId}
+                    // Tap-to-play: el WebView de Android no permite autoplay, así
+                    // que el usuario arranca con el botón de YouTube (con sonido).
+                    // Sincronizamos el estado con lo que hace el player para que
+                    // el prop `play` no pelee contra el tap del usuario.
                     play={reproduciendo}
-                    // Spoofea el user-agent a desktop para saltar la política de
-                    // autoplay de YouTube en el WebView (el tap nativo no cuenta
-                    // como "gesto" adentro del navegador). Sin esto, el video no
-                    // arranca solo y muestra el botón rojo esperando un tap interno.
-                    forceAndroidAutoplay
                     onChangeState={(estado: string) => {
-                      if (estado === 'ended') setReproduciendo(false);
+                      if (estado === 'playing') setReproduciendo(true);
+                      else if (estado === 'paused' || estado === 'ended') setReproduciendo(false);
                     }}
                     initialPlayerParams={{
                       controls: false,
@@ -674,11 +672,6 @@ export default function DetalleRecetaScreen() {
                     }}
                   />
                 </View>
-                {/* Tap para pausar/reanudar (los controles nativos quedan fuera del recorte) */}
-                <Pressable
-                  onPress={() => setReproduciendo((v) => !v)}
-                  style={StyleSheet.absoluteFill}
-                />
               </View>
             </View>
           </SafeAreaView>
