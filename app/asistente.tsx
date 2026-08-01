@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,7 +20,7 @@ import { useColoresTema } from '@/hooks/useColoresTema';
 import { useAsistenteStore } from '@/store/useAsistenteStore';
 import { usePerfilStore } from '@/store/usePerfilStore';
 import { NUTRIBOT_MAX_CHARS, NUTRIBOT_SUGERENCIAS } from '@/constants/Nutribot';
-import type { MensajeIA } from '@/types';
+import type { MensajeIA, ResumenConversacion } from '@/types';
 
 /**
  * NutriBot — asistente de alimentación infantil (Fase 6).
@@ -32,21 +35,39 @@ export default function AsistenteScreen() {
   const colores = useColoresTema();
 
   const perfilActivo = usePerfilStore((s) => s.perfilActivo);
-  const { mensajes, enviando, error, cupo, limiteAlcanzado, enviar, cargarCupo, limpiarError } =
-    useAsistenteStore();
+  const {
+    mensajes,
+    conversacionId,
+    conversaciones,
+    cargandoConversaciones,
+    enviando,
+    error,
+    cupo,
+    limiteAlcanzado,
+    enviar,
+    cargarCupo,
+    cargarConversaciones,
+    abrirConversacion,
+    eliminarConversacion,
+    nuevaConversacion,
+    limpiarError,
+  } = useAsistenteStore();
 
   const [texto, setTexto] = useState('');
   const [tecladoAbierto, setTecladoAbierto] = useState(false);
+  const [historialVisible, setHistorialVisible] = useState(false);
   const listaRef = useRef<FlatList<MensajeIA>>(null);
 
   useEffect(() => {
     cargarCupo();
-  }, [cargarCupo]);
+    cargarConversaciones();
+  }, [cargarCupo, cargarConversaciones]);
 
   /**
-   * `insets.bottom` sigue reportando la barra de navegación aunque el teclado la
-   * tape. Si dejáramos ese padding fijo, el disclaimer flotaría sobre el teclado
-   * con un hueco. Por eso el inset se aplica SOLO con el teclado cerrado.
+   * Con `edgeToEdgeEnabled` + `adjustResize`, `insets.bottom` sigue reportando la
+   * barra de navegación aunque el teclado la tape. Si dejáramos ese padding fijo,
+   * el disclaimer flotaría sobre el teclado con un hueco. Por eso el inset se
+   * aplica SOLO con el teclado cerrado.
    */
   useEffect(() => {
     const mostrar = Keyboard.addListener('keyboardDidShow', () => setTecladoAbierto(true));
@@ -56,6 +77,46 @@ export default function AsistenteScreen() {
       ocultar.remove();
     };
   }, []);
+
+  // Sin confirmación a propósito: ya no se pierde nada. La conversación actual
+  // queda guardada y sigue estando en el panel de historial.
+  const alEmpezarNueva = useCallback(() => {
+    if (mensajes.length === 0) return;
+    Keyboard.dismiss();
+    nuevaConversacion();
+  }, [mensajes.length, nuevaConversacion]);
+
+  const abrirHistorial = useCallback(() => {
+    Keyboard.dismiss();
+    cargarConversaciones();
+    setHistorialVisible(true);
+  }, [cargarConversaciones]);
+
+  const alElegirConversacion = useCallback(
+    (id: string) => {
+      setHistorialVisible(false);
+      if (id !== conversacionId) abrirConversacion(id);
+    },
+    [conversacionId, abrirConversacion]
+  );
+
+  const confirmarEliminar = useCallback(
+    (conversacion: ResumenConversacion) => {
+      Alert.alert(
+        'Eliminar conversación',
+        `Se eliminará "${conversacion.titulo ?? 'Conversación'}". Esta acción no se puede deshacer.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: () => eliminarConversacion(conversacion.id),
+          },
+        ]
+      );
+    },
+    [eliminarConversacion]
+  );
 
   // Autoscroll al último mensaje. El delay deja que el layout se acomode antes
   // de medir — sin él, el scroll queda corto en Android.
@@ -101,11 +162,29 @@ export default function AsistenteScreen() {
           </Text>
         </View>
         <TouchableOpacity
+          onPress={abrirHistorial}
+          hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+          style={{ marginRight: 20 }}
+          accessibilityLabel="Ver conversaciones guardadas"
+        >
+          <Feather name="clock" size={20} color={colores.grisTexto} />
+        </TouchableOpacity>
+        {mensajes.length > 0 && (
+          <TouchableOpacity
+            onPress={alEmpezarNueva}
+            hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+            style={{ marginRight: 20 }}
+            accessibilityLabel="Nueva conversación"
+          >
+            <Feather name="edit" size={20} color={colores.grisTexto} />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
           onPress={() => router.back()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityLabel="Cerrar"
         >
-          <Text style={{ fontSize: 22, color: colores.grisTexto }}>✕</Text>
+          <Feather name="x" size={22} color={colores.grisTexto} />
         </TouchableOpacity>
       </View>
 
@@ -136,7 +215,8 @@ export default function AsistenteScreen() {
         `behavior="padding"` es OBLIGATORIO en ambas plataformas. Con
         `edgeToEdgeEnabled` (app.json) Android llama `setDecorFitsSystemWindows(false)`
         y el teclado NO redimensiona la ventana: se dibuja ENCIMA. Sin esto el input
-        queda tapado. Va sin `keyboardVerticalOffset`: eran 24dp de aire de más.
+        queda tapado. Va sin `keyboardVerticalOffset` — el hueco que se veía antes no
+        lo causaba este componente, sino el doble pago de `insets.bottom` más abajo.
       */}
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {/* ── Mensajes ─────────────────────────────────────────────────── */}
@@ -299,7 +379,185 @@ export default function AsistenteScreen() {
           </Text>
         </View>
       </KeyboardAvoidingView>
+
+      <PanelHistorial
+        visible={historialVisible}
+        onCerrar={() => setHistorialVisible(false)}
+        conversaciones={conversaciones}
+        conversacionActiva={conversacionId}
+        cargando={cargandoConversaciones}
+        colores={colores}
+        insets={insets}
+        onElegir={alElegirConversacion}
+        onEliminar={confirmarEliminar}
+      />
     </View>
+  );
+}
+
+// ── Panel de conversaciones guardadas ────────────────────────────────────────
+
+/**
+ * Fecha corta para la lista: "12:37" si es de hoy, "Ayer", "30 jul" dentro del
+ * año, "30 jul 2025" si es de otro año. Más corto que una fecha completa y más
+ * útil que un "hace X" que obliga a calcular mentalmente.
+ */
+function fechaCorta(iso: string): string {
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return '';
+
+  const hoy = new Date();
+  const mismoDia = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (mismoDia(fecha, hoy)) {
+    return fecha.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  const ayer = new Date(hoy);
+  ayer.setDate(hoy.getDate() - 1);
+  if (mismoDia(fecha, ayer)) return 'Ayer';
+
+  return fecha.toLocaleDateString('es', {
+    day: 'numeric',
+    month: 'short',
+    ...(fecha.getFullYear() !== hoy.getFullYear() ? { year: 'numeric' } : {}),
+  });
+}
+
+function PanelHistorial({
+  visible,
+  onCerrar,
+  conversaciones,
+  conversacionActiva,
+  cargando,
+  colores,
+  insets,
+  onElegir,
+  onEliminar,
+}: {
+  visible: boolean;
+  onCerrar: () => void;
+  conversaciones: ResumenConversacion[];
+  conversacionActiva: string | null;
+  cargando: boolean;
+  colores: ReturnType<typeof useColoresTema>;
+  insets: { top: number; bottom: number };
+  onElegir: (id: string) => void;
+  onEliminar: (conversacion: ResumenConversacion) => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="overFullScreen"
+      transparent
+      onRequestClose={onCerrar}
+    >
+      <View style={{ flex: 1, backgroundColor: colores.fondoApp, paddingTop: insets.top }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: colores.cardBorde,
+            backgroundColor: colores.card,
+          }}
+        >
+          <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: colores.negro }}>
+            Conversaciones
+          </Text>
+          <TouchableOpacity
+            onPress={onCerrar}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel="Cerrar historial"
+          >
+            <Feather name="x" size={22} color={colores.grisTexto} />
+          </TouchableOpacity>
+        </View>
+
+        {cargando && conversaciones.length === 0 ? (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator color={colores.verde} />
+          </View>
+        ) : (
+          <FlatList
+            data={conversaciones}
+            keyExtractor={(c) => c.id}
+            contentContainerStyle={{
+              padding: 16,
+              gap: 10,
+              flexGrow: 1,
+              paddingBottom: Math.max(insets.bottom, 16),
+            }}
+            ListEmptyComponent={
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 44, lineHeight: 66 }}>💬</Text>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: colores.grisTexto,
+                    textAlign: 'center',
+                    marginTop: 8,
+                    paddingHorizontal: 24,
+                    lineHeight: 21,
+                  }}
+                >
+                  Todavía no tienes conversaciones guardadas. Las que tengas con NutriBot aparecerán
+                  aquí.
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const activa = item.id === conversacionActiva;
+              return (
+                <TouchableOpacity
+                  onPress={() => onElegir(item.id)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: 14,
+                    borderRadius: 14,
+                    backgroundColor: colores.card,
+                    borderWidth: 1,
+                    borderColor: activa ? colores.verde : colores.cardBorde,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        fontSize: 15,
+                        fontWeight: activa ? '700' : '600',
+                        color: colores.negro,
+                      }}
+                    >
+                      {item.titulo ?? 'Conversación'}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colores.grisTexto, marginTop: 3 }}>
+                      {activa ? 'Abierta ahora · ' : ''}
+                      {fechaCorta(item.updated_at)}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => onEliminar(item)}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    accessibilityLabel={`Eliminar ${item.titulo ?? 'conversación'}`}
+                  >
+                    <Feather name="trash-2" size={17} color={colores.grisTexto} />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        )}
+      </View>
+    </Modal>
   );
 }
 

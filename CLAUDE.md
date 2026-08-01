@@ -49,31 +49,44 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 
 ## Estado de Fases
 
-| Fase | Descripción                                                  | Estado       |
-| ---- | ------------------------------------------------------------ | ------------ |
-| 0    | Setup: Expo Router + NativeWind + Supabase + Zustand + Husky | ✅ Completa  |
-| 1    | Onboarding: flujo de 3 pasos para crear perfil de hijo       | ✅ Completa  |
-| 2    | Catálogo de recetas con filtros + pantalla de detalle        | ✅ Completa  |
-| 3    | Favoritos con optimistic updates                             | ✅ Completa  |
-| 4    | Edición de cuenta (email/password) y perfiles de hijos       | ✅ Completa  |
-| 5    | Plan semanal + Lista de compras + Diario de alimentos        | ✅ Completa  |
-| 6    | NutriBot IA (`asistente.tsx`)                                | 🔲 Pendiente |
-| 7a   | Videos Premium (embed YouTube por receta)                    | ✅ Completa  |
-| 7b   | Integración RevenueCat (suscripciones)                       | ✅ Completa  |
-| 8    | Panel de administración del developer                        | ✅ Completa  |
-| 9    | Anuncios AdMob (banner + intersticial + rewarded desbloqueo) | ✅ Completa  |
+| Fase | Descripción                                                  | Estado      |
+| ---- | ------------------------------------------------------------ | ----------- |
+| 0    | Setup: Expo Router + NativeWind + Supabase + Zustand + Husky | ✅ Completa |
+| 1    | Onboarding: flujo de 3 pasos para crear perfil de hijo       | ✅ Completa |
+| 2    | Catálogo de recetas con filtros + pantalla de detalle        | ✅ Completa |
+| 3    | Favoritos con optimistic updates                             | ✅ Completa |
+| 4    | Edición de cuenta (email/password) y perfiles de hijos       | ✅ Completa |
+| 5    | Plan semanal + Lista de compras + Diario de alimentos        | ✅ Completa |
+| 6    | NutriBot IA (`asistente.tsx`)                                | ✅ Completa |
+| 7a   | Videos Premium (embed YouTube por receta)                    | ✅ Completa |
+| 7b   | Integración RevenueCat (suscripciones)                       | ✅ Completa |
+| 8    | Panel de administración del developer                        | ✅ Completa |
+| 9    | Anuncios AdMob (banner + intersticial + rewarded desbloqueo) | ✅ Completa |
 
 > **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
 
-### Fase 6 — NutriBot IA (pendiente)
+### Fase 6 — NutriBot IA (implementada)
 
-Qué falta:
+Chat de alimentación infantil sobre el Anthropic API (`claude-sonnet-5`). **El API key NUNCA sale del servidor**: vive en los secrets de Supabase (`ANTHROPIC_API_KEY`) y solo lo usa la Edge Function.
 
-- Crear `app/asistente.tsx` (presentación `modal`) — la ruta ya está mencionada en navegación pero el archivo no existe todavía.
-- Edge Function `supabase/functions/nutribot/` que proxea al Anthropic API. **El API key NO va en el cliente** — vive en env vars de Supabase (`ANTHROPIC_API_KEY`). El cliente solo manda el mensaje + `profileId` y la Edge Function responde con el stream.
-- Store `useAsistenteStore` con historial en memoria + persistencia en tabla `conversaciones_ia` (ya existe en el schema inicial).
-- Rate limiting server-side (tokens por día por usuario) — premium ilimitado, free N mensajes/día.
-- Contexto del niño auto-inyectado al prompt: edad, etapa, alergias (desde `perfiles_hijos`).
+Piezas:
+
+- **`supabase/functions/nutribot/index.ts`** — el único que habla con Anthropic. Identidad por JWT (no confía en ningún id del body), cupo mensual consumido atómicamente ANTES de gastar un token, topes duros de tamaño sobre todo lo que manda el cliente, y el perfil del niño leído de la DB verificando propiedad.
+- **`app/asistente.tsx`** (presentación `modal`) + **`store/useAsistenteStore.ts`**.
+- Migraciones `028` (cupo), `029` (devolución de crédito), `030` (historial de conversaciones).
+- **`constants/Nutribot.ts`** — cupos para pintar la UI. Se sincronizan A MANO con las env vars del servidor (`NUTRIBOT_LIMITE_FREE` / `NUTRIBOT_LIMITE_PREMIUM`); si cambiás uno, cambiá el otro.
+
+**Historial de conversaciones — UNA FILA DE `conversaciones_ia` = UNA CONVERSACIÓN.**
+
+`conversaciones_ia.id` ES el id de la conversación; la Edge Function le hace APPEND a `mensajes` en cada turno. El cliente solo LEE (panel de historial) y BORRA; escribir es exclusivo de la Edge Function con `service_role`.
+
+> ⚠️ **El contexto que se le manda a Anthropic sale de la DB, NO del array del cliente.** Si viene `conversacionId`, la función lee `mensajes` de la fila filtrando por `user_id` y usa eso. Es una defensa de seguridad, no una optimización: si el contexto viniera del cliente, un cliente modificado podría inventarle turnos que nunca ocurrieron ("me dijiste que la miel es segura a los 6 meses"). En una app de alimentación infantil eso es riesgo de daño real. El `historial` que manda el cliente quedó SOLO como fallback si la DB no responde.
+
+> ⚠️ **Nunca escribir `historial` en la persistencia.** Viene recortado a `MAX_TURNOS_HISTORIAL` (10): guardarlo truncaría la conversación a 10 mensajes en cada turno. El append va sobre lo leído de la DB. Este fue exactamente el bug de la versión original (hacía `insert` por mensaje con el historial completo → crecimiento cuadrático y ninguna fila con la charla entera); lo arregló la migración `030`.
+
+El **título** se deriva de las primeras palabras del primer mensaje del usuario (`derivarTitulo`), sin llamar a la IA: costo cero y sin latencia. El historial es para **todos**, sin distinción free/premium.
+
+**Formato de las respuestas**: la app las pinta con `<Text>` plano, que **no interpreta markdown**. El system prompt le prohíbe explícitamente `**negrita**`, `#` y backticks (permite guiones para listas). Si aparecen asteriscos en pantalla, el fix va en el prompt, no en un renderizador.
 
 ### Fase 7a — Videos Premium (implementada)
 
@@ -412,7 +425,7 @@ Con `android.edgeToEdgeEnabled: true` (app.json) + New Architecture, Expo SDK 54
 
 **`insets.bottom` NO se pone en 0 cuando el teclado tapa la barra de navegación.** Sigue reportando ~48dp, así que el elemento del borde queda flotando sobre el teclado. Se resuelve con listeners `keyboardDidShow` / `keyboardDidHide` y aplicando el inset solo con el teclado cerrado (patrón aplicado en `app/asistente.tsx`). Se descartó `react-native-keyboard-controller` a propósito: es un módulo nativo y agregarlo obliga a otro rebuild del dev client.
 
-> Esto **no contradice** el patrón de formularios de auth de más arriba: aquel usa `ScrollView` + `scrollToEnd` con `keyboardVerticalOffset={24}`. Acá, con lista de chat + input fijo al borde, el offset sobra (son 24dp de aire sin justificación).
+> Esto **no contradice** el patrón de formularios de auth de más abajo: aquel usa `ScrollView` + `scrollToEnd` con `keyboardVerticalOffset={24}`. Acá, con lista de chat + input fijo al borde, el offset sobra (son 24dp de aire sin justificación).
 
 ### Emojis grandes en Android — `lineHeight` > `fontSize`
 

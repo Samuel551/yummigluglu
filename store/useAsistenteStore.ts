@@ -6,14 +6,16 @@ import {
   NUTRIBOT_LIMITE_PREMIUM,
   NUTRIBOT_MAX_TURNOS_HISTORIAL,
 } from '@/constants/Nutribot';
-import type { MensajeIA } from '@/types';
+import type { MensajeIA, ResumenConversacion } from '@/types';
 
 /**
  * NutriBot — chat con el asistente de alimentación infantil.
  *
- * El historial vive EN MEMORIA durante la sesión de chat. La Edge Function
- * `nutribot` lo persiste en `conversaciones_ia` del lado del servidor, así que
- * el cliente no escribe esa tabla.
+ * UNA FILA DE `conversaciones_ia` = UNA CONVERSACIÓN. La escribe siempre la Edge
+ * Function `nutribot` con `service_role`; el cliente solo LEE (para el panel de
+ * historial) y BORRA (RLS lo limita a las propias). `conversacionId` es el hilo
+ * abierto: si es `null`, el próximo mensaje arranca una conversación nueva y el
+ * servidor devuelve el id recién creado.
  *
  * El cupo (`usados` / `limite`) lo manda el servidor en cada respuesta — esa es
  * la fuente de verdad. Las constantes de `constants/Nutribot.ts` solo se usan
@@ -28,6 +30,9 @@ interface Cupo {
 
 interface AsistenteState {
   mensajes: MensajeIA[];
+  conversacionId: string | null;
+  conversaciones: ResumenConversacion[];
+  cargandoConversaciones: boolean;
   enviando: boolean;
   error: string | null;
   cupo: Cupo | null;
@@ -35,8 +40,11 @@ interface AsistenteState {
 
   enviar: (texto: string, perfilId?: string | null) => Promise<void>;
   cargarCupo: () => Promise<void>;
+  cargarConversaciones: () => Promise<void>;
+  abrirConversacion: (id: string) => Promise<void>;
+  eliminarConversacion: (id: string) => Promise<void>;
+  nuevaConversacion: () => void;
   limpiarError: () => void;
-  limpiar: () => void;
 }
 
 function periodoActual(): string {
@@ -64,6 +72,9 @@ async function leerCuerpoDeError(error: unknown): Promise<Record<string, unknown
 
 export const useAsistenteStore = create<AsistenteState>((set, get) => ({
   mensajes: [],
+  conversacionId: null,
+  conversaciones: [],
+  cargandoConversaciones: false,
   enviando: false,
   error: null,
   cupo: null,
@@ -71,7 +82,75 @@ export const useAsistenteStore = create<AsistenteState>((set, get) => ({
 
   limpiarError: () => set({ error: null }),
 
-  limpiar: () => set({ mensajes: [], error: null, limiteAlcanzado: false }),
+  /**
+   * Abre un hilo nuevo. NO borra nada: la conversación anterior ya está guardada
+   * en `conversaciones_ia` y sigue estando en el panel de historial.
+   *
+   * NO toca `limiteAlcanzado` ni `cupo` — el consumo vive en `uso_nutribot` del
+   * lado del servidor y no se devuelve por empezar otro chat.
+   */
+  nuevaConversacion: () => set({ mensajes: [], conversacionId: null, error: null }),
+
+  cargarConversaciones: async () => {
+    set({ cargandoConversaciones: true });
+
+    // Sin `mensajes` en el select: la lista solo pinta título y fecha. RLS ya
+    // limita las filas a las del usuario, no hace falta filtrar por user_id.
+    const { data, error } = await supabase
+      .from('conversaciones_ia')
+      .select('id, titulo, updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.warn('NutriBot: no se pudo cargar el historial', error);
+      set({ cargandoConversaciones: false });
+      return;
+    }
+
+    set({ conversaciones: (data ?? []) as ResumenConversacion[], cargandoConversaciones: false });
+  },
+
+  abrirConversacion: async (id) => {
+    const { data, error } = await supabase
+      .from('conversaciones_ia')
+      .select('mensajes')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !data) {
+      console.warn('NutriBot: no se pudo abrir la conversación', error);
+      set({ error: 'No pudimos abrir esa conversación. Intenta de nuevo.' });
+      return;
+    }
+
+    set({
+      mensajes: Array.isArray(data.mensajes) ? (data.mensajes as MensajeIA[]) : [],
+      conversacionId: id,
+      error: null,
+    });
+  },
+
+  eliminarConversacion: async (id) => {
+    const previas = get().conversaciones;
+
+    // Optimistic delete — mismo patrón que `useDiarioStore`.
+    set({ conversaciones: previas.filter((c) => c.id !== id) });
+
+    // Si el usuario borró el hilo que tiene abierto, la pantalla queda en uno
+    // nuevo: dejar `conversacionId` apuntando a una fila muerta haría que el
+    // próximo mensaje cayera en el fallback del servidor sin contexto.
+    if (get().conversacionId === id) {
+      set({ mensajes: [], conversacionId: null });
+    }
+
+    const { error } = await supabase.from('conversaciones_ia').delete().eq('id', id);
+
+    if (error) {
+      console.warn('NutriBot: no se pudo eliminar la conversación', error);
+      set({ conversaciones: previas, error: 'No pudimos eliminar la conversación.' });
+    }
+  },
 
   cargarCupo: async () => {
     const esPremium = useSuscripcionStore.getState().esPremium;
@@ -113,7 +192,14 @@ export const useAsistenteStore = create<AsistenteState>((set, get) => ({
     }));
 
     const { data, error } = await supabase.functions.invoke('nutribot', {
-      body: { mensaje: limpio, perfilId: perfilId ?? null, historial },
+      body: {
+        mensaje: limpio,
+        perfilId: perfilId ?? null,
+        // Con `conversacionId` el servidor toma el contexto de la DB e ignora
+        // `historial`; este solo se usa de fallback si no puede leerla.
+        conversacionId: get().conversacionId,
+        historial,
+      },
     });
 
     if (error) {
@@ -158,6 +244,8 @@ export const useAsistenteStore = create<AsistenteState>((set, get) => ({
 
     const usados = (data.usados as number | undefined) ?? 0;
     const limite = (data.limite as number | undefined) ?? NUTRIBOT_LIMITE_FREE;
+    const idConversacion =
+      typeof data.conversacion_id === 'string' ? (data.conversacion_id as string) : null;
 
     set((s) => ({
       mensajes: [
@@ -165,6 +253,11 @@ export const useAsistenteStore = create<AsistenteState>((set, get) => ({
         { role: 'assistant', content: respuesta, timestamp: new Date().toISOString() },
       ],
       enviando: false,
+      // El primer mensaje de un hilo nuevo devuelve el id recién creado: a partir
+      // de acá los siguientes turnos se appendean a esa misma fila. Si el
+      // servidor no pudo persistir, queda en null y el próximo turno reintenta
+      // crear la conversación (mejor eso que perder el hilo en silencio).
+      conversacionId: idConversacion ?? s.conversacionId,
       cupo: { usados, limite, esPremium: (data.es_premium as boolean) ?? false },
       limiteAlcanzado: usados >= limite,
     }));

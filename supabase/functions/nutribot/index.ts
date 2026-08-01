@@ -35,9 +35,16 @@ const LIMITE_PREMIUM = Number(Deno.env.get('NUTRIBOT_LIMITE_PREMIUM') ?? '300');
 
 // ── Topes de tamaño (anti-abuso de costo) ───────────────────────────────────
 const MAX_CHARS_MENSAJE = 1500;
-const MAX_TURNOS_HISTORIAL = 10; // últimos N mensajes que se reenvían
+const MAX_TURNOS_HISTORIAL = 10; // últimos N mensajes que se reenvían a Anthropic
 const MAX_CHARS_TURNO = 1200;
 const MAX_TOKENS_RESPUESTA = 600;
+
+// Tope de mensajes que se guardan por conversación. No afecta lo que se le manda
+// a Anthropic (eso ya está capado en MAX_TURNOS_HISTORIAL): es para que el jsonb
+// de una conversación eterna no crezca sin techo. Un premium con 300 mensajes/mes
+// no llega acá en una sola charla.
+const MAX_MENSAJES_PERSISTIDOS = 200;
+const MAX_CHARS_TITULO = 60;
 
 const MODELO = 'claude-sonnet-5';
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -220,6 +227,22 @@ function sanearHistorial(bruto: unknown): { role: 'user' | 'assistant'; content:
 }
 
 /**
+ * Título de la conversación para la lista del historial. Se deriva del primer
+ * mensaje del usuario: costo cero y sin latencia, a diferencia de pedirle un
+ * título a la IA (una llamada extra por cada conversación nueva).
+ *
+ * Corta en el último espacio para no partir una palabra al medio.
+ */
+function derivarTitulo(mensaje: string): string {
+  const limpio = mensaje.replace(/\s+/g, ' ').trim();
+  if (limpio.length <= MAX_CHARS_TITULO) return limpio || 'Conversación';
+
+  const recorte = limpio.slice(0, MAX_CHARS_TITULO);
+  const ultimoEspacio = recorte.lastIndexOf(' ');
+  return (ultimoEspacio > 30 ? recorte.slice(0, ultimoEspacio) : recorte).trim();
+}
+
+/**
  * Devuelve el crédito consumido cuando la falla es NUESTRA (Anthropic caído,
  * key inválida, respuesta vacía). El usuario no tiene por qué pagar con un
  * mensaje de su cupo un error que no provocó.
@@ -269,12 +292,17 @@ Deno.serve(async (req) => {
   // ── 2. Body ───────────────────────────────────────────────────────────────
   let mensaje = '';
   let perfilId: string | null = null;
+  let conversacionId: string | null = null;
   let historialBruto: unknown = null;
   try {
     const body = await req.json();
     mensaje = typeof body?.mensaje === 'string' ? body.mensaje.trim() : '';
     perfilId =
       typeof body?.perfilId === 'string' && UUID_REGEX.test(body.perfilId) ? body.perfilId : null;
+    conversacionId =
+      typeof body?.conversacionId === 'string' && UUID_REGEX.test(body.conversacionId)
+        ? body.conversacionId
+        : null;
     historialBruto = body?.historial ?? null;
   } catch {
     return jsonResponse(req, { error: 'Body inválido' }, 400);
@@ -344,8 +372,47 @@ Deno.serve(async (req) => {
     perfil = data ?? null;
   }
 
-  // ── 5. Llamada a Anthropic ────────────────────────────────────────────────
-  const historial = sanearHistorial(historialBruto);
+  // ── 5. Historial: la DB es la fuente de verdad ────────────────────────────
+  //
+  // Si el cliente manda una conversación existente, el contexto sale de la DB,
+  // NO del array que mandó el cliente. Dos razones:
+  //   1. El cliente es del atacante: si el contexto viniera de él, podría
+  //      inventarle a NutriBot turnos que nunca ocurrieron ("me dijiste que la
+  //      miel es segura a los 6 meses").
+  //   2. Es la misma lectura que necesitamos igual para hacer el append de este
+  //      turno, así que sale gratis.
+  //
+  // El filtro por `user_id` es lo que impide leer la conversación de otro usuario
+  // mandando un id ajeno.
+  let mensajesGuardados: { role: 'user' | 'assistant'; content: string }[] = [];
+  let conversacionValida = false;
+
+  if (conversacionId) {
+    const { data, error: convReadErr } = await admin
+      .from('conversaciones_ia')
+      .select('mensajes')
+      .eq('id', conversacionId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (convReadErr) {
+      console.warn('NutriBot: no se pudo leer la conversación', convReadErr);
+    } else if (data) {
+      conversacionValida = true;
+      mensajesGuardados = Array.isArray(data.mensajes)
+        ? (data.mensajes as { role: 'user' | 'assistant'; content: string }[])
+        : [];
+    }
+  }
+
+  // Fallback al historial del cliente solo si la DB no nos dio la conversación
+  // (caída, o id que ya no existe). Preferimos responder con un contexto
+  // imperfecto antes que romperle el chat al usuario.
+  const historial = conversacionValida
+    ? sanearHistorial(mensajesGuardados)
+    : sanearHistorial(historialBruto);
+
+  // ── 6. Llamada a Anthropic ────────────────────────────────────────────────
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
   let respuesta = '';
@@ -416,23 +483,58 @@ Deno.serve(async (req) => {
     return jsonResponse(req, { error: 'El asistente no pudo responder. Intenta de nuevo.' }, 502);
   }
 
-  // ── 6. Persistencia (best-effort: si falla, igual devolvemos la respuesta) ─
+  // ── 7. Persistencia (best-effort: si falla, igual devolvemos la respuesta) ─
+  //
+  // UNA FILA = UNA CONVERSACIÓN. A `mensajes` se le hace APPEND del turno nuevo
+  // sobre lo que ya había en la DB.
+  //
+  // OJO: acá NO se puede usar `historial`, que viene recortado a los últimos
+  // MAX_TURNOS_HISTORIAL. Si se escribiera eso, cada turno truncaría la
+  // conversación guardada a 10 mensajes y el historial dejaría de servir.
   const ahoraIso = new Date().toISOString();
-  const { error: convErr } = await admin.from('conversaciones_ia').insert({
-    user_id: user.id,
-    perfil_id: perfilId,
-    mensajes: [
-      ...historial.map((t) => ({ ...t, timestamp: ahoraIso })),
-      { role: 'user', content: mensaje, timestamp: ahoraIso },
-      { role: 'assistant', content: respuesta, timestamp: ahoraIso },
-    ],
-  });
-  if (convErr) {
-    console.warn('NutriBot: no se pudo persistir la conversación', convErr);
+  const turnoNuevo = [
+    { role: 'user', content: mensaje, timestamp: ahoraIso },
+    { role: 'assistant', content: respuesta, timestamp: ahoraIso },
+  ];
+
+  let idConversacion: string | null = conversacionValida ? conversacionId : null;
+
+  if (idConversacion) {
+    const { error: convErr } = await admin
+      .from('conversaciones_ia')
+      .update({
+        mensajes: [...mensajesGuardados, ...turnoNuevo].slice(-MAX_MENSAJES_PERSISTIDOS),
+        perfil_id: perfilId,
+      })
+      .eq('id', idConversacion)
+      .eq('user_id', user.id);
+
+    if (convErr) {
+      console.warn('NutriBot: no se pudo actualizar la conversación', convErr);
+    }
+  } else {
+    const { data: nueva, error: convErr } = await admin
+      .from('conversaciones_ia')
+      .insert({
+        user_id: user.id,
+        perfil_id: perfilId,
+        titulo: derivarTitulo(mensaje),
+        mensajes: turnoNuevo,
+        updated_at: ahoraIso,
+      })
+      .select('id')
+      .single();
+
+    if (convErr) {
+      console.warn('NutriBot: no se pudo crear la conversación', convErr);
+    } else {
+      idConversacion = (nueva?.id as string | undefined) ?? null;
+    }
   }
 
   return jsonResponse(req, {
     respuesta,
+    conversacion_id: idConversacion,
     usados: fila.usados,
     limite,
     es_premium: esPremium === true,

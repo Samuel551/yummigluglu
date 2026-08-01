@@ -101,8 +101,20 @@ export interface ConversacionIA {
   user_id: string;
   receta_id?: string;
   perfil_id?: string;
+  titulo: string | null;
   mensajes: MensajeIA[];
   created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Fila del panel de historial. Deliberadamente SIN `mensajes`: la lista solo
+ * necesita título y fecha, y traerse los mensajes de todas las conversaciones
+ * para pintar una lista sería descargar la app entera de gusto.
+ */
+export interface ResumenConversacion {
+  id: string;
+  titulo: string | null;
   updated_at: string;
 }
 
