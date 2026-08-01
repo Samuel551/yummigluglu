@@ -36,6 +36,31 @@ const MOMENTO_LABEL: Record<string, string> = {
   snack: 'Snack',
 };
 
+// Los videos viven en un canal de YouTube que no controlamos del todo: si uno se
+// borra, se restringe o le apagan el embed, el player queda en negro sin decir
+// nada. `react-native-youtube-iframe` nos avisa vía `onError` con estos nombres
+// (mapea los códigos 2, 5, 100, 101 y 150 de la IFrame API).
+// `video_not_found` y `embed_not_allowed` son permanentes: reintentar no sirve.
+const ERRORES_VIDEO_PERMANENTES = ['video_not_found', 'embed_not_allowed'];
+
+const MENSAJES_ERROR_VIDEO: Record<string, { titulo: string; detalle: string }> = {
+  video_not_found: {
+    titulo: 'Video no disponible',
+    detalle:
+      'Este video ya no está disponible. Puedes seguir la receta con el paso a paso escrito.',
+  },
+  embed_not_allowed: {
+    titulo: 'Video no disponible',
+    detalle:
+      'Este video no se puede reproducir dentro de la app por ahora. El paso a paso escrito está completo más abajo.',
+  },
+};
+
+const ERROR_VIDEO_GENERICO = {
+  titulo: 'No pudimos reproducir el video',
+  detalle: 'Revisa tu conexión e intenta de nuevo.',
+};
+
 export default function DetalleRecetaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const c = useColoresTema();
@@ -46,6 +71,7 @@ export default function DetalleRecetaScreen() {
   const desbloquear = useDesbloqueosStore((s) => s.desbloquear);
   const [videoVisible, setVideoVisible] = useState(false);
   const [reproduciendo, setReproduciendo] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [receta, setReceta] = useState<Receta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -187,12 +213,26 @@ export default function DetalleRecetaScreen() {
   const offsetHorizontal = -(escenarioWidth - videoVisibleWidth) / 2;
 
   const abrirVideo = () => {
+    setVideoError(null);
     setVideoVisible(true);
     setReproduciendo(false);
   };
   const cerrarVideo = () => {
     setReproduciendo(false);
     setVideoVisible(false);
+  };
+  // Al limpiar el error el player se vuelve a montar de cero (estaba desmontado
+  // mientras se mostraba el fallback), así que reintenta solo.
+  const reintentarVideo = () => {
+    setVideoError(null);
+    setReproduciendo(false);
+  };
+  const manejarErrorVideo = (error: string) => {
+    // Dejamos rastro con el id de receta y de video: si un video se cae, esto es
+    // lo único que dice CUÁL hay que revisar o reemplazar en el panel admin.
+    console.warn(`Video de YouTube falló [${error}] — receta ${id}, videoId ${videoId}`);
+    setVideoError(error);
+    setReproduciendo(false);
   };
 
   const seccionLabelStyle = {
@@ -636,43 +676,53 @@ export default function DetalleRecetaScreen() {
               </TouchableOpacity>
             </View>
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              {/* Ventana de recorte: solo se ve el centro del escenario 16:9 */}
-              <View
-                style={{
-                  width: videoVisibleWidth,
-                  height: videoVisibleHeight,
-                  borderRadius: 18,
-                  overflow: 'hidden',
-                  backgroundColor: '#000',
-                }}
-              >
-                <View style={{ marginLeft: offsetHorizontal }}>
-                  <YoutubePlayer
-                    width={escenarioWidth}
-                    height={escenarioHeight}
-                    videoId={videoId}
-                    // Tap-to-play: el WebView de Android no permite autoplay, así
-                    // que el usuario arranca con el botón de YouTube (con sonido).
-                    // Sincronizamos el estado con lo que hace el player para que
-                    // el prop `play` no pelee contra el tap del usuario.
-                    play={reproduciendo}
-                    onChangeState={(estado: string) => {
-                      if (estado === 'playing') setReproduciendo(true);
-                      else if (estado === 'paused' || estado === 'ended') setReproduciendo(false);
-                    }}
-                    initialPlayerParams={{
-                      controls: false,
-                      modestbranding: true,
-                      rel: false,
-                      showClosedCaptions: false,
-                    }}
-                    webViewProps={{
-                      allowsInlineMediaPlayback: true,
-                      mediaPlaybackRequiresUserAction: false,
-                    }}
-                  />
+              {videoError ? (
+                <VideoNoDisponible
+                  error={videoError}
+                  ancho={videoVisibleWidth}
+                  onReintentar={reintentarVideo}
+                  onCerrar={cerrarVideo}
+                />
+              ) : (
+                /* Ventana de recorte: solo se ve el centro del escenario 16:9 */
+                <View
+                  style={{
+                    width: videoVisibleWidth,
+                    height: videoVisibleHeight,
+                    borderRadius: 18,
+                    overflow: 'hidden',
+                    backgroundColor: '#000',
+                  }}
+                >
+                  <View style={{ marginLeft: offsetHorizontal }}>
+                    <YoutubePlayer
+                      width={escenarioWidth}
+                      height={escenarioHeight}
+                      videoId={videoId}
+                      // Tap-to-play: el WebView de Android no permite autoplay, así
+                      // que el usuario arranca con el botón de YouTube (con sonido).
+                      // Sincronizamos el estado con lo que hace el player para que
+                      // el prop `play` no pelee contra el tap del usuario.
+                      play={reproduciendo}
+                      onChangeState={(estado: string) => {
+                        if (estado === 'playing') setReproduciendo(true);
+                        else if (estado === 'paused' || estado === 'ended') setReproduciendo(false);
+                      }}
+                      onError={manejarErrorVideo}
+                      initialPlayerParams={{
+                        controls: false,
+                        modestbranding: true,
+                        rel: false,
+                        showClosedCaptions: false,
+                      }}
+                      webViewProps={{
+                        allowsInlineMediaPlayback: true,
+                        mediaPlaybackRequiresUserAction: false,
+                      }}
+                    />
+                  </View>
                 </View>
-              </View>
+              )}
             </View>
           </SafeAreaView>
         </Modal>
@@ -686,6 +736,100 @@ export default function DetalleRecetaScreen() {
         onElegir={handleElegirRecompensa}
         procesando={procesandoRecompensa}
       />
+    </View>
+  );
+}
+
+// ─── Fallback cuando el video de YouTube no se puede reproducir ──────────────
+// Vive dentro del modal, que siempre es negro: los colores van fijos a propósito
+// (no dependen del tema claro/oscuro).
+function VideoNoDisponible({
+  error,
+  ancho,
+  onReintentar,
+  onCerrar,
+}: {
+  error: string;
+  ancho: number;
+  onReintentar: () => void;
+  onCerrar: () => void;
+}) {
+  const permanente = ERRORES_VIDEO_PERMANENTES.includes(error);
+  const { titulo, detalle } = MENSAJES_ERROR_VIDEO[error] ?? ERROR_VIDEO_GENERICO;
+
+  return (
+    <View style={{ width: Math.max(ancho, 260), alignItems: 'center', paddingHorizontal: 12 }}>
+      <Text style={{ fontSize: 44, lineHeight: 66, marginBottom: 10 }}>📹</Text>
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: '800',
+          color: '#fff',
+          textAlign: 'center',
+          marginBottom: 8,
+        }}
+      >
+        {titulo}
+      </Text>
+      <Text
+        style={{
+          fontSize: 14,
+          color: 'rgba(255,255,255,0.72)',
+          textAlign: 'center',
+          lineHeight: 20,
+          marginBottom: 24,
+        }}
+      >
+        {detalle}
+      </Text>
+
+      {/* Reintentar solo tiene sentido en fallos transitorios (red, HTML5). Si el
+          video no existe o no permite embed, reintentar falla igual. */}
+      {permanente ? (
+        <TouchableOpacity
+          onPress={onCerrar}
+          activeOpacity={0.85}
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: 999,
+            paddingVertical: 14,
+            paddingHorizontal: 28,
+            alignSelf: 'stretch',
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: '#1A1714', fontWeight: '800', fontSize: 15 }}>
+            Ver el paso a paso
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <>
+          <TouchableOpacity
+            onPress={onReintentar}
+            activeOpacity={0.85}
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 999,
+              paddingVertical: 14,
+              paddingHorizontal: 28,
+              alignSelf: 'stretch',
+              alignItems: 'center',
+              marginBottom: 10,
+            }}
+          >
+            <Text style={{ color: '#1A1714', fontWeight: '800', fontSize: 15 }}>Reintentar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onCerrar}
+            activeOpacity={0.85}
+            style={{ paddingVertical: 12, alignSelf: 'stretch', alignItems: 'center' }}
+          >
+            <Text style={{ color: 'rgba(255,255,255,0.72)', fontWeight: '700', fontSize: 14 }}>
+              Cerrar
+            </Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
