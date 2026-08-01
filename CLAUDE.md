@@ -397,6 +397,23 @@ EAS CLI ya advierte que `cli.appVersionSource` será requerido. Agregar `"appVer
 - **Por qué `keyboardShouldPersistTaps="handled"`**: para que tocar fuera de un input cierre el teclado pero los `TouchableOpacity` (toggle 🙈/👁️, botones de modo) sigan respondiendo al primer tap.
 - **Replicar este patrón** en cualquier form nuevo con 2+ inputs (`editar-cuenta.tsx`, `editar-perfil/[id].tsx`, etc.).
 
+### Teclado + `edgeToEdgeEnabled` en Android — el `KeyboardAvoidingView` NO es opcional
+
+Con `android.edgeToEdgeEnabled: true` (app.json) + New Architecture, Expo SDK 54 llama `setDecorFitsSystemWindows(false)` y **el teclado deja de redimensionar la ventana: se dibuja ENCIMA del contenido**. `adjustResize` no actúa.
+
+**NO asumir que `edgeToEdgeEnabled` implica `adjustResize` funcionando** — pasa exactamente lo contrario. Se probó sacar el `behavior` del `KeyboardAvoidingView` en Android (asumiendo que el sistema haría el trabajo) y **el input quedó completamente tapado por el teclado**, verificado en dispositivo. `behavior="padding"` va en AMBAS plataformas.
+
+**Cómo distinguir el síntoma antes de tocar nada:**
+
+- **Sobra** espacio sobre el teclado → el problema NO es el `KeyboardAvoidingView`. Buscá un padding duplicado (ver punto siguiente).
+- El input queda **tapado** → falta el `KeyboardAvoidingView` o está mal configurado.
+
+**El safe area inset lo paga UN SOLO elemento — el último, el que toca el borde de la pantalla.** Este fue el bug real de `app/asistente.tsx`: el input tenía `paddingBottom: Math.max(insets.bottom, 12)` Y el disclaimer que va debajo tenía otro `Math.max(insets.bottom, 8)`. Con nav bar de 3 botones (~48dp) daba ~92dp de aire muerto. Si hay algo debajo de tu componente, ese algo es el que paga el inset.
+
+**`insets.bottom` NO se pone en 0 cuando el teclado tapa la barra de navegación.** Sigue reportando ~48dp, así que el elemento del borde queda flotando sobre el teclado. Se resuelve con listeners `keyboardDidShow` / `keyboardDidHide` y aplicando el inset solo con el teclado cerrado (patrón aplicado en `app/asistente.tsx`). Se descartó `react-native-keyboard-controller` a propósito: es un módulo nativo y agregarlo obliga a otro rebuild del dev client.
+
+> Esto **no contradice** el patrón de formularios de auth de más arriba: aquel usa `ScrollView` + `scrollToEnd` con `keyboardVerticalOffset={24}`. Acá, con lista de chat + input fijo al borde, el offset sobra (son 24dp de aire sin justificación).
+
 ### Emojis grandes en Android — `lineHeight` > `fontSize`
 
 Algunos emojis tienen glifos que sobresalen del bounding box vertical de la fuente (ej. 🍼 tiene la tetina arriba, 🍦 el helado, 🎂 las velas). En Android, React Native recorta el `Text` al `lineHeight` calculado a partir del `fontSize` — y esos glifos quedan **cortados arriba**. iOS no tiene este bug.

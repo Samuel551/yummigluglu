@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -36,11 +36,26 @@ export default function AsistenteScreen() {
     useAsistenteStore();
 
   const [texto, setTexto] = useState('');
+  const [tecladoAbierto, setTecladoAbierto] = useState(false);
   const listaRef = useRef<FlatList<MensajeIA>>(null);
 
   useEffect(() => {
     cargarCupo();
   }, [cargarCupo]);
+
+  /**
+   * `insets.bottom` sigue reportando la barra de navegación aunque el teclado la
+   * tape. Si dejáramos ese padding fijo, el disclaimer flotaría sobre el teclado
+   * con un hueco. Por eso el inset se aplica SOLO con el teclado cerrado.
+   */
+  useEffect(() => {
+    const mostrar = Keyboard.addListener('keyboardDidShow', () => setTecladoAbierto(true));
+    const ocultar = Keyboard.addListener('keyboardDidHide', () => setTecladoAbierto(false));
+    return () => {
+      mostrar.remove();
+      ocultar.remove();
+    };
+  }, []);
 
   // Autoscroll al último mensaje. El delay deja que el layout se acomode antes
   // de medir — sin él, el scroll queda corto en Android.
@@ -117,11 +132,13 @@ export default function AsistenteScreen() {
         </View>
       )}
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior="padding"
-        keyboardVerticalOffset={Platform.OS === 'android' ? 24 : 0}
-      >
+      {/*
+        `behavior="padding"` es OBLIGATORIO en ambas plataformas. Con
+        `edgeToEdgeEnabled` (app.json) Android llama `setDecorFitsSystemWindows(false)`
+        y el teclado NO redimensiona la ventana: se dibuja ENCIMA. Sin esto el input
+        queda tapado. Va sin `keyboardVerticalOffset`: eran 24dp de aire de más.
+      */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {/* ── Mensajes ─────────────────────────────────────────────────── */}
         <FlatList
           ref={listaRef}
@@ -218,7 +235,9 @@ export default function AsistenteScreen() {
             gap: 8,
             paddingHorizontal: 16,
             paddingTop: 8,
-            paddingBottom: Math.max(insets.bottom, 12),
+            // Sin `insets.bottom`: el input no toca el borde de la pantalla, el
+            // disclaimer va debajo. El inset lo paga UN solo elemento — el último.
+            paddingBottom: 8,
             borderTopWidth: 1,
             borderTopColor: colores.cardBorde,
             backgroundColor: colores.card,
@@ -266,7 +285,15 @@ export default function AsistenteScreen() {
         </View>
 
         {/* ── Disclaimer ───────────────────────────────────────────────── */}
-        <View style={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 8) - 4 }}>
+        {/* Único elemento que toca el borde inferior → el único que paga el inset. */}
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingTop: 6,
+            paddingBottom: tecladoAbierto ? 6 : Math.max(insets.bottom, 6),
+            backgroundColor: colores.card,
+          }}
+        >
           <Text style={{ fontSize: 10, textAlign: 'center', color: colores.grisTexto }}>
             NutriBot orienta, no reemplaza a tu pediatra.
           </Text>
