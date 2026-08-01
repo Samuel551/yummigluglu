@@ -129,6 +129,7 @@ export default function RootLayout() {
         <Stack.Screen name="diario/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="agenda" options={{ presentation: 'card' }} />
         <Stack.Screen name="nueva-contrasena" options={{ presentation: 'card' }} />
+        <Stack.Screen name="asistente" options={{ presentation: 'modal' }} />
       </Stack>
       {procesandoAuth && (
         <View
