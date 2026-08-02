@@ -197,6 +197,48 @@ export default function HomeScreen() {
                 <Text style={{ fontSize: 14, color: c.grisTexto, lineHeight: 20 }}>
                   {ETAPA_DESCRIPCION[perfilActivo.etapa] ?? perfilActivo.etapa}
                 </Text>
+
+                {/* ── NUTRIBOT — acceso principal ──────────────────────────
+                    Va acá arriba y no al pie: enterrado al final de la
+                    pantalla no lo encontraba nadie. La card dice de qué se
+                    trata en vez de solo enlazar — un ícono suelto no comunica
+                    para qué sirve. */}
+                {/* El layout va en un View interno con `style` OBJETO, no en el
+                    `style` como función del touchable: ese callback no aplica sus
+                    estilos acá (ver CLAUDE.md § style-as-function). El touchable
+                    solo maneja el toque. */}
+                <TouchableOpacity
+                  onPress={() => router.push('/asistente')}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Abrir NutriBot"
+                >
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 14,
+                      marginTop: 20,
+                      paddingVertical: 14,
+                      paddingHorizontal: 16,
+                      borderRadius: 16,
+                      backgroundColor: c.verdeClaro,
+                    }}
+                  >
+                    {/* lineHeight > fontSize: el aguacate se corta arriba en Android
+                        sin ese aire (ver CLAUDE.md § Emojis grandes en Android). */}
+                    <Text style={{ fontSize: 26, lineHeight: 39 }}>🥑</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: c.negro }}>
+                        ¿Dudas con {perfilActivo.nombre}?
+                      </Text>
+                      <Text style={{ fontSize: 13, color: c.grisTexto, marginTop: 2 }}>
+                        Pregúntale a NutriBot
+                      </Text>
+                    </View>
+                    <Feather name="arrow-right" size={18} color={c.verde} />
+                  </View>
+                </TouchableOpacity>
               </>
             ) : (
               <Text
@@ -403,55 +445,6 @@ export default function HomeScreen() {
                     </Text>
                     <Text style={{ fontSize: 13, color: c.grisTexto, lineHeight: 18 }}>
                       Recordatorios y próximos hitos de {perfilActivo.nombre}.
-                    </Text>
-                  </View>
-                  <Feather name="arrow-right" size={18} color={c.grisTexto} />
-                </View>
-              </Pressable>
-
-              {/* ── NUTRIBOT — LINK EDITORIAL ── */}
-              <View
-                style={{
-                  height: 1,
-                  backgroundColor: c.cardBorde,
-                  marginHorizontal: 24,
-                  marginTop: 28,
-                  marginBottom: 24,
-                }}
-              />
-              <Pressable
-                onPress={() => router.push('/asistente')}
-                style={({ pressed }) => ({
-                  paddingHorizontal: 24,
-                  opacity: pressed ? 0.6 : 1,
-                })}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                  <View
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 22,
-                      backgroundColor: c.verdeClaro,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Feather name="message-circle" size={20} color={c.verde} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        fontSize: 16,
-                        fontWeight: '700',
-                        color: c.negro,
-                        marginBottom: 3,
-                      }}
-                    >
-                      Habla con NutriBot
-                    </Text>
-                    <Text style={{ fontSize: 13, color: c.grisTexto, lineHeight: 18 }}>
-                      Resuelve dudas sobre la alimentación de {perfilActivo.nombre}.
                     </Text>
                   </View>
                   <Feather name="arrow-right" size={18} color={c.grisTexto} />

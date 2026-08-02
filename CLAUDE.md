@@ -374,6 +374,30 @@ NativeWind v4.0.36 + css-interop v0.1.21 tenían 5 bugs encadenados en Windows q
 
 **IMPORTANTE**: Usar **dev client** (no Expo Go) para testing en dispositivo. NativeWind v4 depende de un transformer custom de Metro que puede tener problemas en Expo Go. Siempre probar con el APK del perfil `development`.
 
+### `style` como función en Pressable — NO aplica los estilos (usar View interno)
+
+Un `Pressable` con `style={({ pressed }) => ({ ... })}` **no aplica esos estilos** en este proyecto. Verificado en dispositivo el 2026-08-02: una card con `flexDirection: 'row'`, `backgroundColor`, `padding` y `borderRadius` dentro del callback salió como texto plano apilado en vertical, sin fondo y sin padding — **ni uno solo de los estilos llegó**. Sin error, sin warning: simplemente no se aplica.
+
+El sospechoso es **css-interop de NativeWind**, que envuelve los componentes de React Native (misma familia de problemas que la sección anterior).
+
+**Patrón obligatorio — separar interacción de layout:**
+
+```tsx
+// ❌ NO: el layout se pierde entero
+<Pressable style={({ pressed }) => ({ flexDirection: 'row', backgroundColor: c.verdeClaro })}>
+  <Text>...</Text>
+</Pressable>
+
+// ✅ SÍ: el touchable solo maneja el toque, el View interno lleva el layout
+<TouchableOpacity onPress={...} activeOpacity={0.7}>
+  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.verdeClaro }}>
+    <Text>...</Text>
+  </View>
+</TouchableOpacity>
+```
+
+**Este es el patrón que el resto del proyecto ya usaba** (ver el link de Agenda en `app/(tabs)/index.tsx`): `Pressable` con estilos mínimos + `View` interno con el layout. Si ves ese envoltorio "de más" en el código, **no lo simplifiques** — es cicatriz, no descuido.
+
 ### `newArchEnabled` en app.json
 
 **DEBE estar en `true`**. `react-native-reanimated` v4.x lo requiere obligatoriamente para Android — si está en `false`, el build de Gradle falla con `assertNewArchitectureEnabledTask`. Estuvo temporalmente en `false` durante diagnóstico de NativeWind pero ya se reactivó.
