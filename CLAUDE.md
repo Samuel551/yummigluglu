@@ -133,7 +133,13 @@ Sin `SUPABASE_URL` y `SUPABASE_ANON_KEY` la app lanza una excepción al arrancar
 
 `EXPO_PUBLIC_ADMOB_*` — IDs de las unidades de anuncio de AdMob (banner, intersticial, rewarded) para Android. **Solo se usan en producción**: en `__DEV__` el código usa SIEMPRE los IDs de prueba de Google (evita clicks inválidos). Si faltan en prod, hace fallback a los IDs de test (inofensivo). Ver sección "Anuncios (AdMob)". El **App ID** de AdMob (el que empieza con `~`) NO va acá — va en `app.json` (plugin `react-native-google-mobile-ads`, se hornea al buildear).
 
-> ⚠️ **Dev client vs producción**: el build `development` usa Metro local, que lee `.env.local` y hornea las `EXPO_PUBLIC_*` al bundlear. Por eso en dev alcanza con `.env.local`. Pero el `eas.json` **no tiene bloque `env`**, así que los builds **`preview`/`production` (sin Metro local) NO van a tener estas variables** — antes de un build de producción hay que cargarlas en `eas.json` (`build.<profile>.env`) o en EAS Environment Variables.
+> **Dev client vs producción** (RESUELTO el 2026-08-02): el build `development` usa Metro local, que lee `.env.local` y hornea las `EXPO_PUBLIC_*` al bundlear. Los builds `preview`/`production` no tienen Metro, así que sus variables viven en **EAS Environment Variables** (`eas env:list --environment production`), y `eas.json` ata cada perfil al suyo con `"environment": "preview" | "production"`. Las 8 variables ya están cargadas en ambos environments.
+>
+> Para sincronizar tras cambiar `.env.local`: `eas env:push production --force` (lee `.env.local` por defecto). **NO** usar un bloque `env` con valores dentro de `eas.json`: ese archivo se commitea y **el repo es público**.
+>
+> ⚠️ **Toda `EXPO_PUBLIC_*` se hornea en el bundle JS y es extraíble de cualquier APK** — no son secretos, ni en EAS ni en ningún lado. Por eso el gate del panel admin (`EXPO_PUBLIC_ADMIN_PASSWORD_HASH`) es **solo cosmético**: la autorización real la hace RLS con `es_admin()`, que verifica `user_id` contra la tabla `admins`. Nunca mover una decisión de autorización al cliente.
+
+> 🔴 **BLOQUEANTE PARA PUBLICAR — la key de RevenueCat es de TEST.** `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` empieza con `test_`, y las keys de Android de producción empiezan con **`goog_`**. Con la key de sandbox las compras **no se procesan de verdad** en producción, y el síntoma no aparece en desarrollo (en dev anda igual). Reemplazarla desde RevenueCat Dashboard → Project Settings → API Keys → Android, en `.env.local` **y** volviendo a correr `eas env:push production --force` y `eas env:push preview --force`.
 
 ## Architecture
 
