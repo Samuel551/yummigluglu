@@ -230,9 +230,17 @@ function CardVideo({ receta, c }: { receta: RecetaConVideo; c: Colores }) {
           </View>
         </View>
 
-        {/* Badge GRATIS — solo si el video es libre para todos (no premium
-            desbloqueado): refuerza la rotación de marketing del catálogo */}
-        {!receta.es_premium && <BadgePill bg={c.verde} icon="play" texto="GRATIS" />}
+        {/* "GRATIS ESTE MES" y no solo "GRATIS": la selección free/premium ROTA
+            el día 1 de cada mes (job `rotar-videos-premium`, migración 033), así
+            que un video libre hoy puede estar bloqueado el mes que viene. Decirlo
+            de entrada evita que se lea como que le quitaron algo.
+
+            El texto aplica a todas las libres aunque ~53 sean fijas
+            (`rotacion_grupo = 0`): distinguirlas exigiría exponer esa columna en
+            `recetas_teaser`, y recrear esa vista —la que gatea TODOS los videos—
+            por un badge no compensa el riesgo. Y no es inexacto: las fijas
+            también están gratis este mes. */}
+        {!receta.es_premium && <BadgePill bg={c.verde} icon="play" texto="GRATIS ESTE MES" />}
       </View>
 
       <MetaVideo receta={receta} c={c} />

@@ -291,7 +291,31 @@ Piezas:
 
 **Modelo premium: a nivel VIDEO, no receta** (migración `024`):
 
-⚠️ **IMPORTANTE — `es_premium` significa "el VIDEO de esta receta es premium".** Las RECETAS son SIEMPRE free (ingredientes, pasos, nutrición, imagen — todo visible sin login premium). Solo se gatea el `video_url`. Modelo freemium: recetas gratis como imán de marketing, videos premium como monetización. El owner intercala videos free/premium por receta desde el admin (toggle "Video Premium").
+⚠️ **IMPORTANTE — `es_premium` significa "el VIDEO de esta receta es premium".** Las RECETAS son SIEMPRE free (ingredientes, pasos, nutrición, imagen — todo visible sin login premium). Solo se gatea el `video_url`. Modelo freemium: recetas gratis como imán de marketing, videos premium como monetización.
+
+### Rotación mensual de videos free/premium (migraciones `032` y `033`)
+
+**`es_premium` ya NO se administra a mano: lo recalcula un job de `pg_cron` el día 1 de cada mes.**
+
+Columna `recetas.rotacion_grupo`:
+
+| Grupo | Recetas | Comportamiento                                         |
+| ----- | ------- | ------------------------------------------------------ |
+| `0`   | 53      | **Siempre free.** Imán de marketing, nunca se bloquea. |
+| `1`   | 52      | Rotativo — free 1 de cada 3 meses                      |
+| `2`   | 51      | Rotativo                                               |
+| `3`   | 51      | Rotativo                                               |
+
+Free en cualquier momento: **grupo 0 + el grupo activo del mes ≈ 104 de 207 (~50%)**. El grupo activo es `(mes % 3) + 1`, así que el ciclo cierra en 3 meses.
+
+La asignación de grupos se hizo con `ntile(4)` sobre `md5(id::text)` particionado por etapa primaria. Un solo criterio equilibra las tres dimensiones a la vez — **verificado**: etapa 45.7–50.0%, momento 41.6–54.9%, país 43.5–56.7%. Es determinístico: recalcularlo da el mismo reparto.
+
+- **Función**: `public.rotar_videos_premium()` — `SECURITY DEFINER`, `search_path` fijo, **idempotente** (segunda corrida en el mismo mes → 0 filas). Sin `EXECUTE` para `anon`/`authenticated`.
+- **Job**: `select * from cron.job;` → `rotar-videos-premium`, `0 3 1 * *` (03:00 UTC ≈ medianoche en Chile). Historial en `cron.job_run_details`.
+
+> ⚠️ **El toggle "Video Premium" del panel admin quedó subordinado al cron.** Un cambio manual sobre una receta de grupo 1–3 **se pierde el día 1 del mes siguiente**. Las del grupo 0 no las toca el job, así que ahí el toggle sí persiste. Para sacar una receta de la rotación, moverla a `rotacion_grupo = 0`.
+
+> El badge del tab Videos dice **"GRATIS ESTE MES"** (no solo "GRATIS") justamente porque la selección rota — avisa la temporalidad de entrada en vez de sorprender al mes siguiente. Se muestra en todas las libres, incluidas las fijas: distinguirlas exigiría exponer `rotacion_grupo` en `recetas_teaser`, y recrear esa vista por un badge no compensa el riesgo.
 
 **Desbloqueo del VIDEO con rewarded** (arquitectura completa):
 
