@@ -461,6 +461,11 @@ Deno.serve(async (req) => {
 
     // Telemetría de costo: mirar cache_read_input_tokens > 0 a partir del
     // segundo turno confirma que el prompt caching está funcionando.
+    //
+    // `console.log` a propósito y no `warn`/`error`: esto no es un problema, es
+    // la única forma de auditar el gasto real por mensaje. Corre en Deno del
+    // lado del servidor, nunca en el bundle del cliente.
+    // eslint-disable-next-line no-console
     console.log(
       JSON.stringify({
         evento: 'nutribot_respuesta',

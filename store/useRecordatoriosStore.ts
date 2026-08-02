@@ -1,13 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import {
-  Recordatorio,
-  RecordatorioInput,
-  PlanSemanal,
-  DiaSemana,
-  MomentoDia,
-  TipoRecordatorio,
-} from '@/types';
+import { Recordatorio, RecordatorioInput, PlanSemanal, DiaSemana, MomentoDia } from '@/types';
 import {
   cancelarNotificacion,
   programarNotificacionDiaria,
@@ -45,9 +38,7 @@ function parsearHoraDiaria(hora: string): { hora: number; minuto: number } {
   return { hora: h ?? 0, minuto: m ?? 0 };
 }
 
-async function programarSegunInput(
-  input: RecordatorioInput
-): Promise<string | null> {
+async function programarSegunInput(input: RecordatorioInput): Promise<string | null> {
   const data = { tipo: input.tipo, perfil_hijo_id: input.perfil_hijo_id };
   const modo = input.modo_notificacion ?? 'notificacion';
 
@@ -104,10 +95,7 @@ interface RecordatoriosState {
 
   cargarRecordatorios: (perfilHijoId?: string) => Promise<void>;
   crearRecordatorio: (input: RecordatorioInput) => Promise<Recordatorio | null>;
-  actualizarRecordatorio: (
-    id: string,
-    input: Partial<RecordatorioInput>
-  ) => Promise<void>;
+  actualizarRecordatorio: (id: string, input: Partial<RecordatorioInput>) => Promise<void>;
   eliminarRecordatorio: (id: string) => Promise<void>;
   toggleActivo: (id: string) => Promise<void>;
   activarSemanaPlan: (plan: PlanSemanal, recetasNombres: Record<string, string>) => Promise<number>;
@@ -168,7 +156,9 @@ export const useRecordatoriosStore = create<RecordatoriosState>((set, get) => ({
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Sin sesión activa');
 
       const { data, error } = await supabase
@@ -187,9 +177,7 @@ export const useRecordatoriosStore = create<RecordatoriosState>((set, get) => ({
         if (notificationId) await cancelarNotificacion(notificationId);
 
         // Detectar errores de límite/feature premium (P0001) para abrir paywall
-        const esPremium =
-          error.code === 'P0001' ||
-          /premium|máximo|gratuito/i.test(error.message);
+        const esPremium = error.code === 'P0001' || /premium|máximo|gratuito/i.test(error.message);
 
         set({
           error: error.message,
@@ -330,8 +318,7 @@ export const useRecordatoriosStore = create<RecordatoriosState>((set, get) => ({
 
       if (error) {
         if (nuevoNotificationId) await cancelarNotificacion(nuevoNotificationId);
-        const esPremium =
-          error.code === 'P0001' || /premium|máximo|gratuito/i.test(error.message);
+        const esPremium = error.code === 'P0001' || /premium|máximo|gratuito/i.test(error.message);
         set({ error: error.message, errorEsPremium: esPremium });
         return;
       }
@@ -424,7 +411,9 @@ export async function programarHitosFuturos(
   perfilHijoId: string,
   fechaNacimiento: string
 ): Promise<{ programados: number; ya_existentes: number }> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { programados: 0, ya_existentes: 0 };
 
   // Cargar hitos ya programados para evitar duplicados
