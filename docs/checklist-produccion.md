@@ -38,7 +38,8 @@ El backend NO es el cuello de botella. Lo que falta es config externa + el binar
 ### A1. Ficha en Google Play Console
 
 - [ ] Crear la app nueva en Play Console (package `com.yummigluglu.app`)
-- [ ] **Verificar si aplica el requisito de 12 testers / 14 días.** Ese requisito es para cuentas de desarrollador _personales_ y se cumple **una vez por cuenta**, no por app. Si el Himnario ya está en producción, la cuenta ya tiene acceso a producción concedido y **este paso no se repite**. Confirmalo en Play Console antes de asumir cualquiera de los dos escenarios — es la diferencia entre publicar esta semana o dentro de tres.
+- [x] ~~**Requisito de 12 testers / 14 días**~~ — **NO APLICA. Confirmado por el owner el 2026-08-02.** Ese requisito desbloquea el _acceso a producción de la cuenta de desarrollador_ y se cumple **una sola vez por cuenta**, no por app. El owner ya lo completó con una app anterior, así que la cuenta ya tiene producción habilitada **para esta app y para todas las futuras**. No hay espera de 14 días.
+- [x] ~~Cuenta de desarrollador (USD 25)~~ — **ya pagada y activa**, el owner ya tiene apps publicadas. El service account de Google Play se puede crear **hoy**, no está bloqueado por ningún trámite pendiente.
 - [ ] Ficha de tienda: título, descripción corta/larga, capturas, icono, gráfico destacado
 - [ ] Política de privacidad publicada en URL accesible (el dominio `yummigluglu.com` ya está registrado y con DNS en Cloudflare — usarlo)
 - [ ] Cuestionario de clasificación de contenido
