@@ -136,12 +136,23 @@ export default function LoginScreen() {
         >
           Revisa tu correo
         </Text>
+        {/* El texto de recuperación es CONDICIONAL ("si está registrado") a
+            propósito: afirmar que se envió confirmaría que la cuenta existe, y
+            este formulario volvería a servir para enumerar usuarios. El del
+            enlace mágico sí puede afirmar, porque `signInWithOtp` va con
+            `shouldCreateUser: true` y siempre envía. */}
         <Text style={{ fontSize: 15, color: c.grisTexto, textAlign: 'center', lineHeight: 22 }}>
-          {esMagicLink
-            ? 'Te enviamos un enlace mágico a'
-            : 'Te enviamos un enlace para cambiar tu contraseña a'}
-          {'\n'}
-          <Text style={{ fontWeight: '700', color: c.verde }}>{email}</Text>
+          {esMagicLink ? (
+            <>
+              Te enviamos un enlace mágico a{'\n'}
+              <Text style={{ fontWeight: '700', color: c.verde }}>{email}</Text>
+            </>
+          ) : (
+            <>
+              Si <Text style={{ fontWeight: '700', color: c.verde }}>{email}</Text> está registrado,
+              te enviamos un enlace para cambiar tu contraseña.
+            </>
+          )}
         </Text>
         <TouchableOpacity
           style={{

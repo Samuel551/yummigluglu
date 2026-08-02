@@ -200,15 +200,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   enviarResetContrasena: async (email) => {
     set({ cargando: true, error: null });
     try {
-      // Verificar si el email está registrado antes de enviar el reset
-      const { data: existe, error: rpcError } = await supabase.rpc('verificar_email_registrado', {
-        email_input: email,
-      });
-      if (rpcError) throw rpcError;
-      if (!existe) {
-        set({ error: 'Este correo no está registrado.' });
-        return;
-      }
+      // NO se verifica si el email existe antes de mandar el reset, a propósito.
+      //
+      // Antes se llamaba al RPC `verificar_email_registrado` para poder decir
+      // "Este correo no está registrado". Esa ayuda convertía el formulario en
+      // un buscador de usuarios: con la anon key (pública, viaja en el APK)
+      // cualquiera podía iterar una lista de emails y sacar el padrón de la app.
+      // En una app de alimentación infantil eso revela que la persona tiene un
+      // hijo pequeño — dato personal, y material para phishing dirigido.
+      //
+      // El RPC quedó sin permiso de EXECUTE para anon/authenticated (migración
+      // 031). `resetPasswordForEmail` tampoco revela si el email existe, así que
+      // la pantalla debe mostrar SIEMPRE el mismo mensaje neutro.
       const redirectUrl = APP_REDIRECT_URL;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
