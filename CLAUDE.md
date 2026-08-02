@@ -139,7 +139,15 @@ Sin `SUPABASE_URL` y `SUPABASE_ANON_KEY` la app lanza una excepción al arrancar
 >
 > ⚠️ **Toda `EXPO_PUBLIC_*` se hornea en el bundle JS y es extraíble de cualquier APK** — no son secretos, ni en EAS ni en ningún lado. Por eso el gate del panel admin (`EXPO_PUBLIC_ADMIN_PASSWORD_HASH`) es **solo cosmético**: la autorización real la hace RLS con `es_admin()`, que verifica `user_id` contra la tabla `admins`. Nunca mover una decisión de autorización al cliente.
 
-> 🔴 **BLOQUEANTE PARA PUBLICAR — la key de RevenueCat es de TEST.** `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` empieza con `test_`, y las keys de Android de producción empiezan con **`goog_`**. Con la key de sandbox las compras **no se procesan de verdad** en producción, y el síntoma no aparece en desarrollo (en dev anda igual). Reemplazarla desde RevenueCat Dashboard → Project Settings → API Keys → Android, en `.env.local` **y** volviendo a correr `eas env:push production --force` y `eas env:push preview --force`.
+> ✅ **Key de RevenueCat de producción (resuelto el 2026-08-02).** `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` empieza con `goog_`, sincronizada en `.env.local` y en los environments `production` y `preview` de EAS. Antes era una `test_` (sandbox): las compras **no se procesan de verdad** con esa, y el síntoma **no aparece en desarrollo**. La key `goog_` se genera **sola** al crear la app de Google Play Store en RevenueCat (Apps & providers) — no hay botón para crearla, y **no confundirla con el "REST API Identifier"** (`app…`) ni con una "Secret API key" (esa NUNCA va en el cliente).
+>
+> 🔴 **Sigue faltando para cobrar: el Service Account de Google Play.** La app de Play Store en RevenueCat existe pero sin `Service Account Credentials JSON`, así que **RevenueCat todavía no puede validar las compras contra Google**. Ese JSON sale de Google Cloud (proyecto `yummi-glu-glu`, el mismo del login con Google) + Play Console → _Users and permissions_, así que **está atado a abrir la Play Console**. Mismo requisito para conectar las _Google developer notifications_ (que RevenueCat se entere de renovaciones y cancelaciones al instante en vez de por sondeo).
+
+> ⚠️ **En un `.env` una variable duplicada NO da error y gana la PRIMERA.** Costó una vuelta: al reemplazar la key de RevenueCat quedó la vieja arriba y la nueva abajo, y el parser seguía tomando la de sandbox en silencio. Al editar `.env.local`, **reemplazar la línea, no agregar otra**, y verificar con:
+>
+> ```bash
+> node -e "const d=require('fs').readFileSync('.env.local','utf8'),k=[...d.matchAll(/^\s*([A-Z0-9_]+)\s*=/gm)].map(m=>m[1]);console.log('duplicados:',k.length-new Set(k).size)"
+> ```
 
 ## Architecture
 
