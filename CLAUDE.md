@@ -74,7 +74,15 @@ Piezas:
 - **`supabase/functions/nutribot/index.ts`** — el único que habla con Anthropic. Identidad por JWT (no confía en ningún id del body), cupo mensual consumido atómicamente ANTES de gastar un token, topes duros de tamaño sobre todo lo que manda el cliente, y el perfil del niño leído de la DB verificando propiedad.
 - **`app/asistente.tsx`** (presentación `modal`) + **`store/useAsistenteStore.ts`**.
 - Migraciones `028` (cupo), `029` (devolución de crédito), `030` (historial de conversaciones).
-- **`constants/Nutribot.ts`** — cupos para pintar la UI. Se sincronizan A MANO con las env vars del servidor (`NUTRIBOT_LIMITE_FREE` / `NUTRIBOT_LIMITE_PREMIUM`); si cambiás uno, cambiá el otro.
+- **`constants/Nutribot.ts`** — cupos para pintar la UI. Se sincronizan A MANO con los del servidor; si cambiás uno, cambiá el otro.
+
+**Cupos mensuales: free 20, premium 250.** Los valores que rigen son los **defaults del código** en `nutribot/index.ts` — las env vars `NUTRIBOT_LIMITE_*` **no están seteadas** en Supabase (verificado con `supabase secrets list`), así que para cambiar un cupo alcanza con editar el archivo y redesplegar. Si algún día se setean esas env vars, pasan a ganar ellas.
+
+**Costos (medidos el 2026-08-02):** ~**$0.0083 por mensaje** a precio estándar. Peor caso mensual por usuario que agote su cupo: **$0.17 free**, **$2.08 premium**. Ojo con el razonamiento: **el cupo es un TECHO, no un consumo** — un usuario promedio manda 3-5 mensajes y cuesta lo mismo con cupo de 20 que de 15. Bajar el cupo free no ahorra plata real; solo baja el techo del peor caso, y contra un abusador 20 protege igual que 15.
+
+> 🔴 **Claude Sonnet 5 está en precio introductorio hasta el 2026-08-31** ($2/$10 por millón de tokens). Desde el **1 de septiembre de 2026** pasa a $3/$15 — **los costos de NutriBot suben ~50% solos, sin tocar una línea.** No asustarse con la factura de septiembre.
+
+> ⚠️ **El prompt caching tiene poco margen.** El `SYSTEM_ESTABLE` mide ~**1.618 tokens** y el mínimo cacheable de Sonnet 5 son **1.024**. Si se recorta ese prompt, **deja de cachear EN SILENCIO** (sin error) y el input pasa a costar 10x. Antes de acortarlo, medir; verificar con `usage.cache_read_input_tokens > 0` en el segundo turno.
 
 **Historial de conversaciones — UNA FILA DE `conversaciones_ia` = UNA CONVERSACIÓN.**
 

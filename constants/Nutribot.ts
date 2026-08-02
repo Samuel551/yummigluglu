@@ -11,7 +11,7 @@
  * reales, y el store se sincroniza con eso.
  */
 export const NUTRIBOT_LIMITE_FREE = 20;
-export const NUTRIBOT_LIMITE_PREMIUM = 300;
+export const NUTRIBOT_LIMITE_PREMIUM = 250;
 
 /** Largo máximo de un mensaje del usuario. Debe coincidir con MAX_CHARS_MENSAJE. */
 export const NUTRIBOT_MAX_CHARS = 1500;

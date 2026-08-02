@@ -30,8 +30,16 @@ const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 // Configurables por env para poder ajustarlos sin redeploy.
 // Free bajo a propósito: cada mensaje de un free es pérdida (la publicidad deja
 // centavos). El cupo free es costo de adquisición, no de operación.
+//
+// ⚠️ Estos DEFAULTS son los que rigen: las env vars `NUTRIBOT_LIMITE_*` NO están
+// seteadas en Supabase (verificado con `supabase secrets list`). Para cambiar un
+// cupo alcanza con editar acá y redesplegar. Si algún día se setean las env vars,
+// pasan a ganar ellas y tocar el código deja de tener efecto.
+//
+// Al cambiarlos, sincronizar A MANO `constants/Nutribot.ts` o el contador de la
+// UI miente hasta el primer mensaje del mes.
 const LIMITE_FREE = Number(Deno.env.get('NUTRIBOT_LIMITE_FREE') ?? '20');
-const LIMITE_PREMIUM = Number(Deno.env.get('NUTRIBOT_LIMITE_PREMIUM') ?? '300');
+const LIMITE_PREMIUM = Number(Deno.env.get('NUTRIBOT_LIMITE_PREMIUM') ?? '250');
 
 // ── Topes de tamaño (anti-abuso de costo) ───────────────────────────────────
 const MAX_CHARS_MENSAJE = 1500;
@@ -89,8 +97,10 @@ function jsonResponse(req: Request, body: unknown, status = 200): Response {
 // lecturas de caché a ~10% del precio, así que en una conversación de varios
 // turnos esto baja el costo de input de forma notoria.
 //
-// OJO: el mínimo cacheable en Sonnet 5 son 1024 tokens. Si este bloque se
-// achica por debajo de eso, deja de cachear en silencio (sin error).
+// OJO: el mínimo cacheable en Sonnet 5 son 1024 tokens, y este bloque mide
+// ~1.618 (5.825 caracteres, medido 2026-08-02). El margen es de apenas ~37%:
+// si se recorta este prompt, deja de cachear EN SILENCIO (sin error), y el
+// input pasa a costar 10x. Antes de acortarlo, medir.
 // Verificar con `usage.cache_read_input_tokens` > 0 en el segundo turno.
 //
 // El texto está en español NEUTRAL a propósito: define cómo le habla al
