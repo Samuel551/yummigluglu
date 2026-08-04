@@ -8,9 +8,8 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -515,10 +514,9 @@ export default function DiarioScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={{ flex: 1, backgroundColor: c.fondoApp }}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1 }}
-          >
+          {/* `padding` en ambas plataformas: con `height` en Android el contenido se
+              recortaba. Ver CLAUDE.md § "Teclado + edgeToEdgeEnabled". */}
+          <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
             <ScrollView
               contentContainerStyle={{
                 paddingHorizontal: 24,

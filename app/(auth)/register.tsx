@@ -4,12 +4,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert,
   ScrollView,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Link } from 'expo-router';
 import { Feather, AntDesign } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/useAuthStore';

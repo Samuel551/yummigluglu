@@ -4,6 +4,7 @@ import { View, Text, ActivityIndicator } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
@@ -114,63 +115,74 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <View className="flex-1 bg-fondo-app dark:bg-[#121212]">
-      <StatusBar
-        style={tema === 'dark' ? 'light' : 'dark'}
-        backgroundColor={tema === 'dark' ? '#121212' : '#F7F5F0'}
-      />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="premium" options={{ presentation: 'card' }} />
-        <Stack.Screen name="receta/[id]" options={{ presentation: 'card' }} />
-        <Stack.Screen name="lista-compras" options={{ presentation: 'card' }} />
-        <Stack.Screen name="diario/[id]" options={{ presentation: 'card' }} />
-        <Stack.Screen name="agenda" options={{ presentation: 'card' }} />
-        <Stack.Screen name="nueva-contrasena" options={{ presentation: 'card' }} />
-        <Stack.Screen name="asistente" options={{ presentation: 'modal' }} />
-      </Stack>
-      {procesandoAuth && (
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-          }}
-          pointerEvents="auto"
-        >
+    // KeyboardProvider envuelve TODA la app: es lo que alimenta al
+    // KeyboardAvoidingView de react-native-keyboard-controller. Sin este provider
+    // ese componente no recibe los eventos del teclado y no hace nada.
+    //
+    // Se necesita porque con `edgeToEdgeEnabled: true` + New Architecture, Android
+    // deja de redimensionar la ventana y el teclado se dibuja ENCIMA del contenido.
+    // El KeyboardAvoidingView de react-native compensa eso a mano y queda desfasado
+    // al cerrar el teclado (dejaba espacio muerto). Este lee la posición real del
+    // teclado cuadro a cuadro, así que entra y sale sincronizado.
+    <KeyboardProvider>
+      <View className="flex-1 bg-fondo-app dark:bg-[#121212]">
+        <StatusBar
+          style={tema === 'dark' ? 'light' : 'dark'}
+          backgroundColor={tema === 'dark' ? '#121212' : '#F7F5F0'}
+        />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="premium" options={{ presentation: 'card' }} />
+          <Stack.Screen name="receta/[id]" options={{ presentation: 'card' }} />
+          <Stack.Screen name="lista-compras" options={{ presentation: 'card' }} />
+          <Stack.Screen name="diario/[id]" options={{ presentation: 'card' }} />
+          <Stack.Screen name="agenda" options={{ presentation: 'card' }} />
+          <Stack.Screen name="nueva-contrasena" options={{ presentation: 'card' }} />
+          <Stack.Screen name="asistente" options={{ presentation: 'modal' }} />
+        </Stack>
+        {procesandoAuth && (
           <View
             style={{
-              backgroundColor: tema === 'dark' ? '#1E1E1E' : '#FFFFFF',
-              borderRadius: 16,
-              paddingHorizontal: 32,
-              paddingVertical: 28,
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.6)',
               alignItems: 'center',
-              gap: 16,
-              minWidth: 220,
+              justifyContent: 'center',
+              zIndex: 100,
             }}
+            pointerEvents="auto"
           >
-            <ActivityIndicator size="large" color="#2D9B5A" />
-            <Text
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: tema === 'dark' ? '#F0EDE8' : '#1A1714',
-                textAlign: 'center',
+                backgroundColor: tema === 'dark' ? '#1E1E1E' : '#FFFFFF',
+                borderRadius: 16,
+                paddingHorizontal: 32,
+                paddingVertical: 28,
+                alignItems: 'center',
+                gap: 16,
+                minWidth: 220,
               }}
             >
-              Confirmando tu cuenta...
-            </Text>
+              <ActivityIndicator size="large" color="#2D9B5A" />
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '600',
+                  color: tema === 'dark' ? '#F0EDE8' : '#1A1714',
+                  textAlign: 'center',
+                }}
+              >
+                Confirmando tu cuenta...
+              </Text>
+            </View>
           </View>
-        </View>
-      )}
-    </View>
+        )}
+      </View>
+    </KeyboardProvider>
   );
 }

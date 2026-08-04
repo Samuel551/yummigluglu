@@ -8,10 +8,9 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
 } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -106,7 +105,10 @@ export default function AgendaScreen() {
   // Si llegamos con ?abrir=1&tipo=control desde otra pantalla, abrimos el modal directo
   useEffect(() => {
     if (params.abrir === '1') {
-      if (params.tipo && ['comida', 'hidratacion', 'diario', 'control', 'lista_compras'].includes(params.tipo)) {
+      if (
+        params.tipo &&
+        ['comida', 'hidratacion', 'diario', 'control', 'lista_compras'].includes(params.tipo)
+      ) {
         setTipoInicial(params.tipo as TipoRecordatorio);
       }
       setModalAbierto(true);
@@ -141,7 +143,14 @@ export default function AgendaScreen() {
 
   if (!perfilActivo) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: c.fondoApp, alignItems: 'center', justifyContent: 'center' }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: c.fondoApp,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <Text style={{ color: c.grisTexto }}>Crea primero un perfil de hijo.</Text>
       </SafeAreaView>
     );
@@ -191,8 +200,7 @@ export default function AgendaScreen() {
                 lineHeight: 36,
               }}
             >
-              Agenda de{' '}
-              <Text style={{ color: c.verde }}>{perfilActivo.nombre}</Text>
+              Agenda de <Text style={{ color: c.verde }}>{perfilActivo.nombre}</Text>
             </Text>
             <Text style={{ fontSize: 14, color: c.grisTexto, lineHeight: 20, marginTop: 8 }}>
               Recordatorios, controles y próximos hitos.
@@ -256,7 +264,12 @@ export default function AgendaScreen() {
                       }}
                     >
                       <Text
-                        style={{ fontSize: 9, fontWeight: '800', color: c.naranja, letterSpacing: 1 }}
+                        style={{
+                          fontSize: 9,
+                          fontWeight: '800',
+                          color: c.naranja,
+                          letterSpacing: 1,
+                        }}
                       >
                         SOLO ACTUAL
                       </Text>
@@ -287,10 +300,19 @@ export default function AgendaScreen() {
                         >
                           {tiempoHastaHito(perfilActivo.fecha_nacimiento, h).toUpperCase()}
                         </Text>
-                        <Text style={{ fontSize: 15, fontWeight: '700', color: c.negro, lineHeight: 20 }}>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            fontWeight: '700',
+                            color: c.negro,
+                            lineHeight: 20,
+                          }}
+                        >
                           {h.titulo}
                         </Text>
-                        <Text style={{ fontSize: 12, color: c.grisTexto, marginTop: 2, lineHeight: 16 }}>
+                        <Text
+                          style={{ fontSize: 12, color: c.grisTexto, marginTop: 2, lineHeight: 16 }}
+                        >
                           {h.descripcion}
                         </Text>
                       </View>
@@ -363,7 +385,11 @@ export default function AgendaScreen() {
                     onEliminar={() => {
                       Alert.alert('Eliminar recordatorio', '¿Estás seguro?', [
                         { text: 'Cancelar', style: 'cancel' },
-                        { text: 'Eliminar', style: 'destructive', onPress: () => eliminarRecordatorio(r.id) },
+                        {
+                          text: 'Eliminar',
+                          style: 'destructive',
+                          onPress: () => eliminarRecordatorio(r.id),
+                        },
                       ]);
                     }}
                   />
@@ -649,12 +675,32 @@ function ModalCrearRecordatorio({
 
   // Calendario inline helpers
   const MESES_LARGOS = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
   ];
   const MESES_CORTO = [
-    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic',
   ];
   const DIAS_HEADER = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
@@ -718,12 +764,18 @@ function ModalCrearRecordatorio({
 
     if (horas === 0) {
       const m = totalMin || 1;
-      return { texto: `Sonará en ${m} minuto${m === 1 ? '' : 's'} (y cada día a esta hora)`, esPasado: false };
+      return {
+        texto: `Sonará en ${m} minuto${m === 1 ? '' : 's'} (y cada día a esta hora)`,
+        esPasado: false,
+      };
     }
     if (horas < 24) {
       const restoMin = totalMin % 60;
       const txtMin = restoMin > 0 ? ` ${restoMin}min` : '';
-      return { texto: `Próxima alarma en ${horas}h${txtMin} (y cada día a las ${fmtHora(proxima)})`, esPasado: false };
+      return {
+        texto: `Próxima alarma en ${horas}h${txtMin} (y cada día a las ${fmtHora(proxima)})`,
+        esPasado: false,
+      };
     }
     return { texto: `Sonará mañana a las ${fmtHora(proxima)} (y cada día)`, esPasado: false };
   }, [modo, fechaUnica, horaUnica, minutoUnico, hora, minuto, MESES_CORTO]);
@@ -767,7 +819,7 @@ function ModalCrearRecordatorio({
       statusBarTranslucent
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+        behavior="padding"
         keyboardVerticalOffset={24}
         style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' }}
       >
@@ -1080,10 +1132,7 @@ function ModalCrearRecordatorio({
                 {/* Headers L M M J V S D — width fijo 14.28% por columna */}
                 <View style={{ flexDirection: 'row', marginBottom: 6 }}>
                   {DIAS_HEADER.map((d, i) => (
-                    <View
-                      key={i}
-                      style={{ width: `${100 / 7}%`, alignItems: 'center' }}
-                    >
+                    <View key={i} style={{ width: `${100 / 7}%`, alignItems: 'center' }}>
                       <Text style={{ fontSize: 11, fontWeight: '700', color: c.grisTexto }}>
                         {d}
                       </Text>
@@ -1096,12 +1145,7 @@ function ModalCrearRecordatorio({
                   <View key={fi} style={{ flexDirection: 'row', marginBottom: 4 }}>
                     {fila.map((dia, di) => {
                       if (dia === null) {
-                        return (
-                          <View
-                            key={di}
-                            style={{ width: `${100 / 7}%`, height: 36 }}
-                          />
-                        );
+                        return <View key={di} style={{ width: `${100 / 7}%`, height: 36 }} />;
                       }
                       const fechaCelda = new Date(mesVista.year, mesVista.month, dia);
                       const esPasado = fechaCelda.getTime() < hoyMidnight.getTime();
@@ -1328,7 +1372,11 @@ function ModalCrearRecordatorio({
                 }}
               >
                 <Text
-                  style={{ fontSize: 13, color: errorEsPremium ? c.naranja : c.error, lineHeight: 18 }}
+                  style={{
+                    fontSize: 13,
+                    color: errorEsPremium ? c.naranja : c.error,
+                    lineHeight: 18,
+                  }}
                 >
                   {error}
                 </Text>

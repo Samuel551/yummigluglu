@@ -527,9 +527,23 @@ EAS CLI ya advierte que `cli.appVersionSource` será requerido. Agregar `"appVer
 - **Por qué `keyboardShouldPersistTaps="handled"`**: para que tocar fuera de un input cierre el teclado pero los `TouchableOpacity` (toggle 🙈/👁️, botones de modo) sigan respondiendo al primer tap.
 - **Replicar este patrón** en cualquier form nuevo con 2+ inputs (`editar-cuenta.tsx`, `editar-perfil/[id].tsx`, etc.).
 
-### Teclado + `edgeToEdgeEnabled` en Android — el `KeyboardAvoidingView` NO es opcional
+### Teclado + `edgeToEdgeEnabled` en Android — se usa `react-native-keyboard-controller`
 
-Con `android.edgeToEdgeEnabled: true` (app.json) + New Architecture, Expo SDK 54 llama `setDecorFitsSystemWindows(false)` y **el teclado deja de redimensionar la ventana: se dibuja ENCIMA del contenido**. `adjustResize` no actúa.
+> 🔴 **El `KeyboardAvoidingView` que se importa NO es el de `react-native`, es el de `react-native-keyboard-controller`.** Si escribís `import { KeyboardAvoidingView } from 'react-native'` volvés a introducir el bug. Las 7 pantallas con teclado ya usan el correcto.
+>
+> **`KeyboardProvider` envuelve toda la app en `app/_layout.tsx`.** Sin ese provider el componente no recibe eventos y **no hace nada** — sin error, la pantalla simplemente no reacciona al teclado. Si aparece un `KeyboardAvoidingView` que "no funciona", este es el primer sospechoso.
+
+**Por qué se cambió (2026-08-04).** El `KeyboardAvoidingView` de `react-native` compensa a mano y queda **desfasado al cerrar el teclado**: dejaba espacio muerto abajo. Lo reportaron testers en varias pantallas (login y NutriBot entre ellas). El de keyboard-controller lee la posición real del teclado cuadro a cuadro, así que entra y sale sincronizado.
+
+Antes se había descartado esa librería porque "es un módulo nativo y obliga a otro rebuild". **Esa razón caducó** cuando el rebuild pasó a ser obligatorio por Play Billing 8. Cuando el motivo para rechazar algo es un costo que ya vas a pagar por otra razón, la decisión hay que revisarla.
+
+> ✅ **Kotlin: esta librería es segura por construcción.** Su `build.gradle` usa `rootProject.ext.kotlinVersion`, o sea que **se compila con el Kotlin del proyecto** (2.1.20) en vez de venir precompilada con uno fijo. Por eso no puede haber choque de metadata como el de `react-native-google-mobile-ads` 16.x (ese sí es un AAR de Maven con Kotlin fijo).
+
+> ✅ **No hay que tocar `babel.config.js`**: keyboard-controller usa worklets de Reanimated, y `babel-preset-expo` 54 agrega `react-native-worklets/plugin` **automáticamente** cuando detecta el paquete instalado (lo trae Reanimated 4).
+
+> ⚠️ Instalar con **`npx expo install`**, nunca `npm install` a secas: Expo resuelve la versión compatible con el SDK (eligió **1.18.5**, no la 1.22.2 que es la última de npm).
+
+**El problema de fondo que sigue vigente:** con `android.edgeToEdgeEnabled: true` + New Architecture, Expo SDK 54 llama `setDecorFitsSystemWindows(false)` y **el teclado deja de redimensionar la ventana: se dibuja ENCIMA del contenido**. `adjustResize` no actúa. Todo lo de abajo sigue aplicando.
 
 **NO asumir que `edgeToEdgeEnabled` implica `adjustResize` funcionando** — pasa exactamente lo contrario. Se probó sacar el `behavior` del `KeyboardAvoidingView` en Android (asumiendo que el sistema haría el trabajo) y **el input quedó completamente tapado por el teclado**, verificado en dispositivo. `behavior="padding"` va en AMBAS plataformas.
 
@@ -540,7 +554,7 @@ Con `android.edgeToEdgeEnabled: true` (app.json) + New Architecture, Expo SDK 54
 
 **El safe area inset lo paga UN SOLO elemento — el último, el que toca el borde de la pantalla.** Este fue el bug real de `app/asistente.tsx`: el input tenía `paddingBottom: Math.max(insets.bottom, 12)` Y el disclaimer que va debajo tenía otro `Math.max(insets.bottom, 8)`. Con nav bar de 3 botones (~48dp) daba ~92dp de aire muerto. Si hay algo debajo de tu componente, ese algo es el que paga el inset.
 
-**`insets.bottom` NO se pone en 0 cuando el teclado tapa la barra de navegación.** Sigue reportando ~48dp, así que el elemento del borde queda flotando sobre el teclado. Se resuelve con listeners `keyboardDidShow` / `keyboardDidHide` y aplicando el inset solo con el teclado cerrado (patrón aplicado en `app/asistente.tsx`). Se descartó `react-native-keyboard-controller` a propósito: es un módulo nativo y agregarlo obliga a otro rebuild del dev client.
+**`insets.bottom` NO se pone en 0 cuando el teclado tapa la barra de navegación.** Sigue reportando ~48dp, así que el elemento del borde queda flotando sobre el teclado. Se resuelve con listeners `keyboardDidShow` / `keyboardDidHide` y aplicando el inset solo con el teclado cerrado (patrón aplicado en `app/asistente.tsx`). **Ese patrón se mantiene aunque ahora esté keyboard-controller**: es sobre el _safe area_, no sobre el desplazamiento del teclado — resuelven cosas distintas.
 
 > Esto **no contradice** el patrón de formularios de auth de más abajo: aquel usa `ScrollView` + `scrollToEnd` con `keyboardVerticalOffset={24}`. Acá, con lista de chat + input fijo al borde, el offset sobra (son 24dp de aire sin justificación).
 
