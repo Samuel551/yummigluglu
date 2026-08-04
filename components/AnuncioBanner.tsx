@@ -17,8 +17,13 @@ export function AnuncioBanner() {
   const c = useColoresTema();
   const listo = useAnunciosStore((s) => s.listo);
   const esPremium = useSuscripcionStore((s) => s.esPremium);
+  const suscripcionResuelta = useSuscripcionStore((s) => s.suscripcionResuelta);
 
-  if (!listo || esPremium) return null;
+  // `suscripcionResuelta` NO es redundante con `esPremium`: el SDK de anuncios se
+  // inicializa apenas abre la app, mientras que la suscripción llega por red unos
+  // instantes después. En esa ventana `esPremium` todavía vale false por defecto, y
+  // sin este guard un usuario premium veía el banner en cada arranque en frío.
+  if (!listo || !suscripcionResuelta || esPremium) return null;
 
   const mod = cargarModuloAds();
   if (!mod) return null;

@@ -23,6 +23,19 @@ function calcularEsPremium(suscripcion: Suscripcion | null): boolean {
 interface SuscripcionState {
   suscripcion: Suscripcion | null;
   esPremium: boolean;
+  /**
+   * `false` mientras todavía no sabemos si el usuario es premium.
+   *
+   * `esPremium` arranca en `false`, así que sin este flag es imposible distinguir
+   * "no es premium" de "todavía no llegó la respuesta de Supabase". Los anuncios
+   * se inicializan apenas abre la app, mucho antes que esa respuesta: sin este
+   * flag, un premium veía publicidad durante los primeros segundos de cada
+   * arranque en frío.
+   *
+   * Regla para todo formato de anuncio: **ante la duda, no mostrar**. Que un free
+   * no vea el banner dos segundos no cuesta nada; que un premium lo vea, sí.
+   */
+  suscripcionResuelta: boolean;
   paquetes: PurchasesPackage[];
   cargando: boolean;
   comprando: boolean;
@@ -40,6 +53,7 @@ interface SuscripcionState {
 export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
   suscripcion: null,
   esPremium: false,
+  suscripcionResuelta: false,
   paquetes: [],
   cargando: false,
   comprando: false,
@@ -48,6 +62,13 @@ export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
   limpiarError: () => set({ error: null }),
 
   inicializarRevenueCat: async (userId) => {
+    // La suscripción vive en Supabase y NO depende de RevenueCat, así que se carga
+    // siempre y antes que nada. Si quedara dentro de los early returns de abajo,
+    // en cualquier build sin RevenueCat (web, dev sin .env.local, módulo nativo
+    // ausente) `suscripcionResuelta` no pasaría nunca a true y los anuncios
+    // dejarían de mostrarse a TODOS — free incluidos.
+    await get().cargarSuscripcion();
+
     // Sin API key configurada no tiene sentido inicializar (típico en dev sin .env.local)
     if (!API_KEY_ANDROID) return;
     // El módulo nativo no está disponible en builds sin react-native-purchases compilado
@@ -59,7 +80,7 @@ export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
       await Purchases.configure({ apiKey: API_KEY_ANDROID });
       await Purchases.logIn(userId);
       revenueCatListo = true;
-      await Promise.all([get().cargarSuscripcion(), get().cargarPaquetes()]);
+      await get().cargarPaquetes();
     } catch (e) {
       revenueCatListo = false;
       console.warn('RevenueCat: error de inicialización —', (e as Error).message);
@@ -75,7 +96,9 @@ export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
       }
     }
     revenueCatListo = false;
-    set({ suscripcion: null, esPremium: false, paquetes: [] });
+    // `suscripcionResuelta` vuelve a false: al cerrar sesión dejamos de saber si el
+    // próximo usuario es premium, y hasta que no se resuelva no debe verse un anuncio.
+    set({ suscripcion: null, esPremium: false, suscripcionResuelta: false, paquetes: [] });
   },
 
   cargarSuscripcion: async () => {
@@ -89,7 +112,11 @@ export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
     } catch (e) {
       set({ error: (e as Error).message });
     } finally {
-      set({ cargando: false });
+      // Se marca resuelta AUNQUE haya fallado: si la consulta no responde, tratamos
+      // al usuario como free (que es lo que dice `esPremium`) en vez de dejar los
+      // anuncios apagados para siempre. La fuente de verdad sigue siendo la tabla
+      // `suscripciones`; el siguiente `cargarSuscripcion` corrige el estado.
+      set({ cargando: false, suscripcionResuelta: true });
     }
   },
 

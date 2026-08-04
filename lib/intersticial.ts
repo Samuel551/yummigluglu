@@ -24,13 +24,25 @@ let cargando = false;
 let ultimoMostrado = 0;
 let triggers = 0;
 
-function esPremium(): boolean {
-  return useSuscripcionStore.getState().esPremium;
+/**
+ * ¿Hay que ocultar los anuncios? Sí cuando el usuario es premium, y TAMBIÉN
+ * mientras todavía no sabemos si lo es.
+ *
+ * Ese segundo caso es el que importa: los anuncios se inicializan apenas abre la
+ * app, pero la suscripción llega por red unos instantes después, y hasta entonces
+ * `esPremium` vale false por defecto. Preguntar solo por él dejaba una ventana
+ * en la que un usuario premium veía publicidad en cada arranque en frío.
+ *
+ * Ante la duda, no mostrar.
+ */
+function ocultarAnuncios(): boolean {
+  const { esPremium, suscripcionResuelta } = useSuscripcionStore.getState();
+  return esPremium || !suscripcionResuelta;
 }
 
 function crearYcargar(): void {
   const mod = cargarModuloAds();
-  if (!mod || esPremium()) return;
+  if (!mod || ocultarAnuncios()) return;
   if (cargando || intersticial) return;
 
   const { InterstitialAd, AdEventType } = mod;
@@ -78,7 +90,7 @@ export function precargarIntersticial(): void {
  */
 export function registrarMomentoIntersticial(): void {
   const mod = cargarModuloAds();
-  if (!mod || esPremium()) return;
+  if (!mod || ocultarAnuncios()) return;
 
   triggers += 1;
   if (triggers < TRIGGERS_POR_AD) return;

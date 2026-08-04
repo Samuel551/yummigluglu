@@ -17,13 +17,25 @@ let recompensado: any = null;
 let cargado = false;
 let cargando = false;
 
-function esPremium(): boolean {
-  return useSuscripcionStore.getState().esPremium;
+/**
+ * ¿Hay que ocultar los anuncios? Sí cuando el usuario es premium, y TAMBIÉN
+ * mientras todavía no sabemos si lo es.
+ *
+ * Ese segundo caso es el que importa: los anuncios se inicializan apenas abre la
+ * app, pero la suscripción llega por red unos instantes después, y hasta entonces
+ * `esPremium` vale false por defecto. Preguntar solo por él dejaba una ventana
+ * en la que un usuario premium veía publicidad en cada arranque en frío.
+ *
+ * Ante la duda, no mostrar.
+ */
+function ocultarAnuncios(): boolean {
+  const { esPremium, suscripcionResuelta } = useSuscripcionStore.getState();
+  return esPremium || !suscripcionResuelta;
 }
 
 function crearYcargar(): void {
   const mod = cargarModuloAds();
-  if (!mod || esPremium()) return;
+  if (!mod || ocultarAnuncios()) return;
   if (cargando || recompensado) return;
 
   const { RewardedAd, RewardedAdEventType, AdEventType } = mod;
@@ -62,7 +74,7 @@ export function precargarRecompensado(): void {
 
 /** ¿Hay un rewarded cargado y listo para mostrarse ya? */
 export function recompensadoDisponible(): boolean {
-  return cargado && !!recompensado && !esPremium();
+  return cargado && !!recompensado && !ocultarAnuncios();
 }
 
 /**
@@ -73,7 +85,7 @@ export function recompensadoDisponible(): boolean {
 export function mostrarRecompensado(): Promise<boolean> {
   return new Promise((resolve) => {
     const mod = cargarModuloAds();
-    if (!mod || esPremium() || !cargado || !recompensado) {
+    if (!mod || ocultarAnuncios() || !cargado || !recompensado) {
       resolve(false);
       return;
     }
