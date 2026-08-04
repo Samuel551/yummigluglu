@@ -16,12 +16,22 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
 
 export default function EditarCuentaScreen() {
-  const { usuario, actualizarEmail, enviarResetContrasena, cargando, error, limpiarError } =
-    useAuthStore();
+  const {
+    usuario,
+    actualizarEmail,
+    enviarResetContrasena,
+    eliminarCuenta,
+    cargando,
+    error,
+    limpiarError,
+  } = useAuthStore();
   const c = useColoresTema();
   const insets = useSafeAreaInsets();
 
   const [nuevoEmail, setNuevoEmail] = useState(usuario?.email ?? '');
+  // Estado propio del borrado: `cargando` del store es compartido por todas las
+  // acciones, así que sin esto el spinner aparecería también en los otros botones.
+  const [eliminando, setEliminando] = useState(false);
 
   const emailCambiado = nuevoEmail !== usuario?.email && nuevoEmail.trim().length > 0;
 
@@ -43,6 +53,45 @@ export default function EditarCuentaScreen() {
         `Te mandamos un enlace a ${email} para que puedas cambiar tu contraseña.`
       );
     }
+  };
+
+  // Doble confirmación a propósito: el borrado es IRREVERSIBLE y no hay papelera.
+  // El primer diálogo informa qué se pierde; el segundo pide el sí definitivo, para
+  // que un toque accidental sobre el botón rojo no alcance para perder la cuenta.
+  const confirmarEliminacion = () => {
+    Alert.alert(
+      '¿Eliminar tu cuenta?',
+      'Se borrarán para siempre los perfiles de tus hijos, tus favoritos, tu plan semanal, tu diario de alimentos y tus conversaciones con NutriBot.\n\nEsta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Continuar', style: 'destructive', onPress: segundaConfirmacion },
+      ]
+    );
+  };
+
+  const segundaConfirmacion = () => {
+    Alert.alert(
+      'Última confirmación',
+      'Si tienes una suscripción activa, cancélala antes desde Google Play: eliminar la cuenta aquí no cancela el cobro.\n\n¿Eliminar tu cuenta de forma definitiva?',
+      [
+        { text: 'No, volver', style: 'cancel' },
+        { text: 'Sí, eliminar', style: 'destructive', onPress: ejecutarEliminacion },
+      ]
+    );
+  };
+
+  const ejecutarEliminacion = async () => {
+    setEliminando(true);
+    const ok = await eliminarCuenta();
+    setEliminando(false);
+    if (!ok) return;
+    // Esta pantalla NO está bajo el guard de (tabs), así que el SIGNED_OUT por sí
+    // solo no saca al usuario de acá: hay que navegar a mano.
+    router.replace('/(auth)/login');
+    Alert.alert(
+      'Cuenta eliminada',
+      'Tu cuenta y tus datos fueron eliminados. Gracias por probar Yummi Glu Glu.'
+    );
   };
 
   return (
@@ -208,11 +257,7 @@ export default function EditarCuentaScreen() {
                 <ActivityIndicator color={emailCambiado ? '#fff' : c.grisTexto} size="small" />
               ) : (
                 <>
-                  <Feather
-                    name="check"
-                    size={15}
-                    color={emailCambiado ? '#fff' : c.grisTexto}
-                  />
+                  <Feather name="check" size={15} color={emailCambiado ? '#fff' : c.grisTexto} />
                   <Text
                     style={{
                       fontSize: 13,
@@ -291,6 +336,83 @@ export default function EditarCuentaScreen() {
                     }}
                   >
                     Enviar enlace de cambio
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* ── ELIMINAR CUENTA ── */}
+          <Eyebrow label="ELIMINAR CUENTA" c={c} />
+          <View style={{ paddingHorizontal: 24 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 12,
+                paddingVertical: 8,
+              }}
+            >
+              <Feather name="alert-triangle" size={18} color="#DC2626" style={{ marginTop: 2 }} />
+              <Text style={{ flex: 1, fontSize: 14, color: c.grisTexto, lineHeight: 21 }}>
+                Se borrarán para siempre los perfiles de tus hijos, tus favoritos, tu plan semanal,
+                tu diario de alimentos y tus conversaciones con NutriBot.{' '}
+                <Text style={{ fontWeight: '700', color: c.negro }}>
+                  Esta acción no se puede deshacer.
+                </Text>
+              </Text>
+            </View>
+
+            {/* Aviso separado: es la confusión más cara. Google cobra la suscripción
+                aunque la cuenta de la app ya no exista — se cancela solo en Play. */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 12,
+                paddingVertical: 8,
+              }}
+            >
+              <Feather name="credit-card" size={18} color={c.grisTexto} style={{ marginTop: 2 }} />
+              <Text style={{ flex: 1, fontSize: 13, color: c.grisTexto, lineHeight: 20 }}>
+                Si tienes una suscripción activa, cancélala antes desde Google Play. Eliminar la
+                cuenta aquí no cancela el cobro.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={confirmarEliminacion}
+              disabled={cargando || eliminando}
+              activeOpacity={0.85}
+              style={{
+                marginTop: 16,
+                backgroundColor: c.card,
+                borderWidth: 1.5,
+                borderColor: '#DC2626',
+                borderRadius: 999,
+                paddingVertical: 14,
+                alignItems: 'center',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 8,
+                opacity: cargando || eliminando ? 0.6 : 1,
+              }}
+              accessibilityLabel="Eliminar mi cuenta y todos mis datos"
+            >
+              {eliminando ? (
+                <ActivityIndicator color="#DC2626" size="small" />
+              ) : (
+                <>
+                  <Feather name="trash-2" size={15} color="#DC2626" />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: '700',
+                      color: '#DC2626',
+                      letterSpacing: 0.2,
+                    }}
+                  >
+                    Eliminar mi cuenta
                   </Text>
                 </>
               )}

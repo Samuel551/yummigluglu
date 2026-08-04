@@ -266,6 +266,20 @@ Los hooks viven en `hooks/`. Cuando una pantalla ya resuelve colores vía Native
 
 `supabase/functions/canjear-desbloqueo/` — concede un desbloqueo temporal de 24h de una receta premium tras un anuncio recompensado (rewarded). Identifica al usuario por su JWT (no confía en ids del body), valida que la receta sea premium, y hace upsert en `desbloqueos_temporales` con `service_role` (el cliente NO puede escribir esa tabla). Deploy: `supabase functions deploy canjear-desbloqueo` (verify_jwt ON). Ver sección "Anuncios (AdMob)".
 
+`supabase/functions/eliminar-cuenta/` — borra la cuenta del usuario. **Requisito de Google Play**: toda app con registro debe ofrecer eliminación de cuenta dentro de la app, no solo por correo. Deploy: `supabase functions deploy eliminar-cuenta` (verify_jwt ON).
+
+Existe como Edge Function porque tocar `auth.users` requiere `service_role`. Dos defensas: identidad **solo por JWT** (nunca acepta un id del body — si no, cualquiera con sesión borraría la cuenta ajena) y `confirmar: true` explícito en el body, para que un reintento de red no borre una cuenta.
+
+> ✅ **Un solo `deleteUser` alcanza: las 12 tablas de `public` referencian `auth.users(id) ON DELETE CASCADE`** (verificado contra el catálogo). Borrar tabla por tabla sería más frágil y dejaría huérfanos el día que se agregue una tabla nueva y alguien olvide sumarla a la función. **Si creás una tabla con `user_id`, la FK va con `on delete cascade`** — es lo que sostiene el borrado de cuenta.
+
+> ⚠️ **Tras borrar, el `signOut` del cliente va con `scope: 'local'`** (`useAuthStore.eliminarCuenta`). El usuario ya no existe en el servidor: un signOut global responde 401 y puede dejar la sesión viva en AsyncStorage. El scope local igual emite `SIGNED_OUT`, que es lo que dispara la limpieza de RevenueCat y desbloqueos en `_layout.tsx`.
+
+> ⚠️ **`supabase.functions.invoke` NO propaga el cuerpo del error**: ante un 4xx/5xx devuelve un `FunctionsHttpError` con el mensaje genérico _"non-2xx status code"_. Por eso el store loguea el original y muestra un mensaje propio en español — no encadenar `mensajeError(error)` esperando el detalle real.
+
+**UI**: `app/editar-cuenta.tsx`, sección "ELIMINAR CUENTA", con doble `Alert` de confirmación. Tiene fila propia en `perfil.tsx` → CUENTA → "Eliminar cuenta" aunque lleve a la misma pantalla que Email/Contraseña: **Google exige que la eliminación sea fácil de encontrar**, y escondida detrás de "Email" no lo es. La página pública `web/eliminar-cuenta.html` describe este flujo como método principal y deja el correo como alternativa para quien desinstaló la app.
+
+> ⚠️ **Eliminar la cuenta NO cancela la suscripción de Google Play** — eso se hace solo desde Play. Está avisado en la pantalla, en el segundo `Alert` y en la página pública. No sacarlo: es la confusión más cara que puede tener un usuario que cree haber cancelado el cobro.
+
 ### Anuncios (AdMob)
 
 Monetización de usuarios **free** con `react-native-google-mobile-ads`. Set "lean" (banner + intersticial capeado + rewarded opt-in). **Público declarado en Play: adultos/padres** — NO dirigido a niños (evita las restricciones de la política de familias de AdMob). Rating de ads limitado a **PG** (brand-safe para app de bebés).

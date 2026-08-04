@@ -101,6 +101,16 @@ export default function PerfilScreen() {
               onPress={() => router.push('/editar-cuenta')}
               c={c}
             />
+            {/* Fila propia aunque lleve a la misma pantalla que las de arriba: Google
+                exige que la eliminación de cuenta sea FÁCIL DE ENCONTRAR, y escondida
+                detrás de "Email" no lo es. */}
+            <RowItem
+              icon="trash-2"
+              label="Eliminar cuenta"
+              valor=""
+              onPress={() => router.push('/editar-cuenta')}
+              c={c}
+            />
           </SectionList>
 
           {/* ── PERFILES ── */}

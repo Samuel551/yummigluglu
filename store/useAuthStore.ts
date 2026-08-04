@@ -39,6 +39,7 @@ interface AuthState {
   registrarse: (email: string, password: string) => Promise<void>;
   iniciarSesionConGoogle: () => Promise<void>;
   cerrarSesion: () => Promise<void>;
+  eliminarCuenta: () => Promise<boolean>;
   enviarMagicLink: (email: string) => Promise<void>;
   actualizarEmail: (email: string) => Promise<void>;
   actualizarContrasena: (contrasena: string) => Promise<void>;
@@ -166,6 +167,43 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ session: null, usuario: null });
     } catch (e) {
       set({ error: mensajeError(e) });
+    } finally {
+      set({ cargando: false });
+    }
+  },
+
+  eliminarCuenta: async () => {
+    set({ cargando: true, error: null });
+    try {
+      // El borrado lo hace la Edge Function `eliminar-cuenta` con `service_role`:
+      // tocar `auth.users` requiere esa clave, que jamás puede vivir en el cliente.
+      // La identidad sale del JWT del lado del servidor, así que acá NO se manda
+      // ningún id — solo la confirmación explícita que la función exige.
+      const { error } = await supabase.functions.invoke('eliminar-cuenta', {
+        body: { confirmar: true },
+      });
+
+      if (error) {
+        // `functions.invoke` NO propaga el cuerpo de la respuesta: ante un 4xx/5xx
+        // devuelve un FunctionsHttpError con el mensaje genérico "non-2xx status
+        // code". El detalle real queda en el log de la función, así que acá
+        // mostramos un mensaje propio en vez de ese texto en inglés.
+        console.warn('Eliminar cuenta: la función devolvió error —', error.message);
+        set({ error: 'No pudimos eliminar tu cuenta en este momento. Intenta de nuevo.' });
+        return false;
+      }
+
+      // scope 'local' a propósito: el usuario ya no existe en el servidor, así que
+      // un signOut global responde 401 y —según la versión— puede dejar la sesión
+      // guardada en AsyncStorage. El borrado local siempre limpia, y de todos modos
+      // emite SIGNED_OUT, que es lo que dispara la limpieza de RevenueCat y
+      // desbloqueos en _layout.tsx.
+      await supabase.auth.signOut({ scope: 'local' });
+      set({ session: null, usuario: null });
+      return true;
+    } catch (e) {
+      set({ error: mensajeError(e) });
+      return false;
     } finally {
       set({ cargando: false });
     }
