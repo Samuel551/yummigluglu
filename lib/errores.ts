@@ -50,12 +50,17 @@ const MENSAJES_POR_CODE: Record<string, string> = {
 };
 
 export function mensajeError(error: unknown): string {
+  let codigoDesconocido: string | null = null;
+
   // Loguear el error original SIEMPRE para poder diagnosticar en Metro/devtools
   // (los mensajes traducidos esconden el detalle real de Supabase).
   if (error && typeof error === 'object') {
     const err = error as { message?: string; code?: string; status?: number };
     console.warn('[mensajeError]', { code: err.code, status: err.status, message: err.message });
     if (err.code && MENSAJES_POR_CODE[err.code]) return MENSAJES_POR_CODE[err.code];
+    // Guardamos el código para adjuntarlo al mensaje genérico de más abajo.
+    if (err.code) codigoDesconocido = String(err.code);
+    else if (typeof err.status === 'number') codigoDesconocido = String(err.status);
   }
   const msg = error instanceof Error ? error.message : String(error);
   // DEVELOPER_ERROR a veces llega solo en el mensaje y no en `code`, según la versión
@@ -64,5 +69,17 @@ export function mensajeError(error: unknown): string {
   for (const [clave, traduccion] of Object.entries(MENSAJES_POR_TEXTO)) {
     if (msg.toLowerCase().includes(clave.toLowerCase())) return traduccion;
   }
-  return 'Algo salió mal. Inténtalo de nuevo.';
+
+  // Fallback: si el error no matcheó ningún patrón conocido, se adjunta el código
+  // crudo entre paréntesis.
+  //
+  // No es adorno de debug: el mensaje genérico a secas convierte cada reporte de
+  // un tester en una investigación a ciegas. Pasó con el login de Google — cinco
+  // pantallas de Google Cloud descartando hipótesis porque la captura solo decía
+  // "Algo salió mal". Con el código, una foto del error alcanza para saber qué
+  // falló. Cuando aparezca un código nuevo, se agrega a MENSAJES_POR_CODE con su
+  // texto en español y deja de mostrarse crudo.
+  return codigoDesconocido
+    ? `Algo salió mal. Inténtalo de nuevo. (${codigoDesconocido})`
+    : 'Algo salió mal. Inténtalo de nuevo.';
 }
