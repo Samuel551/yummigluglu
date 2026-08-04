@@ -155,7 +155,9 @@ export default function AsistenteScreen() {
         <Text style={{ fontSize: 28, lineHeight: 42, marginRight: 10 }}>🥑</Text>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colores.negro }}>NutriBot</Text>
-          <Text style={{ fontSize: 12, color: colores.grisTexto }}>
+          {/* numberOfLines NO es redundante con el maxLength del nombre: defiende de los
+              perfiles ya guardados con nombres largos, que existen y no se migran. */}
+          <Text style={{ fontSize: 12, color: colores.grisTexto }} numberOfLines={1}>
             {perfilActivo
               ? `Respondiendo sobre ${perfilActivo.nombre}`
               : 'Asistente de alimentación'}

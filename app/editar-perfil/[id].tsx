@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   ScrollView,
   Alert,
-  Pressable,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -33,9 +32,30 @@ const ACCIONES_RAPIDAS = [
 ];
 
 const AVATARES = [
-  '🍼', '👶', '🌱', '🌟', '🦁', '🐻', '🐰', '🦊',
-  '🐧', '🦋', '🌸', '⭐', '🐨', '🦄', '🐸', '🐼',
-  '🦉', '🐬', '🌈', '🍓', '🎈', '🚀', '🌙', '🐥',
+  '🍼',
+  '👶',
+  '🌱',
+  '🌟',
+  '🦁',
+  '🐻',
+  '🐰',
+  '🦊',
+  '🐧',
+  '🦋',
+  '🌸',
+  '⭐',
+  '🐨',
+  '🦄',
+  '🐸',
+  '🐼',
+  '🦉',
+  '🐬',
+  '🌈',
+  '🍓',
+  '🎈',
+  '🚀',
+  '🌙',
+  '🐥',
 ];
 
 const ETAPA_LABEL: Record<string, string> = {
@@ -139,21 +159,17 @@ export default function EditarPerfilScreen() {
   };
 
   const confirmarEliminar = () => {
-    Alert.alert(
-      `Eliminar a ${perfil.nombre}`,
-      'Esta acción no se puede deshacer. ¿Estás seguro?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            await eliminarPerfil(id);
-            router.back();
-          },
+    Alert.alert(`Eliminar a ${perfil.nombre}`, 'Esta acción no se puede deshacer. ¿Estás seguro?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: async () => {
+          await eliminarPerfil(id);
+          router.back();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
@@ -165,22 +181,24 @@ export default function EditarPerfilScreen() {
           contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         >
           {/* ── BOTÓN VOLVER ── */}
-          <Pressable
+          {/* TouchableOpacity con estilo OBJETO, no Pressable con `style` como función:
+              css-interop descarta el bloque entero sin avisar. Ver CLAUDE.md. */}
+          <TouchableOpacity
             onPress={() => router.back()}
             hitSlop={12}
-            style={({ pressed }) => ({
+            activeOpacity={0.5}
+            style={{
               paddingHorizontal: 24,
               paddingTop: 16,
-              opacity: pressed ? 0.5 : 1,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
               alignSelf: 'flex-start',
-            })}
+            }}
           >
             <Feather name="arrow-left" size={18} color={c.negro} />
             <Text style={{ fontSize: 14, fontWeight: '600', color: c.negro }}>Volver</Text>
-          </Pressable>
+          </TouchableOpacity>
 
           {/* ── HEADER EDITORIAL ── */}
           <View style={{ paddingHorizontal: 24, paddingTop: 24 }}>
@@ -241,6 +259,9 @@ export default function EditarPerfilScreen() {
               value={nombre}
               onChangeText={setNombre}
               autoCapitalize="words"
+              // Mismo tope que el onboarding: sin esto un nombre largo rompe el header
+              // del NutriBot. Si cambia uno, cambiar el otro.
+              maxLength={30}
               style={{
                 fontSize: 16,
                 color: c.negro,

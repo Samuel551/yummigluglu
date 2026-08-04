@@ -210,6 +210,9 @@ export default function OnboardingScreen() {
             onChangeText={setNombre}
             autoFocus
             autoCapitalize="words"
+            // Sin tope, un nombre largo rompe el header del NutriBot y la tarjeta de
+            // perfil. 30 entra cómodo un nombre compuesto y corta los de broma.
+            maxLength={30}
             accessibilityLabel="Nombre del bebé"
           />
 

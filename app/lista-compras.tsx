@@ -1,13 +1,5 @@
 import { useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Pressable,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -73,22 +65,25 @@ export default function ListaComprasScreen() {
           contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         >
           {/* ── BOTÓN VOLVER ── */}
-          <Pressable
+          {/* TouchableOpacity con estilo OBJETO, no Pressable con `style` como función:
+              css-interop descarta el bloque entero sin avisar y el botón quedaba pegado
+              al borde y en columna. Ver CLAUDE.md § "style como función en Pressable". */}
+          <TouchableOpacity
             onPress={() => router.back()}
             hitSlop={12}
-            style={({ pressed }) => ({
+            activeOpacity={0.5}
+            style={{
               paddingHorizontal: 24,
               paddingTop: 16,
-              opacity: pressed ? 0.5 : 1,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
               alignSelf: 'flex-start',
-            })}
+            }}
           >
             <Feather name="arrow-left" size={18} color={c.negro} />
             <Text style={{ fontSize: 14, fontWeight: '600', color: c.negro }}>Volver</Text>
-          </Pressable>
+          </TouchableOpacity>
 
           {/* ── HEADER EDITORIAL ── */}
           <View style={{ paddingHorizontal: 24, paddingTop: 24 }}>

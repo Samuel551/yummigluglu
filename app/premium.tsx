@@ -1,13 +1,5 @@
 import { useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  Alert,
-  Pressable,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -98,25 +90,26 @@ export default function PremiumScreen() {
           contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         >
           {/* ── BOTÓN VOLVER ── */}
-          <Pressable
+          {/* TouchableOpacity con estilo OBJETO, no Pressable con `style` como función:
+              css-interop descarta el bloque entero sin avisar. Ver CLAUDE.md. */}
+          <TouchableOpacity
             onPress={() => router.back()}
             disabled={comprando}
             hitSlop={12}
-            style={({ pressed }) => ({
+            activeOpacity={0.5}
+            style={{
               paddingHorizontal: 24,
               paddingTop: 16,
-              opacity: pressed || comprando ? 0.5 : 1,
+              opacity: comprando ? 0.5 : 1,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
               alignSelf: 'flex-start',
-            })}
+            }}
           >
             <Feather name="arrow-left" size={18} color={c.negro} />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: c.negro }}>
-              Volver
-            </Text>
-          </Pressable>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: c.negro }}>Volver</Text>
+          </TouchableOpacity>
 
           {/* ── HEADER EDITORIAL ── */}
           <View style={{ paddingHorizontal: 24, paddingTop: 28 }}>
@@ -140,9 +133,7 @@ export default function PremiumScreen() {
                 }}
               >
                 <Feather name="star" size={11} color="#fff" />
-                <Text
-                  style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 1 }}
-                >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 1 }}>
                   PREMIUM
                 </Text>
               </View>
@@ -160,11 +151,8 @@ export default function PremiumScreen() {
               Cocinar sin límites
               {perfilActivo ? (
                 <>
-                  {'\n'}para{' '}
-                  <Text style={{ color: c.verde }}>{perfilActivo.nombre}</Text>{' '}
-                  <Text style={{ fontSize: 28, lineHeight: 42 }}>
-                    {perfilActivo.avatar_emoji}
-                  </Text>
+                  {'\n'}para <Text style={{ color: c.verde }}>{perfilActivo.nombre}</Text>{' '}
+                  <Text style={{ fontSize: 28, lineHeight: 42 }}>{perfilActivo.avatar_emoji}</Text>
                 </>
               ) : (
                 <>{'.'}</>
@@ -178,8 +166,8 @@ export default function PremiumScreen() {
                 marginTop: 12,
               }}
             >
-              Catálogo completo, videos paso a paso y agenda inteligente para acompañar
-              cada etapa de la alimentación.
+              Catálogo completo, videos paso a paso y agenda inteligente para acompañar cada etapa
+              de la alimentación.
             </Text>
           </View>
 
@@ -396,9 +384,9 @@ export default function PremiumScreen() {
               lineHeight: 17,
             }}
           >
-            El cobro se realiza a través de Google Play. La suscripción se renueva
-            automáticamente salvo que la canceles con al menos 24 horas de anticipación al
-            final del período vigente.
+            El cobro se realiza a través de Google Play. La suscripción se renueva automáticamente
+            salvo que la canceles con al menos 24 horas de anticipación al final del período
+            vigente.
           </Text>
         </ScrollView>
       </SafeAreaView>
