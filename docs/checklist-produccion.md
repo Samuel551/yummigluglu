@@ -23,6 +23,35 @@ Lo que queda es **calendario y trámites externos**, no trabajo de desarrollo.
 
 Los 3 dependen de la Play Console, no del repo.
 
+## 📌 Plan para mañana (2026-08-04)
+
+Ordenado por lo que desbloquea más, no por lo que cuesta menos.
+
+| #   | Tarea                                                               | Dónde               | Desbloquea                            |
+| --- | ------------------------------------------------------------------- | ------------------- | ------------------------------------- |
+| 1   | **Arreglar el login con Google** — SHA-1 de Play + publicar consent | Google Cloud + Play | Que los testers puedan ENTRAR (§A4)   |
+| 2   | **Service Account de Play → RevenueCat**                            | Google Cloud + Play | Que RevenueCat valide compras (§A3)   |
+| 3   | Mandar el link de opt-in a los 12 testers                           | WhatsApp            | Arranca el reloj de los 14 días (§A1) |
+| 4   | Vincular AdMob ↔ ficha de Play                                      | AdMob               | Cierra el _limited ad serving_ (§A2)  |
+| 5   | Google developer notifications                                      | Play + RevenueCat   | Renovaciones al instante (§A3)        |
+| 6   | Build nuevo + QA en dispositivo                                     | EAS                 | Lleva los últimos 3 fixes (§C3, §D)   |
+
+**Empezar por el 1.** Un tester que no puede entrar no te da NINGÚN feedback, y los 14 días
+corren igual. Es el que más caro sale postergar.
+
+El 3 se puede mandar en paralelo mientras arreglás el 1 — los testers tardan en instalar.
+
+**Lo que NO se puede hacer todavía** (necesita acceso a producción, o sea después de los
+14 días): crear los productos de suscripción y mapearlos a entitlements.
+
+**El build (6) incluye 3 cosas que hoy NO están en el dispositivo de nadie:**
+
+- La pantalla de eliminar cuenta
+- El fix del race condition de anuncios (premium veía banner al arrancar)
+- El badge "GRATIS ESTE MES" de la rotación de videos
+
+---
+
 ## Cómo leer este documento
 
 El orden importa. Los bloques están ordenados por **dependencia externa**, no por dificultad:
@@ -108,13 +137,36 @@ Acá está el reuso que te mencionaba. El Himnario ya tenía suscripción, así 
 
 > **Huevo y gallina**: no podés validar el flujo de compra de punta a punta hasta que haya un build en un track de testing de Play. Por eso A1 arranca primero.
 
-### A4. Google OAuth — publicar el consent screen
+### A4. Google OAuth — 🔴 SÍNTOMA REPORTADO POR UN TESTER (2026-08-03)
 
-- [ ] Google Cloud Console → proyecto `yummi-glu-glu` → OAuth consent screen → **Publish app** (pasar de Testing a Production)
+> 🔴 **Un tester reportó error al iniciar sesión con Google desde la build de prueba cerrada.** Ninguna de las dos causas posibles estaba cerrada, así que el fallo era esperable. **Las dos hay que arreglarlas antes de producción.**
 
-> **Buena noticia**: la app usa solo scopes básicos (`email`, `profile`, `openid`), que son _no sensibles_. Eso significa que publicar es **un click, sin cola de verificación de Google**. Yo antes te lo pinté como si tuviera espera — no la tiene, mientras no agregues scopes sensibles. Lo que sí es real: mientras esté en Testing, **solo loguean las cuentas cargadas como testers**. Un usuario real de Play no podría entrar con Google.
+**Cómo distinguir cuál es, por el texto del error:**
 
-- [ ] Verificar que el **SHA-1 del keystore de producción de EAS** esté cargado en el OAuth Client de Android. Si el keystore de producción es distinto al que usaste para el dev client, Google tira `DEVELOPER_ERROR` y el login con Google muere en producción. El SHA-1 se saca de expo.dev → proyecto → Credentials.
+| Lo que ve el tester                                                          | Causa                 |
+| ---------------------------------------------------------------------------- | --------------------- |
+| Elige la cuenta y falla al instante · `DEVELOPER_ERROR` · "Error 10"         | SHA-1 (A4.1)          |
+| "Acceso bloqueado" · "no completó el proceso de verificación" · "en pruebas" | Consent screen (A4.2) |
+
+#### A4.1 — SHA-1 de **Play App Signing** (la causa más probable)
+
+- [ ] Crear un **OAuth Client de Android NUEVO** en Google Cloud (`yummi-glu-glu`) con el SHA-1 de Play y package `com.yummigluglu.app`
+
+> **Por qué falla justo en Play y no en el dev client**: al subir un AAB, **Google lo vuelve a firmar** con su propia clave (Play App Signing). El APK que le llega al tester **no está firmado con el keystore de EAS**, así que la huella que la app presenta en runtime es **la de Google** — una que Google Cloud no tiene registrada → `DEVELOPER_ERROR`. Mismo código, distinta firma.
+>
+> El SHA-1 correcto sale de: **Play Console → la app → Prueba y lanzamiento → Configuración → Integridad de la app → Certificado de la clave de firma de apps → SHA-1.**
+>
+> ⚠️ **El formulario de un OAuth Client de Android acepta UNA sola huella.** No se agrega al cliente existente: **se crea un cliente nuevo.** (Ya me equivoqué una vez diciendo que se sumaba al mismo.)
+>
+> Conviene tener **los dos clientes** en paralelo: el del keystore de EAS (dev client) y el de Play App Signing (builds distribuidas por Play). Si no, arreglás producción y rompés el desarrollo.
+
+#### A4.2 — Publicar el consent screen
+
+- [ ] Google Cloud Console → `yummi-glu-glu` → OAuth consent screen → **Publish app** (Testing → Production)
+
+> La app usa solo scopes básicos (`email`, `profile`, `openid`), que son **no sensibles**: publicar es **un click, sin cola de verificación**. Mientras siga en Testing, **solo loguean las cuentas cargadas como test users** — un usuario real de Play no entra.
+>
+> **Mientras tanto**, para desbloquear a los testers de esta semana sin publicar: agregar sus correos como _test users_ en el consent screen.
 
 ---
 
