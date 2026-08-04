@@ -481,6 +481,39 @@ En React Native, `detectSessionInUrl` del cliente Supabase **solo funciona en we
 
 Después de `comprarPremium()` o `restaurarCompras()`, el store hace polling a Supabase hasta 10 veces con intervalos de 1 segundo esperando que el webhook de RevenueCat actualice la tabla `suscripciones`. En producción el webhook tarda < 5 segundos. Si `esPremium` no cambia en 10s, la compra se completa igualmente en RC pero la UI no lo reflejará hasta el próximo `cargarSuscripcion()`.
 
+### RevenueCat — versión del SDK y la Play Billing Library
+
+**`react-native-purchases` está en `^10.6.0` porque Google exige Play Billing Library ≥ 8.0.0 desde el 2026-08-30.** Antes de esa fecha, cualquier actualización de la app con una versión anterior **se rechaza**.
+
+**La Billing Library no se declara en el proyecto: viene DENTRO de RevenueCat.** La cadena real (verificada contra los POM de Maven Central, no de memoria):
+
+```
+react-native-purchases 10.6.0
+  └─ purchases-hybrid-common 18.28.0
+      └─ purchases (Android) 10.16.0
+          └─ com.android.billingclient:billing 8.3.0   ✅
+```
+
+Antes estaba en `^8.9.0` → `billing 7.1.1` ❌. Para verificar la versión efectiva después de cualquier bump:
+
+```bash
+hc=$(grep -oE "purchases-hybrid-common:[0-9.]+" node_modules/react-native-purchases/android/build.gradle | head -1 | cut -d: -f2)
+pv=$(curl -s "https://repo1.maven.org/maven2/com/revenuecat/purchases/purchases-hybrid-common/$hc/purchases-hybrid-common-$hc.pom" | grep -A2 "<artifactId>purchases</artifactId>" | grep "<version>" | head -1 | sed -E 's/.*<version>(.*)<\/version>.*/\1/')
+curl -s "https://repo1.maven.org/maven2/com/revenuecat/purchases/purchases/$pv/purchases-$pv.pom" | grep -A3 "com.android.billingclient" | grep "<version>"
+```
+
+> ⚠️ **Es un módulo NATIVO: subirlo obliga a rebuild del dev client y del binario de producción.** Y el flujo de compra hay que reprobarlo entero — es el SDK que maneja el dinero.
+
+> ✅ **Kotlin: acá estamos del lado seguro, al revés que AdMob.** `purchases` pide `kotlin-stdlib 2.0.21` (mínimo Kotlin 1.8.0+) y el proyecto usa **2.1.20**. Kotlin es compatible **hacia atrás**: un compilador nuevo lee metadata vieja sin problema. El caso de `react-native-google-mobile-ads` 16.x es el inverso —librería compilada con 2.3.0 sobre un proyecto en 2.1.20— y por eso **ese sí rompe**. Antes de asustarse por un choque de Kotlin, mirar **en qué dirección va**.
+
+> ✅ **`minSdk`**: la 10.0.0 lo sube de 21 a **23** (Android 6). Expo SDK 54 ya exige **Android 7 (API 24)**, así que no afecta.
+
+> ✅ **La advertencia en rojo del changelog NO aplica a esta app.** Habla de _productos de compra única_ mal configurados como consumibles, que dejan de poder restaurarse. Yummi Glu Glu vende **suscripciones**, no compras únicas.
+
+> ⚠️ **Lo que sí cambia Billing 8**: se elimina la posibilidad de consultar **suscripciones expiradas** y compras únicas ya consumidas. Para esta app significa que RevenueCat no puede reportar histórico de suscripciones vencidas que no tenga ya importado. Sin impacto en el modelo actual (el estado premium sale de la tabla `suscripciones`, que llena el webhook).
+
+**Superficie usada del SDK: 6 métodos, todos en `store/useSuscripcionStore.ts`** — `configure`, `logIn`, `logOut`, `getOfferings`, `purchasePackage`, `restorePurchases`. Ninguno cambió de firma entre la v8 y la v10. Esa superficie chica es lo que hace barato el salto de dos versiones mayores; si crece, el próximo bump deja de ser trivial.
+
 ### `cli.appVersionSource` en eas.json
 
 EAS CLI ya advierte que `cli.appVersionSource` será requerido. Agregar `"appVersionSource": "remote"` (o `"local"`) dentro de `"cli"` en `eas.json` para evitar el warning y futuros errores.

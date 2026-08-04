@@ -44,11 +44,14 @@ El 3 se puede mandar en paralelo mientras arreglás el 1 — los testers tardan 
 **Lo que NO se puede hacer todavía** (necesita acceso a producción, o sea después de los
 14 días): crear los productos de suscripción y mapearlos a entitlements.
 
-**El build (6) incluye 3 cosas que hoy NO están en el dispositivo de nadie:**
+**El build (6) incluye 4 cosas que hoy NO están en el dispositivo de nadie:**
 
+- 🔴 **Play Billing Library 8.3.0** — obligatoria desde el **30 ago 2026** o se rechazan las actualizaciones
 - La pantalla de eliminar cuenta
 - El fix del race condition de anuncios (premium veía banner al arrancar)
 - El badge "GRATIS ESTE MES" de la rotación de videos
+
+> ⚠️ **El build subió de prioridad.** Ya no es solo "llevar mejoras": lleva un requisito con **fecha de corte al 30 de agosto**. Y como el cambio es en el SDK de pagos, el flujo de compra hay que **reprobarlo completo** — lo que a su vez depende del Service Account (tarea 2). Orden real: **2 → 6 → QA de compras**.
 
 ---
 
@@ -216,6 +219,11 @@ EXPO_PUBLIC_ADMIN_PASSWORD_HASH
 ### B4. Chequeo de dependencias — ✅ verificado 2026-08-03
 
 - [x] `react-native-google-mobile-ads` en **15.7.0 exacta** y en `expo.install.exclude`
+- [x] **`react-native-purchases` en `^10.6.0` → Play Billing Library 8.3.0** (subido el 2026-08-04)
+
+  > 🔴 **Aviso de Google Play recibido el 2026-08-04**: desde el **30 de agosto de 2026** toda app debe usar Play Billing Library **≥ 8.0.0** o **se rechazan las actualizaciones**. La app estaba en `react-native-purchases ^8.9.0` → `billing 7.1.1`. **La Billing Library no se declara en el proyecto: viene dentro de RevenueCat.** Detalle completo de la cadena y cómo verificarla en `CLAUDE.md` § "RevenueCat — versión del SDK y la Play Billing Library".
+  >
+  > ⚠️ **Este cambio NO está en ningún dispositivo hasta el próximo build**, y el flujo de compra hay que **reprobarlo entero** — es el SDK que maneja el dinero.
 
 > 🔴 **NO subir a 16.x.** Trae `play-services-ads` ≥ 24.6.0 compilado con **Kotlin 2.3.0**, y Expo SDK 54 usa **Kotlin 2.1.20** → el build de Gradle muere en `:react-native-google-mobile-ads:compileDebugKotlin`. Y **no "arreglarlo" subiendo Kotlin del proyecto a 2.3**: rompe KSP y otros módulos de Expo.
 
