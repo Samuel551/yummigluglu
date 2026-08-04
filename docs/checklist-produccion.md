@@ -144,7 +144,25 @@ Acá está el reuso que te mencionaba. El Himnario ya tenía suscripción, así 
 
 > 🔴 **Un tester reportó error al iniciar sesión con Google desde la build de prueba cerrada.** Ninguna de las dos causas posibles estaba cerrada, así que el fallo era esperable. **Las dos hay que arreglarlas antes de producción.**
 
-**Cómo distinguir cuál es, por el texto del error:**
+#### Estado del diagnóstico al 2026-08-04 — 5 hipótesis DESCARTADAS con datos
+
+| Hipótesis                                | Cómo se descartó                                                       |
+| ---------------------------------------- | ---------------------------------------------------------------------- |
+| Consent screen en modo Testing           | Google Auth Platform → Público dice **"En producción"**                |
+| SHA-1 de Play App Signing sin registrar  | OAuth Client `Yummi Glu Glu Android - Play` lo tiene desde el 3 ago    |
+| Nombre de paquete mal escrito            | Dice `com.yummigluglu.app`, idéntico a `app.json`                      |
+| Falta `GOOGLE_WEB_CLIENT_ID` en el build | Variable creada **1 ago 23:47**, build de producción **2 ago 16:07**   |
+| Supabase mal configurado                 | **0 peticiones `grant_type=id_token` en 24h**, contra 11 de `password` |
+
+> 🔑 **El hallazgo que ordena todo: la petición NUNCA sale del dispositivo.** Los logs de auth de Supabase registran los logins por contraseña de la app (`referer: yummigluglu://`) pero **cero** intentos con `id_token`. El error explota dentro de `GoogleSignin.signIn()` y Supabase ni se entera, así que toda hipótesis sobre configuración de Supabase queda descartada por construcción.
+>
+> **Cómo repetir la comprobación**: MCP de Supabase → `get_logs` service `auth` → contar `grant_type`. Si aparece `id_token`, el problema es del lado de Supabase; si no aparece, es del cliente. Parte el problema en dos en un minuto.
+
+**Qué falta para cerrarlo**: el **código de error real del dispositivo**. Desde el commit `40d3686`, cuando un error no matchea ningún patrón conocido el mensaje muestra el código entre paréntesis — así que **una foto de la pantalla del tester va a alcanzar**. Viaja en el próximo build.
+
+> ⚠️ **NO es bloqueante para publicar.** El login por correo y el registro funcionan. Google es un método alternativo, no el principal.
+
+**Referencia — cómo distinguir la causa por el texto del error:**
 
 | Lo que ve el tester                                                          | Causa                 |
 | ---------------------------------------------------------------------------- | --------------------- |
