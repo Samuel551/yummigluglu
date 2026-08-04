@@ -32,6 +32,21 @@ const MENSAJES_POR_CODE: Record<string, string> = {
   email_exists: 'Ya existe una cuenta con ese email.',
   invalid_credentials: 'Email o contraseña incorrectos.',
   signup_disabled: 'El registro está deshabilitado en este momento.',
+
+  // ── Google Sign In ────────────────────────────────────────────────────────
+  // Estos NO vienen de Supabase sino de @react-native-google-signin. Se mapean
+  // acá igual, porque `lib/errores.ts` es la fuente única de mensajes.
+  //
+  // DEVELOPER_ERROR (código 10 en Android) significa que la huella SHA-1 con la
+  // que está firmada la app NO coincide con ninguna registrada en el OAuth Client
+  // de Google Cloud. Pasa típicamente en las builds distribuidas por Play, porque
+  // **Google las REFIRMA con Play App Signing** y esa huella es distinta a la del
+  // keystore de EAS. Es un error de configuración: el usuario no puede hacer nada,
+  // por eso el mensaje lo empuja al login por correo en vez de dejarlo reintentando.
+  DEVELOPER_ERROR:
+    'El inicio con Google no está disponible en esta versión. Usa tu correo y contraseña.',
+  '10': 'El inicio con Google no está disponible en esta versión. Usa tu correo y contraseña.',
+  PLAY_SERVICES_NOT_AVAILABLE: 'Necesitas actualizar Google Play Services para entrar con Google.',
 };
 
 export function mensajeError(error: unknown): string {
@@ -43,6 +58,9 @@ export function mensajeError(error: unknown): string {
     if (err.code && MENSAJES_POR_CODE[err.code]) return MENSAJES_POR_CODE[err.code];
   }
   const msg = error instanceof Error ? error.message : String(error);
+  // DEVELOPER_ERROR a veces llega solo en el mensaje y no en `code`, según la versión
+  // de Google Play Services. Se busca en las dos partes para no perderlo.
+  if (msg.includes('DEVELOPER_ERROR')) return MENSAJES_POR_CODE.DEVELOPER_ERROR;
   for (const [clave, traduccion] of Object.entries(MENSAJES_POR_TEXTO)) {
     if (msg.toLowerCase().includes(clave.toLowerCase())) return traduccion;
   }
