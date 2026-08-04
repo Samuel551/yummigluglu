@@ -1,7 +1,27 @@
 # Checklist de producción — Yummi Glu Glu
 
 > Documento operativo para llevar la app a Google Play.
-> Fecha de armado: 2026-07-31. Actualizar a medida que se completan bloques.
+> Armado: 2026-07-31. **Última verificación contra el estado real: 2026-08-03.**
+
+## Resumen al 2026-08-03
+
+La app está **en prueba cerrada, ya revisada por Google**. Backend, config y código: cerrados.
+Lo que queda es **calendario y trámites externos**, no trabajo de desarrollo.
+
+| Bloque                  | Estado                                                    |
+| ----------------------- | --------------------------------------------------------- |
+| A — Colas externas      | ✅ salvo el Service Account de Play y publicar el consent |
+| B — Config del binario  | ✅ completo y verificado                                  |
+| C — Código y QA         | ✅ código cerrado · 🔲 falta QA en dispositivo            |
+| D — Build y publicación | 🔲 pendiente (falta un build con los últimos fixes)       |
+
+**Los 3 bloqueantes reales para cobrar:**
+
+1. Service Account de Google Play en RevenueCat (sin esto no se validan las compras)
+2. Productos de suscripción creados en Play y mapeados a entitlements
+3. Los 14 días de prueba cerrada con 12 testers
+
+Los 3 dependen de la Play Console, no del repo.
 
 ## Cómo leer este documento
 
@@ -37,27 +57,33 @@ El backend NO es el cuello de botella. Lo que falta es config externa + el binar
 
 ### A1. Ficha en Google Play Console
 
-- [ ] Crear la app nueva en Play Console (package `com.yummigluglu.app`)
-- [x] ~~**Requisito de 12 testers / 14 días**~~ — **NO APLICA. Confirmado por el owner el 2026-08-02.** Ese requisito desbloquea el _acceso a producción de la cuenta de desarrollador_ y se cumple **una sola vez por cuenta**, no por app. El owner ya lo completó con una app anterior, así que la cuenta ya tiene producción habilitada **para esta app y para todas las futuras**. No hay espera de 14 días.
-- [x] ~~Cuenta de desarrollador (USD 25)~~ — **ya pagada y activa**, el owner ya tiene apps publicadas. El service account de Google Play se puede crear **hoy**, no está bloqueado por ningún trámite pendiente.
-- [ ] Ficha de tienda: título, descripción corta/larga, capturas, icono, gráfico destacado
-- [ ] Política de privacidad publicada en URL accesible (el dominio `yummigluglu.com` ya está registrado y con DNS en Cloudflare — usarlo)
-- [ ] Cuestionario de clasificación de contenido
-- [ ] **Declaración de público objetivo → adultos / padres. NO dirigida a niños.** Esta decisión ya está tomada en el proyecto y el código la refleja (`lib/ads.ts:87` → `tagForChildDirectedTreatment: false`). Si acá declarás "niños", entra la política de familias de AdMob y te restringe formatos. Que la app sea _sobre_ bebés no la hace _para_ bebés — la usa el padre.
-- [ ] Formulario de Data Safety. Ojo acá: se recolecta **nombre del hijo, fecha de nacimiento y alergias**. Eso es data personal de un menor y hay que declararlo con precisión. Es el formulario más delicado de esta app.
-- [ ] Subir un primer AAB a **testing interno** (aunque sea con config incompleta) — desbloquea probar compras reales
+- [x] Crear la app nueva en Play Console (package `com.yummigluglu.app`)
+- [ ] 🔴 **Requisito de 12 testers / 14 días — SÍ APLICA.**
+
+  > ⚠️ **Corrección de un error de este documento.** El 2026-08-02 escribí acá que "NO APLICA" porque el owner recordaba haberlo cumplido con una app anterior. **La Play Console mostró al día siguiente que aplica POR APP, no por cuenta.**
+  >
+  > **La lección importa más que el dato**: un recuerdo del owner sobre una política de un tercero **no es verificación**. Yo lo di por confirmado y taché un bloqueante real de 2 semanas de calendario. Ante una política externa, la fuente es la pantalla de la consola — no la memoria de nadie, incluida la mía.
+
+- [x] ~~Cuenta de desarrollador (USD 25)~~ — ya pagada y activa
+- [x] Ficha de tienda: título, descripción corta/larga, capturas, icono, gráfico destacado
+- [x] Política de privacidad publicada — `https://yummigluglu-web.samfrasan.workers.dev/privacidad.html` (verificada 200 el 2026-08-03)
+- [x] Cuestionario de clasificación de contenido (IARC)
+- [x] **Público objetivo → adultos / padres. NO dirigida a niños.** El código lo refleja (`lib/ads.ts` → `tagForChildDirectedTreatment: false`). Que la app sea _sobre_ bebés no la hace _para_ bebés — la usa el padre.
+- [x] Formulario de Data Safety
+
+  > ⚠️ **Casi se envía mal.** Estaba marcado **"no se recopilan datos"**, que es una declaración FALSA: la app guarda nombre del hijo, fecha de nacimiento y alergias. Se detectó recién al pedir ver el paso 5 (Vista previa). **Una declaración falsa de Data Safety es causa de suspensión de la app, no de una advertencia.** Si se vuelve a tocar este formulario, revisar SIEMPRE la vista previa completa antes de guardar.
+
+- [x] Subir el primer AAB a prueba cerrada — **ya pasó la revisión de Google**
+- [ ] Mandar el link de opt-in a los 12 testers → `https://play.google.com/apps/testing/com.yummigluglu.app`
 
 ### A2. AdMob — app nueva y ad units
 
 La cuenta de AdMob ya está aprobada y con pagos verificados por el Himnario. Eso NO se repite. Lo que sí es nuevo:
 
-- [ ] Crear la **app nueva** en AdMob (entrada aparte del Himnario, App ID propio)
-- [ ] Crear 3 ad units para Android:
-  - [ ] Banner → valor para `EXPO_PUBLIC_ADMOB_BANNER_ANDROID`
-  - [ ] Intersticial → valor para `EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID`
-  - [ ] Recompensado (rewarded) → valor para `EXPO_PUBLIC_ADMOB_REWARDED_ANDROID`
-- [ ] Vincular la app de AdMob con la ficha de Play cuando exista
-- [ ] Anotar el **App ID** (el que empieza con `~`) → va a `app.json` 🔁 **REBUILD**
+- [x] Crear la **app nueva** en AdMob (App ID propio: `ca-app-pub-8216818579305822~7966838081`)
+- [x] Crear los 3 ad units para Android (banner, intersticial, rewarded) — cargados en EAS `production` y `preview`
+- [x] **App ID real en `app.json`** ✅ verificado 2026-08-03 (ya no es el de prueba)
+- [ ] Vincular la app de AdMob con la ficha de Play — **cierra el _limited ad serving_**
 
 > **Esperable, no es bug**: una app nueva en AdMob que todavía no está vinculada a su ficha de tienda arranca con _limited ad serving_ — sirve poco o nada. Se normaliza al vincularla y publicarla. No pierdas la noche debuggeando eso.
 
@@ -65,13 +91,19 @@ La cuenta de AdMob ya está aprobada y con pagos verificados por el Himnario. Es
 
 Acá está el reuso que te mencionaba. El Himnario ya tenía suscripción, así que:
 
-- [ ] **La service account de Google Cloud probablemente se REUSA.** Esa credencial está atada a la _cuenta de desarrollador de Play_, no a una app. Si ya la creaste para el Himnario, no hacés una nueva: solo tenés que **darle permisos sobre la app nueva** en Play Console → Usuarios y permisos. Si no encontrás la original, se crea de cero (Google Cloud → IAM → Service Accounts → clave JSON → subirla a RevenueCat).
-- [ ] Crear el **proyecto nuevo** en RevenueCat (proyecto aparte del Himnario) y agregar la app Android
-- [ ] Crear los productos de suscripción en Play Console (mensual / anual, según el modelo)
+- [x] Crear el **proyecto nuevo** en RevenueCat y agregar la app Android
+- [x] Copiar la **Android API key** de RevenueCat → `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID`
+
+  > ⚠️ **Fallo silencioso que costó una vuelta.** La key era una `test_` (sandbox): con esa, **las compras no se procesan de verdad, y el síntoma NO aparece en desarrollo**. La buena empieza con `goog_` y se genera **sola** al crear la app de Play Store en RevenueCat. No confundirla con el "REST API Identifier" (`app…`) ni con una "Secret API key" (esa NUNCA va en el cliente).
+  >
+  > Segunda trampa encadenada: al reemplazarla en `.env.local` quedó la vieja arriba y la nueva abajo. **En un `.env` una variable duplicada no da error y gana la PRIMERA** — el parser seguía leyendo la de sandbox en silencio. Reemplazar la línea, nunca agregar otra.
+
+- [x] Configurar el webhook de RevenueCat → Edge Function `revenuecat-webhook`
+- [x] `REVENUECAT_WEBHOOK_SECRET` (≥ 32 chars) cargado en los dos lados. **Nunca en el repo, ni en `.env.local`, ni en logs.**
+- [ ] 🔴 **Service Account de Google Play en RevenueCat** — **el bloqueante nº1 para cobrar.** La app de Play Store existe en RC pero **sin el `Service Account Credentials JSON`**, así que RevenueCat todavía **no puede validar las compras contra Google**. El JSON sale de Google Cloud (proyecto `yummi-glu-glu`) + Play Console → _Users and permissions_. Dar permisos mínimos, NO Admin.
+- [ ] Conectar las **Google developer notifications** (renovaciones y cancelaciones al instante en vez de por sondeo). Mismo requisito previo que el punto anterior.
+- [ ] 🔴 **Crear los productos de suscripción en Play Console** (mensual / anual) — **requiere acceso a producción**, o sea, después de los 14 días.
 - [ ] Mapear esos productos a **entitlements** en RevenueCat
-- [ ] Copiar la **Android API key** de RevenueCat → `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID`
-- [ ] Configurar el webhook de RevenueCat apuntando a la Edge Function `revenuecat-webhook`
-- [ ] Generar `REVENUECAT_WEBHOOK_SECRET` (≥ 32 chars random) y cargarlo en **los dos lados**: `supabase secrets set` y RC Dashboard → Integrations → Webhooks. **Nunca en el repo, ni en `.env.local`, ni en logs.**
 - [ ] Agregar cuentas de **license testers** en Play Console para probar compras sin pagar
 
 > **Huevo y gallina**: no podés validar el flujo de compra de punta a punta hasta que haya un build en un track de testing de Play. Por eso A1 arranca primero.
@@ -90,17 +122,19 @@ Acá está el reuso que te mencionaba. El Himnario ya tenía suscripción, así 
 
 Todo este bloque va ANTES del build de producción. Cambiar cualquier cosa de acá después obliga a recompilar.
 
-### B1. Variables de entorno en EAS — BLOQUEANTE CRÍTICO
+### B1. Variables de entorno en EAS — ✅ RESUELTO (2026-08-02)
 
-**Estado actual: `eas.json` no tiene bloque `env` en ningún perfil.** Consecuencia concreta: un build `preview` o `production` no tiene NINGUNA `EXPO_PUBLIC_*`, y `lib/supabase.ts` **lanza excepción si falta la URL o la anon key**.
+Era el bloqueante crítico: sin las `EXPO_PUBLIC_*`, `lib/supabase.ts` **lanza excepción al arrancar** y la app de producción **crashea al abrir** — pantalla negra, no degradación. En dev no se nota porque Metro lee `.env.local`; los builds standalone no tienen Metro.
 
-Traducción: **la app de producción crashea al abrir.** No es degradación, es pantalla negra.
+- [x] Las 8 variables cargadas en **EAS Environment Variables**, environments `production` y `preview`
+- [x] `eas.json` ata cada perfil al suyo con `"environment": "preview" | "production"`
+- [x] Verificado con `eas env:list production` el **2026-08-03**: las 8 presentes
+- [ ] Confirmar en el build log de EAS que se resolvieron (al hacer el build final)
 
-En dev no se nota porque Metro corre local y lee `.env.local`. Los builds standalone no tienen Metro.
+> **NO** usar un bloque `env` con valores dentro de `eas.json`: ese archivo se commitea y **el repo es público**.
+> Para sincronizar tras cambiar `.env.local`: `eas env:push production --force`.
 
-- [ ] Cargar las variables en **EAS Environment Variables** (recomendado — dashboard de expo.dev, o `eas env:create`). Preferir esto antes que escribirlas en `eas.json`, porque `eas.json` está versionado en git.
-
-Variables requeridas para `production`:
+Variables requeridas para `production` (las 8, todas ✅):
 
 ```
 EXPO_PUBLIC_SUPABASE_URL
@@ -113,55 +147,63 @@ EXPO_PUBLIC_ADMOB_REWARDED_ANDROID
 EXPO_PUBLIC_ADMIN_PASSWORD_HASH
 ```
 
-- [ ] Repetir para el perfil `preview` (si vas a usarlo para QA real)
-- [ ] Verificar en el build log de EAS que las variables se resolvieron
+> ⚠️ **Toda `EXPO_PUBLIC_*` se hornea en el bundle y es extraíble de cualquier APK** — no son secretos, ni en EAS ni en ningún lado. La anon key de Supabase está diseñada para eso (RLS es lo que protege). Por eso el gate del panel admin (`EXPO_PUBLIC_ADMIN_PASSWORD_HASH`) es **solo cosmético**: la autorización real la hace RLS con `es_admin()`.
+>
+> Lo que NUNCA va acá: `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `REVENUECAT_WEBHOOK_SECRET`.
 
-> Las `EXPO_PUBLIC_*` quedan visibles en el bundle — son públicas por diseño. La anon key de Supabase está pensada para eso (RLS es lo que protege). Lo que NUNCA va acá: `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`, `REVENUECAT_WEBHOOK_SECRET`.
+### B2. App ID real de AdMob en `app.json` — ✅ RESUELTO
 
-### B2. App ID real de AdMob en `app.json` 🔁
+- [x] `androidAppId` = `ca-app-pub-8216818579305822~7966838081` (verificado 2026-08-03, ya no es el de prueba)
+- [x] `iosAppId` sigue siendo el de prueba — **a propósito**, iOS no es target y no afecta el build de Android
 
-**Estado actual (`app.json:45`)**: `ca-app-pub-3940256099942544~3347511713` — ese es el **App ID de PRUEBA de Google**, no el tuyo.
+### B3. Versionado — ✅
 
-- [ ] Reemplazar `androidAppId` por el App ID real de la app nueva de AdMob
-- [ ] Decidir qué hacer con `iosAppId` (hoy también es el de prueba). Como iOS no es target, se puede dejar — no afecta el build de Android.
+- [x] `expo.version` = `1.0.0`
+- [x] `cli.appVersionSource` = `"remote"` — EAS maneja el `versionCode`
 
-### B3. Versionado
+### B4. Chequeo de dependencias — ✅ verificado 2026-08-03
 
-- [ ] `expo.version` en `app.json` está en `1.0.0` — confirmar que es lo que querés publicar
-- [ ] `cli.appVersionSource` ya está en `"remote"` ✅ — EAS maneja el `versionCode` automáticamente
+- [x] `react-native-google-mobile-ads` en **15.7.0 exacta** y en `expo.install.exclude`
 
-### B4. Chequeo de dependencias
-
-- [ ] Confirmar que `react-native-google-mobile-ads` sigue pineado en **15.7.0 exacta**. NO subir a 16.x: trae `play-services-ads` compilado con Kotlin 2.3.0 y Expo SDK 54 usa Kotlin 2.1.20 → el build de Gradle falla en `compileDebugKotlin`. Ya está en `expo.install.exclude`, pero verificar que nadie lo bumpeó.
+> 🔴 **NO subir a 16.x.** Trae `play-services-ads` ≥ 24.6.0 compilado con **Kotlin 2.3.0**, y Expo SDK 54 usa **Kotlin 2.1.20** → el build de Gradle muere en `:react-native-google-mobile-ads:compileDebugKotlin`. Y **no "arreglarlo" subiendo Kotlin del proyecto a 2.3**: rompe KSP y otros módulos de Expo.
 
 ---
 
 ## Bloque C — Código y QA
 
-### C1. Pendientes de código
+### C1. Pendientes de código — ✅ CERRADO
 
-- [ ] Revisar y commitear los cambios sueltos en `app/receta/[id].tsx`
+- [x] **Fase 6 — NutriBot completa**: `app/asistente.tsx`, Edge Function, `ANTHROPIC_API_KEY` en secrets de Supabase, `useAsistenteStore`, cupo mensual server-side (free 20 / premium 250), contexto del niño auto-inyectado, historial de conversaciones (migración `030`)
+- [x] Rotación mensual de videos free/premium con `pg_cron` (migraciones `032` y `033`)
+- [x] Fix del race condition de anuncios — un premium veía banner en cada arranque en frío (commit `4d1e952`)
+- [x] Eliminación de cuenta dentro de la app — **requisito de Google Play** (commit `6873329`)
+- [x] Árbol de git limpio, `npm run lint` limpio
 
-**Fase 6 — NutriBot: DECIDIDO, entra en la v1.0** (2026-07-31). No se publica sin él.
+**Deuda técnica conocida (NO bloqueante, no rompe el build):**
 
-- [ ] `app/asistente.tsx` (presentación `modal`)
-- [ ] Edge Function `supabase/functions/nutribot/` que proxea al Anthropic API
-- [ ] `ANTHROPIC_API_KEY` en **secrets de Supabase** (`supabase secrets set`), JAMÁS en el cliente ni en una `EXPO_PUBLIC_*`
-- [ ] Store `useAsistenteStore` + persistencia en la tabla `conversaciones_ia` (ya existe en el schema)
-- [ ] Rate limiting server-side desde el día uno — free N mensajes/día, premium ilimitado. Sin esto, un usuario puede quemarte la cuenta de Anthropic.
-- [ ] Contexto del niño auto-inyectado al prompt: edad, etapa, alergias (desde `perfiles_hijos`)
-
-> **Sequencing — NutriBot NO dispara rebuild.** Es una ruta nueva de Expo Router (JS) más una Edge Function: cero módulos nativos. Por lo tanto **el rebuild del Bloque B (App ID de AdMob) se hace UNA sola vez** y NutriBot viaja después en el mismo binario. Orden recomendado: cerrar AdMob → rebuild → construir NutriBot sobre ese dev client → build de producción final.
+- [ ] Error de tipos preexistente en `app/(tabs)/plan.tsx:387` (`string | null` vs `string | undefined`)
+- [ ] Errores de tipos preexistentes en `lib/notificaciones.ts` (falta index signature en `NotificacionData`)
 
 ### C2. Endurecimiento de Supabase antes de prod
 
-Del linter de seguridad, lo que vale la pena tocar:
+- [x] **`search_path` fijado** en las 9 funciones `SECURITY DEFINER` (migración `031`) — el linter ya no lo reporta
+- [x] **Cerrada la enumeración de usuarios** — revocado el `EXECUTE` de `verificar_email_registrado` a `anon`/`authenticated` (migración `031`). Ese RPC convertía el formulario de reset en un buscador de usuarios: con la anon key (pública, viaja en el APK) se podía iterar emails y sacar el padrón. En una app de alimentación infantil eso revela que la persona tiene un hijo pequeño.
 
-- [ ] **Activar leaked password protection** (Dashboard → Auth → Passwords). Chequea contra HaveIBeenPwned. Es un toggle, cero código. Hacelo.
-- [ ] Revisar el bucket público `recetas-imagenes`: la policy de SELECT permite **listar todos los archivos**, no solo accederlos por URL. Para servir imágenes no hace falta listar. Bajo impacto, pero es gratis cerrarlo.
-- [ ] _(Opcional)_ Fijar `search_path` en las funciones marcadas por el linter — buena higiene, no bloqueante.
+- [ ] ~~**Activar leaked password protection**~~ — **NO DISPONIBLE: requiere el plan Pro.** El proyecto está en Free.
 
-> **Ignorar deliberadamente**: el linter marca ERROR `security_definer_view` sobre `recetas_teaser`. **Es intencional y está documentado.** Esa vista es la que gatea `video_url` con `auth.uid()` por request. NO cambiarla a `security_invoker` — romperías el modelo de desbloqueo de videos.
+  > ⚠️ Otra corrección de este documento: lo puse como "un toggle, cero código, hacelo". **Es de pago.** Ante una feature del dashboard, verificar el plan antes de prometer que es gratis.
+
+- [ ] _(Opcional, bajo impacto)_ Bucket público `recetas-imagenes`: la policy `publico lee imagenes recetas` da `SELECT` al rol `public`, lo que permite **listar todos los archivos**. Un bucket público sirve las imágenes por URL directa **sin necesitar esa policy**, así que se puede borrar sin romper nada. Verificar en dispositivo después de tocarlo.
+
+- [ ] _(Opcional, bajo impacto)_ Revocar `EXECUTE` de `user_es_premium(uuid)` a `anon`/`authenticated`. Hoy cualquiera con la anon key puede preguntar si un `user_id` dado es premium. **Verificado que es seguro revocarlo**: no lo usa ninguna policy ni vista; solo lo llaman la Edge Function `nutribot` (con `service_role`) y triggers `SECURITY DEFINER`, que no pierden el permiso. Mismo patrón que la migración `031`.
+
+> **Los otros WARN del linter son ruido, no deuda:**
+>
+> - `stats_admin()` callable por anon → **tiene `IF NOT es_admin() THEN RAISE EXCEPTION` adentro.** Verificado leyendo la definición.
+> - `crear_suscripcion_gratuita()`, `rls_auto_enable()`, `check_limite_*()` → son funciones de **trigger / event trigger**. Postgres no deja invocarlas por RPC.
+> - `webhook_events_procesados` con RLS y sin policies → **intencional**: solo `service_role` la toca.
+
+> 🔴 **Ignorar deliberadamente**: el linter marca ERROR `security_definer_view` sobre `recetas_teaser`. **Es intencional y está documentado.** Esa vista gatea `video_url` con `auth.uid()` por request. Cambiarla a `security_invoker` **rompe el modelo de desbloqueo de videos**.
 
 ### C3. QA en dispositivo real (con el dev client recompilado)
 
@@ -191,14 +233,30 @@ Del linter de seguridad, lo que vale la pena tocar:
 
 ## Riesgos ordenados por costo si se descubren tarde
 
-| #   | Riesgo                            | Costo si aparece tarde                                             |
-| --- | --------------------------------- | ------------------------------------------------------------------ |
-| 1   | Sin env vars en EAS               | App crashea al abrir. Build perdido + posible reseña de 1 estrella |
-| 2   | App ID de AdMob de prueba         | Cero ingresos por ads. Rebuild completo                            |
-| 3   | Público declarado como "niños"    | Formatos de ads restringidos. Corregir la ficha y esperar revisión |
-| 4   | Requisito de 12 testers / 14 días | +2 semanas de calendario                                           |
-| 5   | OAuth en modo Testing             | Nadie entra con Google en producción                               |
-| 6   | SHA-1 de producción no cargado    | `DEVELOPER_ERROR` en login con Google                              |
+| #   | Riesgo                            | Costo si aparece tarde                                             | Estado       |
+| --- | --------------------------------- | ------------------------------------------------------------------ | ------------ |
+| 1   | Sin env vars en EAS               | App crashea al abrir. Build perdido + posible reseña de 1 estrella | ✅ cerrado   |
+| 2   | App ID de AdMob de prueba         | Cero ingresos por ads. Rebuild completo                            | ✅ cerrado   |
+| 3   | Público declarado como "niños"    | Formatos de ads restringidos. Corregir ficha y esperar revisión    | ✅ cerrado   |
+| 4   | Requisito de 12 testers / 14 días | +2 semanas de calendario                                           | 🔴 abierto   |
+| 5   | OAuth en modo Testing             | Nadie entra con Google en producción                               | 🔴 abierto   |
+| 6   | SHA-1 de producción no cargado    | `DEVELOPER_ERROR` en login con Google                              | 🔴 verificar |
+| 7   | Service Account de Play faltante  | RevenueCat no valida compras → **nadie puede pagar**               | 🔴 abierto   |
+
+## Patrón que se repitió toda la implementación: los FALLOS SILENCIOSOS
+
+Ninguno de estos tiraba error. Ninguno se veía usando la app normalmente. Vale tenerlos
+presentes como categoría, porque el próximo va a tener la misma forma:
+
+| Fallo                                    | Por qué no se veía                                                                |
+| ---------------------------------------- | --------------------------------------------------------------------------------- |
+| Key `test_` de RevenueCat en producción  | En desarrollo funciona igual; solo falla el cobro real                            |
+| Variable duplicada en `.env.local`       | Sin error: gana la PRIMERA, en silencio                                           |
+| `Pressable` con `style` como función     | css-interop descarta los estilos sin warning                                      |
+| Política de privacidad sin `.html` → 404 | El link "existía", pero devolvía 404                                              |
+| Race condition de anuncios               | Solo en el arranque en frío de un usuario premium                                 |
+| Data Safety en "no recopila datos"       | El formulario guardaba feliz una declaración falsa                                |
+| Prompt caching de NutriBot               | Si el system prompt baja de 1.024 tokens, deja de cachear en silencio → input 10x |
 
 ---
 
