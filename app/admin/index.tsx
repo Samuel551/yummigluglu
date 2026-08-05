@@ -16,6 +16,12 @@ interface StatsAdmin {
   recetas_premium: number;
   recetas_sin_video: number;
   total_favoritos: number;
+  // NutriBot — SOLO agregados. El contenido de las conversaciones no se expone
+  // nunca acá: son consultas de salud sobre menores. Ver migración 035.
+  nutribot_usuarios_mes: number;
+  nutribot_mensajes_mes: number;
+  nutribot_mensajes_total: number;
+  nutribot_costo_mes: number;
 }
 
 export default function AdminDashboard() {
@@ -47,7 +53,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const tarjeta = (emoji: string, titulo: string, valor: number, color: string) => (
+  const tarjeta = (emoji: string, titulo: string, valor: number | string, color: string) => (
     <View
       key={titulo}
       style={{
@@ -154,6 +160,39 @@ export default function AdminDashboard() {
               {tarjeta('🎬', 'Sin video', stats.recetas_sin_video, '#DC2626')}
               {tarjeta('❤️', 'Favoritos', stats.total_favoritos, '#EF4444')}
             </View>
+
+            {/* ── NUTRIBOT ── */}
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '700',
+                color: '#78716C',
+                letterSpacing: 0.8,
+                marginBottom: 12,
+              }}
+            >
+              NUTRIBOT · ESTE MES
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
+              {tarjeta('🥑', 'Lo usaron', stats.nutribot_usuarios_mes, '#2D9B5A')}
+              {tarjeta('💬', 'Mensajes', stats.nutribot_mensajes_mes, '#1C1917')}
+              {tarjeta(
+                '📊',
+                'Promedio por usuario',
+                stats.nutribot_usuarios_mes > 0
+                  ? (stats.nutribot_mensajes_mes / stats.nutribot_usuarios_mes).toFixed(1)
+                  : '—',
+                '#1C1917'
+              )}
+              {/* El costo es lo que decide si el cupo gratis es sostenible. Tenerlo
+                  acá evita entrar a la consola de Anthropic para saberlo. */}
+              {tarjeta('💵', 'Gasto estimado', `$${stats.nutribot_costo_mes ?? 0}`, '#F59E0B')}
+            </View>
+            <Text style={{ fontSize: 11, color: '#78716C', lineHeight: 16, marginBottom: 24 }}>
+              Histórico: {stats.nutribot_mensajes_total} mensajes. El gasto es una estimación a
+              ~US$0,0083 por mensaje — sube ~50% desde el 1 de septiembre de 2026, cuando termina el
+              precio introductorio de Claude Sonnet 5.
+            </Text>
           </>
         ) : null}
 
