@@ -165,20 +165,21 @@ export default function AgendaScreen() {
         >
           {/* ── ENCABEZADO EDITORIAL ── */}
           <View style={{ paddingHorizontal: 24, paddingTop: 12 }}>
-            <Pressable
+            {/* Estilo OBJETO, no callback: css-interop lo descarta. Ver CLAUDE.md. */}
+            <TouchableOpacity
               onPress={() => router.back()}
               hitSlop={8}
-              style={({ pressed }) => ({
+              activeOpacity={0.5}
+              style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: 6,
-                opacity: pressed ? 0.5 : 1,
                 marginBottom: 24,
-              })}
+              }}
             >
               <Feather name="arrow-left" size={18} color={c.negro} />
               <Text style={{ fontSize: 14, fontWeight: '600', color: c.negro }}>Volver</Text>
-            </Pressable>
+            </TouchableOpacity>
 
             <Text
               style={{
@@ -321,21 +322,21 @@ export default function AgendaScreen() {
                 </View>
 
                 {!esPremium && (
-                  <Pressable
+                  <TouchableOpacity
                     onPress={() => router.push('/premium')}
-                    style={({ pressed }) => ({
+                    activeOpacity={0.6}
+                    style={{
                       marginTop: 14,
                       flexDirection: 'row',
                       alignItems: 'center',
                       gap: 6,
-                      opacity: pressed ? 0.6 : 1,
-                    })}
+                    }}
                   >
                     <Feather name="star" size={13} color={c.naranja} />
                     <Text style={{ fontSize: 13, fontWeight: '700', color: c.naranja }}>
                       Ver el calendario completo con Premium
                     </Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 )}
               </View>
 
@@ -526,24 +527,16 @@ function RecordatorioCard({
           </Text>
         )}
       </View>
-      <Pressable
-        onPress={onToggle}
-        hitSlop={8}
-        style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}
-      >
+      <TouchableOpacity onPress={onToggle} hitSlop={8} activeOpacity={0.5} style={{ padding: 6 }}>
         <Feather
           name={recordatorio.activo ? 'bell' : 'bell-off'}
           size={18}
           color={recordatorio.activo ? c.verde : c.grisTexto}
         />
-      </Pressable>
-      <Pressable
-        onPress={onEliminar}
-        hitSlop={8}
-        style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}
-      >
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onEliminar} hitSlop={8} activeOpacity={0.5} style={{ padding: 6 }}>
         <Feather name="trash-2" size={16} color={c.grisTexto} />
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -1104,29 +1097,25 @@ function ModalCrearRecordatorio({
                     marginBottom: 12,
                   }}
                 >
-                  <Pressable
+                  <TouchableOpacity
                     onPress={irMesAnterior}
                     hitSlop={8}
-                    style={({ pressed }) => ({
-                      padding: 8,
-                      opacity: pressed ? 0.5 : 1,
-                    })}
+                    activeOpacity={0.5}
+                    style={{ padding: 8 }}
                   >
                     <Feather name="chevron-left" size={20} color={c.verde} />
-                  </Pressable>
+                  </TouchableOpacity>
                   <Text style={{ fontSize: 15, fontWeight: '700', color: c.negro }}>
                     {MESES_LARGOS[mesVista.month]} {mesVista.year}
                   </Text>
-                  <Pressable
+                  <TouchableOpacity
                     onPress={irMesSiguiente}
                     hitSlop={8}
-                    style={({ pressed }) => ({
-                      padding: 8,
-                      opacity: pressed ? 0.5 : 1,
-                    })}
+                    activeOpacity={0.5}
+                    style={{ padding: 8 }}
                   >
                     <Feather name="chevron-right" size={20} color={c.verde} />
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
 
                 {/* Headers L M M J V S D — width fijo 14.28% por columna */}
@@ -1381,20 +1370,18 @@ function ModalCrearRecordatorio({
                   {error}
                 </Text>
                 {errorEsPremium && (
-                  <Pressable
+                  <TouchableOpacity
                     onPress={() => {
                       onCerrar();
                       setTimeout(() => router.push('/premium'), 200);
                     }}
-                    style={({ pressed }) => ({
-                      marginTop: 8,
-                      opacity: pressed ? 0.6 : 1,
-                    })}
+                    activeOpacity={0.6}
+                    style={{ marginTop: 8 }}
                   >
                     <Text style={{ fontSize: 13, fontWeight: '700', color: c.naranja }}>
                       Probar Premium →
                     </Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 )}
               </View>
             )}

@@ -52,6 +52,26 @@ module.exports = [
 
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
+
+      // Prohíbe `style` como FUNCIÓN en JSX (el patrón `style={({ pressed }) => ...}`
+      // de Pressable).
+      //
+      // No es una preferencia de estilo: en este proyecto css-interop de NativeWind
+      // **descarta ese callback entero, sin error y sin warning**, así que el
+      // componente pierde TODO su layout. Ya pasó tres veces —el bug reapareció en
+      // 14 lugares distintos— y siempre se detectó a ojo, mirando capturas. Esta
+      // regla lo convierte en un fallo de lint, que es donde tiene que doler.
+      //
+      // Alternativa correcta: TouchableOpacity + `activeOpacity` para el feedback,
+      // y el layout en un `style` OBJETO. Ver CLAUDE.md § "style como función".
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXAttribute[name.name="style"] > JSXExpressionContainer > ArrowFunctionExpression',
+          message:
+            'No uses `style` como función (ej. style={({ pressed }) => ...}): css-interop descarta esos estilos EN SILENCIO y el componente pierde su layout. Usá TouchableOpacity con activeOpacity y un `style` objeto. Ver CLAUDE.md.',
+        },
+      ],
     },
   },
 

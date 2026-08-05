@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useColoresTema } from '@/hooks/useColoresTema';
@@ -43,18 +43,21 @@ export function UpsellPremium({
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
           <Feather name="star" size={18} color={c.naranja} />
-          <Text style={{ fontSize: 15, fontWeight: '800', color: c.negro, flex: 1, lineHeight: 20 }}>
+          <Text
+            style={{ fontSize: 15, fontWeight: '800', color: c.negro, flex: 1, lineHeight: 20 }}
+          >
             {titulo}
           </Text>
         </View>
         {onCerrar && (
-          <Pressable
+          <TouchableOpacity
             onPress={onCerrar}
             hitSlop={8}
-            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 2 })}
+            activeOpacity={0.5}
+            style={{ padding: 2 }}
           >
             <Feather name="x" size={18} color={c.grisTexto} />
-          </Pressable>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -67,9 +70,13 @@ export function UpsellPremium({
         ))}
       </View>
 
-      <Pressable
+      {/* Este era el peor de todos: el botón perdía fondo naranja, padding, bordes
+          redondeados y la fila — o sea que el CTA de premium se veía como texto
+          suelto. css-interop descarta el `style` como función. Ver CLAUDE.md. */}
+      <TouchableOpacity
         onPress={() => router.push('/premium')}
-        style={({ pressed }) => ({
+        activeOpacity={0.85}
+        style={{
           backgroundColor: c.naranja,
           paddingVertical: 12,
           paddingHorizontal: 16,
@@ -78,13 +85,11 @@ export function UpsellPremium({
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
-          opacity: pressed ? 0.85 : 1,
-          transform: [{ scale: pressed ? 0.99 : 1 }],
-        })}
+        }}
       >
         <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff' }}>Probar Premium</Text>
         <Feather name="arrow-right" size={14} color="#fff" />
-      </Pressable>
+      </TouchableOpacity>
     </View>
   );
 }

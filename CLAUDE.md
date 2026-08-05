@@ -448,7 +448,24 @@ El sospechoso es **css-interop de NativeWind**, que envuelve los componentes de 
 </TouchableOpacity>
 ```
 
-**Este es el patrón que el resto del proyecto ya usaba** (ver el link de Agenda en `app/(tabs)/index.tsx`): `Pressable` con estilos mínimos + `View` interno con el layout. Si ves ese envoltorio "de más" en el código, **no lo simplifiques** — es cicatriz, no descuido.
+**Este es el patrón que el resto del proyecto ya usaba**: touchable con estilos mínimos + `View` interno con el layout. Si ves ese envoltorio "de más" en el código, **no lo simplifiques** — es cicatriz, no descuido.
+
+> ✅ **Hay una regla de ESLint que lo impide (2026-08-05).** `no-restricted-syntax` en `eslint.config.js` falla ante cualquier `style` como función en JSX, con el mensaje explicando por qué. **No la desactives con un `eslint-disable`**: si el lint se queja, el estilo NO se iba a aplicar de todos modos.
+>
+> Se agregó porque el bug **reapareció tres veces**, siempre detectado a ojo mirando capturas de usuarios. Un bug que no falla en ningún lado vuelve para siempre; la única defensa real es que rompa el lint.
+
+> 🔎 **Cómo reconocerlo a ojo, si algún día se cuela igual:** un layout que sale **en COLUMNA cuando pediste `row`**. Es la firma del bug — el `flexDirection` se descartó y quedó el default. Así se encontró el de los botones "Volver": la flecha arriba y el texto abajo.
+
+**Barrido completo del 2026-08-05** — se convirtieron los 14 casos que quedaban. Lo que estaba perdiendo cada uno:
+
+| Dónde                     | Qué se perdía                                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 5 botones "Volver"        | `paddingHorizontal`, `flexDirection`, `gap`                                                                     |
+| `(tabs)/index.tsx` ⚙️     | El círculo de 40×40 y el centrado del ícono                                                                     |
+| `(tabs)/index.tsx` Agenda | El `paddingHorizontal: 24` (fila pegada al borde)                                                               |
+| `RecetaCard`              | El `marginBottom: 28` (cards pegadas entre sí)                                                                  |
+| `UpsellPremium` CTA       | **Fondo naranja, padding, borde redondeado y la fila** ← el peor: el botón de premium se veía como texto suelto |
+| `agenda.tsx` (7 casos)    | Paddings de los chevrons, `marginTop` y filas de los links                                                      |
 
 ### `newArchEnabled` en app.json
 

@@ -1,4 +1,4 @@
-import { View, Text, Pressable, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Receta } from '@/types';
@@ -29,14 +29,13 @@ export function RecetaCard({ receta }: RecetaCardProps) {
     }
   };
 
+  // El `marginBottom` viajaba dentro del `style` como función y se descartaba, así
+  // que las cards del catálogo quedaban pegadas entre sí. Estilo OBJETO. Ver CLAUDE.md.
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={() => router.push(`/receta/${receta.id}`)}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.92 : 1,
-        transform: [{ scale: pressed ? 0.99 : 1 }],
-        marginBottom: 28,
-      })}
+      activeOpacity={0.92}
+      style={{ marginBottom: 28 }}
     >
       {/* Imagen / fallback */}
       <View
@@ -176,7 +175,7 @@ export function RecetaCard({ receta }: RecetaCardProps) {
           {ETAPA_LABEL[etapaPrimaria]}
         </Text>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 

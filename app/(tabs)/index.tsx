@@ -1,13 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Image,
-  Pressable,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnuncioBanner } from '@/components/AnuncioBanner';
 import { router } from 'expo-router';
@@ -135,20 +127,22 @@ export default function HomeScreen() {
               >
                 {fechaLarga}
               </Text>
-              <Pressable
+              {/* Estilo OBJETO, no callback: css-interop descarta el bloque entero
+                  y el ícono perdía su círculo de 40×40 y el centrado. Ver CLAUDE.md. */}
+              <TouchableOpacity
                 onPress={() => router.push('/(tabs)/perfil')}
                 hitSlop={8}
-                style={({ pressed }) => ({
+                activeOpacity={0.6}
+                style={{
                   width: 40,
                   height: 40,
                   borderRadius: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  opacity: pressed ? 0.6 : 1,
-                })}
+                }}
               >
                 <Feather name="settings" size={20} color={c.grisTexto} />
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
             {/* Saludo editorial */}
@@ -412,12 +406,12 @@ export default function HomeScreen() {
                   marginBottom: 24,
                 }}
               />
-              <Pressable
+              {/* El View interno con el layout ya estaba bien; lo que se perdía era el
+                  paddingHorizontal del callback, que dejaba la fila pegada al borde. */}
+              <TouchableOpacity
                 onPress={() => router.push('/agenda')}
-                style={({ pressed }) => ({
-                  paddingHorizontal: 24,
-                  opacity: pressed ? 0.6 : 1,
-                })}
+                activeOpacity={0.6}
+                style={{ paddingHorizontal: 24 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                   <View
@@ -449,7 +443,7 @@ export default function HomeScreen() {
                   </View>
                   <Feather name="arrow-right" size={18} color={c.grisTexto} />
                 </View>
-              </Pressable>
+              </TouchableOpacity>
             </>
           )}
         </ScrollView>
@@ -602,13 +596,9 @@ function HeroDia({ receta }: { receta: Receta }) {
   const etapaInfo = getEtapaInfo(etapaPrimaria);
 
   return (
-    <Pressable
-      onPress={() => router.push(`/receta/${receta.id}`)}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.92 : 1,
-        transform: [{ scale: pressed ? 0.99 : 1 }],
-      })}
-    >
+    // Acá el callback solo traía feedback al tocar, así que no se perdía layout —
+    // pero tampoco funcionaba. Con TouchableOpacity el feedback existe de verdad.
+    <TouchableOpacity onPress={() => router.push(`/receta/${receta.id}`)} activeOpacity={0.92}>
       {/* Imagen / fallback */}
       <View
         style={{
@@ -691,7 +681,7 @@ function HeroDia({ receta }: { receta: Receta }) {
           {ETAPA_LABEL[etapaPrimaria]}
         </Text>
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
