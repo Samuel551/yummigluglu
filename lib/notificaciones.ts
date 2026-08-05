@@ -41,9 +41,7 @@ async function configurarChannelsAndroid() {
   await Notifications.setNotificationChannelAsync(CHANNEL_ALARMA, {
     name: 'Alarmas',
     importance: Notifications.AndroidImportance.MAX,
-    vibrationPattern: [
-      0, 500, 250, 500, 250, 500, 250, 500, 250, 500, 250, 500, 250, 500,
-    ],
+    vibrationPattern: [0, 500, 250, 500, 250, 500, 250, 500, 250, 500, 250, 500, 250, 500],
     lightColor: '#FF0000',
     enableLights: true,
     enableVibrate: true,
@@ -84,11 +82,24 @@ export async function tienePermisosNotificaciones(): Promise<boolean> {
 
 export type ModoNotificacion = 'notificacion' | 'alarma';
 
-interface NotificacionData {
+/**
+ * `type` y NO `interface`, aunque parezca lo mismo.
+ *
+ * `Notifications.scheduleNotificationAsync` tipa `data` como
+ * `Record<string, unknown>`. Una **interface** NO es asignable a ese tipo
+ * ("Index signature for type 'string' is missing"), porque una interface se
+ * puede ampliar después con `declare module` y TypeScript no puede garantizar
+ * qué claves va a tener. Un **type alias** es cerrado, así que sí obtiene la
+ * index signature implícita y compila.
+ *
+ * La alternativa fea sería agregar `[key: string]: unknown`, pero eso abre el
+ * tipo a cualquier clave y perdés justamente la validación que se busca acá.
+ */
+type NotificacionData = {
   recordatorio_id?: string;
   perfil_hijo_id?: string;
   tipo?: string;
-}
+};
 
 function channelParaModo(modo: ModoNotificacion): string {
   return modo === 'alarma' ? CHANNEL_ALARMA : CHANNEL_NOTIFICACION;
@@ -171,8 +182,7 @@ export async function programarNotificacionDiaria(
       data,
       sound: 'default',
       sticky: modo === 'alarma',
-      ...(Platform.OS === 'ios' &&
-        modo === 'alarma' && { interruptionLevel: 'critical' as const }),
+      ...(Platform.OS === 'ios' && modo === 'alarma' && { interruptionLevel: 'critical' as const }),
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,

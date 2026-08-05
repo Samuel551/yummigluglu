@@ -559,10 +559,15 @@ function DiaEditorial({
   dia: DiaSemana;
   fecha: Date;
   esHoy: boolean;
+  // `null` y no `undefined` a propósito: es lo que dice el dominio.
+  // `DiasPlan` es `Record<DiaSemana, Record<MomentoDia, string | null>>`, o sea
+  // que un hueco sin receta ES null. El componente declaraba `undefined` y no
+  // coincidía con lo que le pasa el padre. Adentro solo se consulta por verdad
+  // (`recetaId && ...`), así que el cambio no altera el comportamiento.
   momentos: Array<{
     momento: MomentoDia;
-    recetaId: string | undefined;
-    recetaNombre: string | null | undefined;
+    recetaId: string | null;
+    recetaNombre: string | null;
   }>;
   c: ReturnType<typeof useColoresTema>;
 }) {

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Yummi Glu Glu — Alimentación infantil</title>
+    <meta
+      name="description"
+      content="Yummi Glu Glu: recetas y acompañamiento en la alimentación de tu bebé, de los 6 meses a los 5 años."
+    />
+    <style>
+      :root {
+        --fondo: #f7f5f0;
+        --negro: #1a1714;
+        --gris: #6b6560;
+        --verde: #2d9b5a;
+        --borde: #e5e1db;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--fondo);
+        color: var(--negro);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.6;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      main {
+        max-width: 560px;
+        width: 100%;
+        text-align: center;
+      }
+      .emoji {
+        font-size: 64px;
+        line-height: 1;
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: 32px;
+        letter-spacing: -0.6px;
+        margin: 0 0 8px;
+      }
+      p.bajada {
+        color: var(--gris);
+        margin: 0 0 32px;
+      }
+      nav {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      a.enlace {
+        display: block;
+        background: #fff;
+        border: 1px solid var(--borde);
+        border-radius: 14px;
+        padding: 16px 20px;
+        text-decoration: none;
+        color: var(--negro);
+        font-weight: 600;
+        transition: border-color 0.15s ease;
+      }
+      a.enlace:hover {
+        border-color: var(--verde);
+      }
+      a.enlace small {
+        display: block;
+        font-weight: 400;
+        color: var(--gris);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+      footer {
+        margin-top: 32px;
+        color: var(--gris);
+        font-size: 13px;
+      }
+      footer a {
+        color: var(--verde);
+      }
+      /* La app tiene modo oscuro; esta página lo respeta para no encandilar
+         a quien la abra de noche desde el teléfono. */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fondo: #121212;
+          --negro: #f0ede8;
+          --gris: #a8a29c;
+          --borde: #2e2a26;
+        }
+        a.enlace {
+          background: #1e1e1e;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="emoji">🥑</div>
+      <h1>Yummi Glu Glu</h1>
+      <p class="bajada">Alimentación inteligente para tu bebé</p>
+
+      <nav>
+        <a class="enlace" href="./privacidad.html">
+          Política de Privacidad
+          <small>Qué datos recopilamos, para qué y cómo los protegemos</small>
+        </a>
+        <a class="enlace" href="./eliminar-cuenta.html">
+          Eliminar tu cuenta
+          <small>Cómo borrar tu cuenta y todos tus datos</small>
+        </a>
+      </nav>
+
+      <footer>
+        ¿Dudas o sugerencias? Escríbenos a
+        <a href="mailto:samfrasan@gmail.com">samfrasan@gmail.com</a>
+      </footer>
+    </main>
+  </body>
+</html>
