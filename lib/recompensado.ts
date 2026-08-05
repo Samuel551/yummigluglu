@@ -1,5 +1,6 @@
 import { cargarModuloAds, getRecompensadoUnitId } from '@/lib/ads';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
+import { useAuthStore } from '@/store/useAuthStore';
 
 /**
  * Manager singleton del anuncio recompensado (rewarded).
@@ -38,11 +39,23 @@ function crearYcargar(): void {
   if (!mod || ocultarAnuncios()) return;
   if (cargando || recompensado) return;
 
+  // El `userId` va DENTRO de la petición del anuncio y Google lo devuelve
+  // firmado en el callback SSV. Es lo que ata "alguien vio un anuncio" a "ESTE
+  // usuario vio un anuncio", sin que el cliente pueda mentir.
+  //
+  // Sin sesión no se crea el anuncio: un callback sin `user_id` no se puede
+  // atribuir y el crédito se perdería. Se reintenta al cerrar el siguiente ad o
+  // en la próxima llamada a `precargarRecompensado`, ya con el usuario cargado.
+  const userId = useAuthStore.getState().usuario?.id;
+  if (!userId) return;
+
   const { RewardedAd, RewardedAdEventType, AdEventType } = mod;
   cargando = true;
   cargado = false;
 
-  const ad = RewardedAd.createForAdRequest(getRecompensadoUnitId());
+  const ad = RewardedAd.createForAdRequest(getRecompensadoUnitId(), {
+    serverSideVerificationOptions: { userId },
+  });
 
   ad.addAdEventListener(RewardedAdEventType.LOADED, () => {
     cargado = true;

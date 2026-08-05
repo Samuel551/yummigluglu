@@ -343,7 +343,26 @@ La asignación de grupos se hizo con `ntile(4)` sobre `md5(id::text)` particiona
 
 > ⚠️ **`video_url` en la tabla base `recetas` es legible por `authenticated` vía query directa** (RLS es row-level, no column-level). El gateo del video es solo para el flujo normal de la app (vía la vista). Aceptable: los videos son de YouTube **no listado** (ya son "seguridad por oscuridad"); un user técnico que saca la URL igual podría verla. El gate es para la UX, no DRM real.
 
-**Limitación conocida (hardening futuro)**: sin Server-Side Verification (SSV) de AdMob, `canjear-desbloqueo` confía en que el cliente vio el ad. Daño máximo: un user técnico se regala un desbloqueo de video 24h — riesgo bajo. Cerrar con SSV en el ad unit rewarded.
+**Server-Side Verification (SSV) — cerrado el 2026-08-05.** Antes `canjear-desbloqueo` le creía al cliente cuando decía "vi el anuncio". Ahora la única prueba válida es el callback FIRMADO que Google manda servidor a servidor.
+
+**Modelo de CRÉDITOS, y el porqué es así:** `serverSideVerificationOptions` solo se puede pasar al **crear** el anuncio, y el rewarded se precarga al abrir la app — cuando todavía no se sabe qué receta va a querer el usuario. Crearlo recién al pedirlo cerraría el problema pero le mete 3-5 s de espera al único camino de monetización. Por eso el callback **no concede una receta: concede un crédito** al usuario, y él elige después qué desbloquear. Que elija QUÉ no es un problema —ya se ganó el desbloqueo—; lo que no puede es **fabricar** el crédito.
+
+Flujo completo:
+
+1. `lib/recompensado.ts` crea el ad con `serverSideVerificationOptions: { userId }`. **Sin sesión no se crea el anuncio**: un callback sin `user_id` no se puede atribuir y el crédito se perdería.
+2. El usuario ve el ad completo → Google llama a **`ssv-recompensa`** (`verify_jwt` **OFF**, la autenticación ES la firma).
+3. Esa función verifica firma + frescura + idempotencia e inserta una fila en `ssv_transacciones_procesadas`. Esa fila **es** el crédito (migraciones `036` y `037`).
+4. El cliente llama a `canjear-desbloqueo`, que **busca y consume** un crédito libre y recién ahí concede las 24h.
+
+> ⚠️ **Falta un paso de owner: cargar la URL del callback en AdMob.** Sin eso Google nunca llama y **ningún desbloqueo funciona**. AdMob → Apps → Yummi Glu Glu → Bloques de anuncios → el rewarded → Editar → _Verificación del lado del servidor_ → `https://uoqzkbbnesmvmgbjikrn.supabase.co/functions/v1/ssv-recompensa`
+
+> ⚠️ **El canje REINTENTA (5 × 1,5 s) a propósito.** El callback de Google llega unos segundos después de que el ad termina, así que un `409 sin_credito` en el primer intento es **lo normal**, no un fallo. Si se sacan los reintentos, el usuario ve el anuncio y no recibe nada.
+
+> ⚠️ **`node:crypto` y NO Web Crypto para verificar la firma.** Google firma en formato **DER** y `crypto.subtle.verify` con ECDSA espera el formato crudo (r‖s) — habría que convertir a mano. `createVerify` entiende DER directo. Las claves son **P-256** (verificado contra `verifier-keys.json`); si fueran secp256k1 el Edge Runtime no las soportaría.
+
+> ⚠️ **El contenido firmado se toma de la query string CRUDA**, no reconstruida con `URLSearchParams`: reconstruirla cambia encoding y orden, y la firma deja de validar. Es todo lo que hay antes de `&signature=`.
+
+> ✅ **Dos defensas para el replay**: ventana de frescura de 10 min sobre `timestamp` (barata, no toca la base) + `transaction_id` como PK (cierra el caso del todo). La firma por sí sola no caduca, así que reenviar una URL capturada sería válido sin esto.
 
 ### Libraries (`lib/`)
 

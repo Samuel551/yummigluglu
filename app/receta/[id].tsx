@@ -185,12 +185,22 @@ export default function DetalleRecetaScreen() {
     }
     setProcesandoRecompensa(true);
     const gano = await mostrarRecompensado();
-    if (gano && (await desbloquear(id))) {
-      await cargarReceta(); // la vista ahora devuelve el contenido completo
-    } else if (!gano) {
+    if (!gano) {
       Alert.alert(
         'Anuncio incompleto',
         'Necesitas ver el anuncio completo para desbloquear la receta.'
+      );
+    } else if (await desbloquear(id)) {
+      await cargarReceta(); // la vista ahora devuelve el contenido completo
+    } else {
+      // Vio el anuncio pero el canje no prosperó. Desde que la verificación es
+      // server-side esto tiene un caso legítimo: el callback de Google todavía
+      // no llegó tras los reintentos. Antes este camino era casi imposible y
+      // quedaba en silencio; ahora hay que decir algo o el usuario cree que
+      // perdió la recompensa.
+      Alert.alert(
+        'Un momento',
+        'Estamos confirmando tu recompensa con el anuncio. Vuelve a intentarlo en unos segundos.'
       );
     }
     setProcesandoRecompensa(false);

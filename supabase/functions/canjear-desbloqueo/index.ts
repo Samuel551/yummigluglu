@@ -1,23 +1,26 @@
 // ============================================================
 // Yummi Glu Glu — Canjear desbloqueo (rewarded ad)
 //
-// El cliente llama a esta función DESPUÉS de que el usuario completó un
-// anuncio recompensado (rewarded). La función crea/renueva un desbloqueo
-// de 24h para una receta premium, usando service_role (el cliente NO puede
-// escribir la tabla `desbloqueos_temporales` directamente).
+// El cliente llama a esta función DESPUÉS de que el usuario completó un anuncio
+// recompensado. Crea/renueva un desbloqueo de 24h para una receta premium.
+//
+// 🔒 CAMBIO IMPORTANTE (2026-08-05): esta función YA NO le cree al cliente.
+//
+// Antes bastaba con llamarla diciendo "vi el anuncio" y concedía el desbloqueo,
+// así que un usuario técnico podía regalárselos sin ver nada. Ahora exige un
+// CRÉDITO en `ssv_transacciones_procesadas`, y esos créditos solo los crea la
+// función `ssv-recompensa` cuando Google le manda un callback FIRMADO.
+//
+// El crédito no está atado a una receta: se emite al usuario y él elige acá qué
+// desbloquear. Que elija QUÉ no es un problema de seguridad —ya se ganó el
+// desbloqueo—; lo que no puede es fabricar el crédito.
 //
 // Seguridad:
-//   - Identifica al usuario por su JWT (Authorization), no confía en un id
-//     mandado por el cliente.
+//   - Identifica al usuario por su JWT, no por un id del body.
+//   - Exige y CONSUME un crédito verificado por firma de Google.
 //   - Valida que la receta exista, esté activa y sea premium.
-//   - Upsert idempotente por (user_id, receta_id): re-ver el ad extiende la
-//     expiración, no crea duplicados.
 //
-// LIMITACIÓN CONOCIDA (hardening futuro): sin Server-Side Verification (SSV)
-// de AdMob, la función confía en que el cliente vio el ad. El daño máximo es
-// que un usuario técnico se regale un desbloqueo de 24h sin ver el anuncio —
-// riesgo bajo (una receta, no dinero). Para cerrarlo: configurar SSV en el
-// ad unit rewarded y validar el callback firmado de Google antes del upsert.
+// Deploy: supabase functions deploy canjear-desbloqueo   (verify_jwt ON)
 // ============================================================
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -31,7 +34,7 @@ const DURACION_HORAS = 24;
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Access-Control-Allow-Headers': 'authorization, content-type, x-client-info, apikey',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -55,7 +58,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Falta autenticación' }, 401);
   }
 
-  // 1. Identificar al usuario por su JWT (no confiamos en ids del body).
+  // ── 1. Identidad por JWT ──────────────────────────────────────────────────
   const supabaseUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -67,7 +70,7 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Sesión inválida' }, 401);
   }
 
-  // 2. Validar el recetaId del body.
+  // ── 2. Validar el recetaId ────────────────────────────────────────────────
   let recetaId = '';
   try {
     const body = await req.json();
@@ -79,8 +82,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'recetaId inválido' }, 400);
   }
 
-  // 3. Verificar la receta (existe, activa, y es premium) con service_role.
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // ── 3. Verificar la receta ANTES de gastar el crédito ─────────────────────
+  // El orden importa: si se consumiera primero y la receta resultara inválida,
+  // el usuario perdería un crédito que se ganó viendo un anuncio completo.
   const { data: receta, error: recErr } = await admin
     .from('recetas')
     .select('id, es_premium, activa')
@@ -90,12 +96,49 @@ Deno.serve(async (req) => {
   if (recErr || !receta || !receta.activa) {
     return jsonResponse({ error: 'Receta no encontrada' }, 404);
   }
-  // Desbloquear una receta gratuita no tiene sentido — no gastamos un canje.
   if (!receta.es_premium) {
+    // Desbloquear una receta gratuita no tiene sentido: se devuelve OK sin
+    // gastar el crédito, que le queda al usuario para otra.
     return jsonResponse({ ok: true, ignorado: 'receta_gratuita' }, 200);
   }
 
-  // 4. Upsert del desbloqueo (extiende expiración si ya existía).
+  // ── 4. Buscar un crédito libre ────────────────────────────────────────────
+  const { data: credito } = await admin
+    .from('ssv_transacciones_procesadas')
+    .select('transaction_id')
+    .eq('user_id', user.id)
+    .is('consumido_at', null)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!credito) {
+    // El callback de Google puede tardar unos segundos, así que esto no es
+    // necesariamente fraude: puede ser que todavía no llegó. El cliente
+    // reintenta unas veces antes de darse por vencido.
+    return jsonResponse({ error: 'sin_credito' }, 409);
+  }
+
+  // ── 5. Consumirlo ─────────────────────────────────────────────────────────
+  // El `.is('consumido_at', null)` en el UPDATE es el candado: si dos peticiones
+  // corren a la vez por el mismo crédito, solo una matchea filas. Sin ese guard
+  // las dos leerían el mismo crédito libre y se concederían dos desbloqueos.
+  const { data: consumido, error: consErr } = await admin
+    .from('ssv_transacciones_procesadas')
+    .update({ consumido_at: new Date().toISOString(), consumido_receta_id: recetaId })
+    .eq('transaction_id', credito.transaction_id)
+    .is('consumido_at', null)
+    .select('transaction_id');
+
+  if (consErr) {
+    return jsonResponse({ error: consErr.message }, 500);
+  }
+  if (!consumido || consumido.length === 0) {
+    // Otra petición se lo llevó entre el SELECT y el UPDATE.
+    return jsonResponse({ error: 'sin_credito' }, 409);
+  }
+
+  // ── 6. Conceder el desbloqueo ─────────────────────────────────────────────
   const expiresAt = new Date(Date.now() + DURACION_HORAS * 3600 * 1000).toISOString();
   const { error: upErr } = await admin
     .from('desbloqueos_temporales')
