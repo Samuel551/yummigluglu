@@ -41,8 +41,18 @@ corren igual. Es el que más caro sale postergar.
 
 El 3 se puede mandar en paralelo mientras arreglás el 1 — los testers tardan en instalar.
 
-**Lo que NO se puede hacer todavía** (necesita acceso a producción, o sea después de los
-14 días): crear los productos de suscripción y mapearlos a entitlements.
+## 🔒 Bloqueado hasta PRODUCCIÓN (no insistir antes)
+
+Todo esto necesita que la app esté **públicamente publicada**. Verificado el 2026-08-05:
+
+| Tarea                                   | Por qué no se puede antes                                                                           |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Vincular AdMob ↔ ficha de Play          | El buscador de AdMob solo ve el **catálogo público** de Play. Una app en prueba cerrada no aparece. |
+| `app-ads.txt` validado                  | AdMob lo rastrea desde el sitio del desarrollador **de la ficha vinculada**, que no existe todavía. |
+| Productos de suscripción → entitlements | Requiere acceso a producción en Play Console.                                                       |
+| Service Account de Play → RevenueCat    | Decisión del owner: se hace al pasar a producción, junto con el resto del cobro.                    |
+
+> **Consecuencia del punto 1 mientras tanto**: la app queda en _limited ad serving_ (en AdMob figura como **"Estado de aprobación: Debe revisarse"**). **Es esperable y no es un bug.** Durante la prueba cerrada da igual: 12 testers no generan ingresos.
 
 **El build (6) incluye 4 cosas que hoy NO están en el dispositivo de nadie:**
 
@@ -118,6 +128,24 @@ La cuenta de AdMob ya está aprobada y con pagos verificados por el Himnario. Es
 - [ ] Vincular la app de AdMob con la ficha de Play — **cierra el _limited ad serving_**
 
 > **Esperable, no es bug**: una app nueva en AdMob que todavía no está vinculada a su ficha de tienda arranca con _limited ad serving_ — sirve poco o nada. Se normaliza al vincularla y publicarla. No pierdas la noche debuggeando eso.
+
+- [ ] 🔒 **`app-ads.txt`** — archivo ya creado en `web/app-ads.txt`, falta publicarlo y declararlo
+
+  Contenido (una línea; el publisher sale del App ID de `app.json`, verificado):
+
+  ```
+  google.com, pub-8216818579305822, DIRECT, f08c47fec0942fa0
+  ```
+
+  **Qué es**: la declaración pública de quién puede vender tu inventario publicitario. Sin él, buena parte de los compradores **no puja** por tu inventario — no es una penalización, es que no te ven. Por eso AdMob avisa de "pérdida significativa de ingresos".
+
+  **Dónde va**: en la RAÍZ del dominio que declares como _sitio web del desarrollador_ en la ficha de Play. AdMob lee ese campo y busca `https://TU-DOMINIO/app-ads.txt`.
+
+  > ⚠️ **NO usar el dominio `*.workers.dev`.** Es un dominio **compartido** (está en la Public Suffix List, como `github.io`), y los rastreadores de app-ads.txt resuelven al dominio registrable — ahí la validación se vuelve ambigua. El lugar correcto es **`yummigluglu.com`**, que ya está registrado y con DNS en Cloudflare.
+  >
+  > Camino recomendado: agregar `yummigluglu.com` como **dominio personalizado** del Worker en Cloudflare y servir desde ahí las 4 páginas (`index`, `privacidad`, `eliminar-cuenta`, `app-ads.txt`). De paso quedan URLs profesionales para la ficha de Play.
+
+  > ℹ️ Tras publicar el archivo, **AdMob tarda ~24 h en rastrearlo**. La advertencia no desaparece al instante.
 
 ### A3. RevenueCat + Play Billing
 
