@@ -23,23 +23,44 @@ Lo que queda es **calendario y trámites externos**, no trabajo de desarrollo.
 
 Los 3 dependen de la Play Console, no del repo.
 
-## 📌 Plan para mañana (2026-08-04)
+## 📌 Plan para mañana (2026-08-06) — EL BUILD
 
-Ordenado por lo que desbloquea más, no por lo que cuesta menos.
+Es lo único que queda. **No hay más trabajo de código pendiente.**
 
-| #   | Tarea                                                               | Dónde               | Desbloquea                            |
-| --- | ------------------------------------------------------------------- | ------------------- | ------------------------------------- |
-| 1   | **Arreglar el login con Google** — SHA-1 de Play + publicar consent | Google Cloud + Play | Que los testers puedan ENTRAR (§A4)   |
-| 2   | **Service Account de Play → RevenueCat**                            | Google Cloud + Play | Que RevenueCat valide compras (§A3)   |
-| 3   | Mandar el link de opt-in a los 12 testers                           | WhatsApp            | Arranca el reloj de los 14 días (§A1) |
-| 4   | Vincular AdMob ↔ ficha de Play                                      | AdMob               | Cierra el _limited ad serving_ (§A2)  |
-| 5   | Google developer notifications                                      | Play + RevenueCat   | Renovaciones al instante (§A3)        |
-| 6   | Build nuevo + QA en dispositivo                                     | EAS                 | Lleva los últimos 3 fixes (§C3, §D)   |
+```
+1. eas build -p android --profile preview      → APK solo para el owner
+2. Instalarlo y probar a fondo                 → los testers ni se enteran si algo sale mal
+3. eas build -p android --profile production   → AAB
+4. INSTALARLO Y ABRIRLO ANTES DE SUBIRLO       → ver nota de abajo
+5. Subir al canal de prueba cerrada
+6. Los testers terminan los 14 días con la app CORREGIDA
+```
 
-**Empezar por el 1.** Un tester que no puede entrar no te da NINGÚN feedback, y los 14 días
-corren igual. Es el que más caro sale postergar.
+> 🔴 **El paso 4 no se saltea por confianza.** Es el único que atrapa el crash por variables
+> de entorno faltantes, que es el riesgo nº1 de esta tabla (`lib/supabase.ts` lanza excepción
+> al arrancar si falta la URL o la anon key → pantalla negra, no degradación).
 
-El 3 se puede mandar en paralelo mientras arreglás el 1 — los testers tardan en instalar.
+**Por qué el build va AHORA y no al terminar la prueba:** si se buildea al final, se publica
+en producción un binario **que nadie probó**. Los testers habrían pasado 14 días con la
+versión del 2 de agosto, y lo que se lanza tiene RevenueCat v10 (SDK de **pagos**),
+keyboard-controller en 7 pantallas, SSV y 13 componentes tocados. La prueba no habría
+validado nada de eso.
+
+**Qué probar sí o sí en el paso 2:**
+
+- [ ] Abrir la app (no crashea → las env vars llegaron)
+- [ ] Teclado en login, register y NutriBot: entra y sale sin dejar espacio muerto
+- [ ] Botones "Volver": con margen y en fila, no apilados
+- [ ] Perfil → Cuenta → **Eliminar cuenta** aparece y el doble Alert funciona
+- [ ] **Usuario premium: CERO anuncios**, sobre todo en arranque en frío
+- [ ] Tab Videos: badge "GRATIS ESTE MES" en las libres
+- [ ] Rewarded → desbloquea el video (**requiere el SSV ya configurado en AdMob ✅**)
+- [ ] Login con Google (ya arreglado del lado de Google Cloud)
+- [ ] Panel admin: aparecen las métricas de NutriBot
+
+> ℹ️ **Sobre los testers**: NO tienen que desinstalar nada. Play actualiza el canal cerrado
+> como cualquier app, y en la mayoría es automático. **Publicar versiones nuevas NO reinicia
+> los 14 días** — iterar durante la prueba es justamente lo que Google espera.
 
 ## 🔒 Bloqueado hasta PRODUCCIÓN (no insistir antes)
 
