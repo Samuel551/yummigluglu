@@ -65,6 +65,38 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 
 > **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
 
+## Estado al 2026-08-05 — qué falta y qué NO hay que tocar
+
+**Del lado del código no queda deuda**: 0 errores de `tsc`, 0 `style` como función (hay regla de ESLint que lo impide), 0 agujeros de seguridad conocidos. La app está en **prueba cerrada** con los 12 testers corriendo los 14 días.
+
+### 🔒 Las 4 tareas bloqueadas hasta PRODUCCIÓN
+
+Todas dependen de que la app esté **publicada públicamente**. Verificado el 2026-08-05 — **no insistir antes**:
+
+| Tarea                                   | Por qué no se puede antes                                                                             |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Vincular AdMob ↔ ficha de Play          | El buscador de AdMob solo ve el **catálogo público** de Play; una app en prueba cerrada no aparece.   |
+| Validar **`app-ads.txt`**               | AdMob lo rastrea desde el sitio del desarrollador **de la ficha vinculada** → depende de la anterior. |
+| Productos de suscripción → entitlements | Requiere acceso a producción en Play Console.                                                         |
+| Service Account de Play → RevenueCat    | Decisión del owner: se hace al pasar a producción, junto con el resto del cobro.                      |
+
+Detalle completo en `docs/checklist-produccion.md` § "Bloqueado hasta PRODUCCIÓN".
+
+> ⚠️ Mientras tanto AdMob muestra **"Estado de aprobación: Debe revisarse"** y sirve pocos anuncios (_limited ad serving_). **Es la consecuencia esperada de no tener la ficha vinculada, no un bug.**
+
+### 🔴 Advertencias que NO se resuelven — son intencionales
+
+El linter de seguridad de Supabase marca cosas que **están así a propósito**. Antes de "arreglar" una, leer esto:
+
+| Advertencia                                                                             | Por qué se deja                                                                                                            |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `security_definer_view` en **`recetas_teaser`**                                         | 🔴 **NO tocar.** Es lo que gatea `video_url`. Cambiarla **rompe el desbloqueo de videos**. Ver abajo.                      |
+| `rls_enabled_no_policy` en `webhook_events_procesados` y `ssv_transacciones_procesadas` | RLS activo sin policies = solo `service_role`. Es el diseño buscado.                                                       |
+| `anon_security_definer_function_executable` (varias)                                    | `stats_admin()` valida `es_admin()` adentro; las demás son funciones de **trigger**, que Postgres no deja invocar por RPC. |
+| `auth_leaked_password_protection`                                                       | Requiere **plan Pro**. El proyecto está en Free.                                                                           |
+
+**Sobre `recetas_teaser` en particular**: la vista necesita leer `suscripciones` y `desbloqueos_temporales` para decidir si muestra el video. Con `security_invoker` correría con los permisos del usuario y **las RLS de esas tablas la bloquearían** — la vista dejaría de poder decidir. Con `security_definer` corre con permisos del creador, **pero `auth.uid()` sigue siendo el del usuario que consulta**, así que el gateo sigue siendo por-usuario. El `grant` es solo para `authenticated`. El linter ve el patrón y avisa; no puede saber que el gateo está dentro de la vista.
+
 ### Fase 6 — NutriBot IA (implementada)
 
 Chat de alimentación infantil sobre el Anthropic API (`claude-sonnet-5`). **El API key NUNCA sale del servidor**: vive en los secrets de Supabase (`ANTHROPIC_API_KEY`) y solo lo usa la Edge Function.
