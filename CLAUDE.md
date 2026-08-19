@@ -76,11 +76,16 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 | Fecha           | Qué                                            | Estado                                   |
 | --------------- | ---------------------------------------------- | ---------------------------------------- |
 | **31 ago 2026** | **Play Billing Library ≥ 8**                   | 🔴 Aviso rojo activo desde el 2026-08-04 |
-| **30 sep 2026** | **Verificación de desarrolladores de Android** | 🟡 Confirmar en el Home de Play Console  |
+| **30 sep 2026** | **Verificación de desarrolladores de Android** | ✅ **Ya registrada** (verificado 19-08)  |
 
 **Play Billing 8** — el código ya cumple: `react-native-purchases@^10.6.0` (commit `f8534cd`). ⚠️ **El aviso NO se apaga al arreglar `package.json`: se apaga al subir un AAB compilado con esa librería.** Como producción está "Inactivo", el AAB va a la **pista de prueba cerrada**, que no requiere aprobación previa y alcanza para apagar el aviso. **No atar este deadline al trámite de acceso a producción.**
 
-**Verificación de desarrolladores** — requisito nuevo, notificación del 2026-08-06. Google registró **automáticamente el 99% de las apps de Play**: la acción real es **entrar al Home de Play Console y confirmar el estado**, y registrar a mano solo si Yummi quedó fuera de ese 99%. Enforcement inicial en Brasil, Indonesia, Singapur y Tailandia; expansión global en 2027. Las apps sin registrar quedan **no instalables en dispositivos certificados de los países afectados**.
+**Verificación de desarrolladores** — ✅ **RESUELTO, no hay nada que hacer.** Verificado el 2026-08-19 en
+Play Console → _Página principal_ → **Verificación de desarrolladores de Android** → pestaña _Nombres de
+los paquetes_: las dos apps de la cuenta figuran **`Registrada`** (`com.yummigluglu.app` el 2 ago 2026,
+`com.samfrasan.himnariocomunitario` el 19 abr 2026). Google registró automáticamente el 99% de las apps
+de Play y estas entraron. Enforcement inicial en Brasil, Indonesia, Singapur y Tailandia; expansión
+global en 2027.
 
 ### 🔒 Las 4 tareas bloqueadas hasta PRODUCCIÓN
 
