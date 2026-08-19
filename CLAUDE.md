@@ -595,9 +595,24 @@ curl -s "https://repo1.maven.org/maven2/com/revenuecat/purchases/purchases/$pv/p
 
 **Superficie usada del SDK: 6 métodos, todos en `store/useSuscripcionStore.ts`** — `configure`, `logIn`, `logOut`, `getOfferings`, `purchasePackage`, `restorePurchases`. Ninguno cambió de firma entre la v8 y la v10. Esa superficie chica es lo que hace barato el salto de dos versiones mayores; si crece, el próximo bump deja de ser trivial.
 
-### `cli.appVersionSource` en eas.json
+### Versionado del build — `appVersionSource` + `autoIncrement` (LEER ANTES DE BUILDEAR)
 
-EAS CLI ya advierte que `cli.appVersionSource` será requerido. Agregar `"appVersionSource": "remote"` (o `"local"`) dentro de `"cli"` en `eas.json` para evitar el warning y futuros errores.
+`eas.json` usa `"appVersionSource": "remote"` en `cli`: el `versionCode` de Android lo lleva **EAS en el servidor**, no `app.json`.
+
+⚠️ **`"remote"` significa "leé el número del servidor", NO "subilo".** Para que EAS lo incremente hace falta además `"autoIncrement": true` **en el perfil de build**. Sin eso, EAS reusa el mismo `versionCode` en cada build y **Google Play rechaza el AAB**:
+
+> _"Ya se usó el código de la versión 1. Prueba con otro código."_
+
+Pasó el 2026-08-19: se buildeó producción sin `autoIncrement`, salió con `versionCode 1` (el mismo de la prueba cerrada) y Play lo rechazó al subirlo. **Un build entero perdido**, porque el `versionCode` va firmado dentro del AAB y no se puede editar después: hay que rebuildear sí o sí.
+
+Ya está corregido — el perfil `production` lleva `"autoIncrement": true`.
+
+```bash
+npx eas-cli build:version:get -p android   # ver el versionCode remoto actual
+npx eas-cli build:version:set -p android   # fijarlo a mano si se desincroniza
+```
+
+Play exige que cada AAB tenga un `versionCode` **estrictamente mayor** que todos los ya subidos, en cualquier pista.
 
 ### UI de auth — patrón canónico de formularios
 
