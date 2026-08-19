@@ -99,7 +99,10 @@ verificados (package, publisher de AdMob, dominio, dependencias). Se ejecuta de 
 
 > ✅ **El paso 0 del runbook NO está bloqueado**: `yummigluglu.com` ya está registrado en Cloudflare,
 > así que publicar las 4 páginas de `web/` en el dominio propio se puede hacer **hoy**, sin esperar a
-> Google. Hoy `index.html` y `app-ads.txt` siguen sin publicar.
+> Google. **Verificado con `curl` el 2026-08-19**: las 4 páginas ya están publicadas y sirven 200 en
+> `workers.dev`; lo que falta es el dominio propio — `yummigluglu.com` **no tiene registros A/AAAA**
+> (hoy solo sirve mail vía los TXT de Resend). No hay que resubir archivos, solo agregar el Custom
+> Domain al Worker.
 
 > 🔴 **El paso 5 (QA de compras) no se saltea**: `react-native-purchases` saltó de `^8.9.0` a
 > `^10.6.0` y **ese flujo nunca se reprobó en dispositivo**.
