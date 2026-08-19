@@ -24,42 +24,44 @@
 
 ---
 
-## Paso 0 — NO está bloqueado: hacerlo YA
+## Paso 0 — ✅ HECHO el 2026-08-19 (dominio propio publicado)
 
-### Estado real, verificado el 2026-08-19 (no de memoria — con `curl`)
+`yummigluglu.com` quedó agregado como **Custom Domain** del Worker `yummigluglu-web`
+(Cloudflare → Workers → `yummigluglu-web` → pestaña **Dominios** → _Añadir dominio_).
 
-| URL                                                          | Estado          |
-| ------------------------------------------------------------ | --------------- |
-| `yummigluglu-web.samfrasan.workers.dev/`                     | ✅ 200          |
-| `yummigluglu-web.samfrasan.workers.dev/app-ads.txt`          | ✅ 200          |
-| `yummigluglu-web.samfrasan.workers.dev/privacidad.html`      | ✅ 200          |
-| `yummigluglu-web.samfrasan.workers.dev/eliminar-cuenta.html` | ✅ 200          |
-| `yummigluglu.com/`                                           | ❌ sin resolver |
-| `yummigluglu.com/app-ads.txt`                                | ❌ sin resolver |
+> 📍 **Dónde está la opción**: es una **pestaña propia del Worker llamada "Dominios"**, al lado de
+> _Access_. **NO** está dentro de _Configuración_, ni en el panel del dominio de la barra izquierda.
+> El vínculo se crea **desde el Worker**, no desde el dominio.
 
-**Las 4 páginas YA están publicadas.** El contenido servido de `app-ads.txt` coincide exacto con
-`web/app-ads.txt`. Notas viejas que decían que `index.html` y `app-ads.txt` estaban sin publicar
-quedaron **desactualizadas**: se subieron después del 2026-08-05.
+### Verificación con `curl` — 2026-08-19
 
-`yummigluglu.com` **no tiene registros A/AAAA**. El dominio hoy sirve solo para **mail** (los TXT de
-DKIM/SPF de Resend). Como web, no apunta a ningún lado.
+```
+DNS  yummigluglu.com  →  104.21.25.221 · 172.67.134.203   (Cloudflare)
 
-### Lo único que falta
+yummigluglu.com/                     -> 200
+yummigluglu.com/app-ads.txt          -> 200
+yummigluglu.com/privacidad.html      -> 200
+yummigluglu.com/eliminar-cuenta.html -> 200
+```
 
-1. Cloudflare → Worker `yummigluglu-web` → **Custom Domains** → agregar `yummigluglu.com`
-2. Verificar que respondan 200:
-   - `https://yummigluglu.com/app-ads.txt`
-   - `https://yummigluglu.com/privacidad.html`
-   - `https://yummigluglu.com/eliminar-cuenta.html`
-3. En la ficha de Play, apuntar **sitio web del desarrollador** y política de privacidad a
-   `yummigluglu.com` (no al `workers.dev`)
+El `app-ads.txt` servido es **byte a byte idéntico** a `web/app-ads.txt`:
 
-> 💡 **No hay que volver a subir nada.** Es el mismo Worker con los mismos archivos: al agregar el
-> dominio personalizado, las 4 páginas quedan servidas también desde `yummigluglu.com`.
+```
+google.com, pub-8216818579305822, DIRECT, f08c47fec0942fa0
+```
 
-> ⚠️ **`app-ads.txt` NUNCA va en `*.workers.dev`**: es dominio compartido (Public Suffix List, como
-> `github.io`). Los rastreadores resuelven al dominio registrable y la validación queda ambigua.
-> Por eso hace falta el dominio propio aunque el archivo ya esté publicado y sea correcto.
+No hubo que resubir archivos: el mismo Worker con los mismos assets pasó a servirse también desde
+el dominio propio.
+
+### ⏳ Lo que queda del paso 0
+
+- [ ] En la **ficha de Play**, apuntar **sitio web del desarrollador** y **política de privacidad**
+      a `yummigluglu.com` (hoy siguen apuntando al `workers.dev`)
+
+> ⚠️ Esto **no es cosmético**: AdMob rastrea `app-ads.txt` desde el sitio del desarrollador **que
+> figura en la ficha de Play**. Si la ficha sigue apuntando a `*.workers.dev`, el archivo correcto en
+> el dominio correcto **no se valida igual** — `workers.dev` es dominio compartido (Public Suffix
+> List, como `github.io`) y la validación queda ambigua.
 
 > 💡 Cloudflare hace **clean URLs**: `/privacidad.html` devuelve **307** hacia `/privacidad`, que da 200. Un `curl` sin `-L` parece roto y **no lo está**.
 

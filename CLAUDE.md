@@ -97,12 +97,11 @@ Todas dependen de que la app esté **publicada públicamente**. Verificado el 20
 **Cómo se hace** → 📕 **`docs/runbook-produccion.md`** — runbook del día D, con los valores ya
 verificados (package, publisher de AdMob, dominio, dependencias). Se ejecuta de arriba hacia abajo.
 
-> ✅ **El paso 0 del runbook NO está bloqueado**: `yummigluglu.com` ya está registrado en Cloudflare,
-> así que publicar las 4 páginas de `web/` en el dominio propio se puede hacer **hoy**, sin esperar a
-> Google. **Verificado con `curl` el 2026-08-19**: las 4 páginas ya están publicadas y sirven 200 en
-> `workers.dev`; lo que falta es el dominio propio — `yummigluglu.com` **no tiene registros A/AAAA**
-> (hoy solo sirve mail vía los TXT de Resend). No hay que resubir archivos, solo agregar el Custom
-> Domain al Worker.
+> ✅ **Paso 0 HECHO (2026-08-19)**: `yummigluglu.com` quedó como Custom Domain del Worker
+> `yummigluglu-web`. Verificado con `curl`: las 4 páginas dan **200** y el `app-ads.txt` servido es
+> idéntico al del repo. **Queda un pendiente**: apuntar en la ficha de Play el _sitio web del
+> desarrollador_ y la _política de privacidad_ a `yummigluglu.com` — hoy siguen en el `workers.dev`,
+> y AdMob rastrea `app-ads.txt` desde el sitio **que figura en la ficha**.
 
 > 🔴 **El paso 5 (QA de compras) no se saltea**: `react-native-purchases` saltó de `^8.9.0` a
 > `^10.6.0` y **ese flujo nunca se reprobó en dispositivo**.
