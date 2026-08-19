@@ -65,9 +65,22 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 
 > **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
 
-## Estado al 2026-08-05 — qué falta y qué NO hay que tocar
+## Estado al 2026-08-19 — qué falta y qué NO hay que tocar
 
-**Del lado del código no queda deuda**: 0 errores de `tsc`, 0 `style` como función (hay regla de ESLint que lo impide), 0 agujeros de seguridad conocidos. La app está en **prueba cerrada** con los 12 testers corriendo los 14 días.
+**Del lado del código no queda deuda**: 0 errores de `tsc`, 0 `style` como función (hay regla de ESLint que lo impide), 0 agujeros de seguridad conocidos.
+
+**Prueba cerrada COMPLETA** (2026-08-19): los 3 requisitos tachados en Play Console — versión publicada, 12+ verificadores, 14 días corridos. **Solicitud de acceso a producción enviada**, Google revisa en 7 días o menos. Producción sigue figurando **"Inactivo"** hasta que aprueben.
+
+### ⏰ Deadlines de Google — con fecha, no negociables
+
+| Fecha           | Qué                                            | Estado                                   |
+| --------------- | ---------------------------------------------- | ---------------------------------------- |
+| **31 ago 2026** | **Play Billing Library ≥ 8**                   | 🔴 Aviso rojo activo desde el 2026-08-04 |
+| **30 sep 2026** | **Verificación de desarrolladores de Android** | 🟡 Confirmar en el Home de Play Console  |
+
+**Play Billing 8** — el código ya cumple: `react-native-purchases@^10.6.0` (commit `f8534cd`). ⚠️ **El aviso NO se apaga al arreglar `package.json`: se apaga al subir un AAB compilado con esa librería.** Como producción está "Inactivo", el AAB va a la **pista de prueba cerrada**, que no requiere aprobación previa y alcanza para apagar el aviso. **No atar este deadline al trámite de acceso a producción.**
+
+**Verificación de desarrolladores** — requisito nuevo, notificación del 2026-08-06. Google registró **automáticamente el 99% de las apps de Play**: la acción real es **entrar al Home de Play Console y confirmar el estado**, y registrar a mano solo si Yummi quedó fuera de ese 99%. Enforcement inicial en Brasil, Indonesia, Singapur y Tailandia; expansión global en 2027. Las apps sin registrar quedan **no instalables en dispositivos certificados de los países afectados**.
 
 ### 🔒 Las 4 tareas bloqueadas hasta PRODUCCIÓN
 
