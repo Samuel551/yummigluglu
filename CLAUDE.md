@@ -93,7 +93,16 @@ Todas dependen de que la app esté **publicada públicamente**. Verificado el 20
 | Productos de suscripción → entitlements | Requiere acceso a producción en Play Console.                                                         |
 | Service Account de Play → RevenueCat    | Decisión del owner: se hace al pasar a producción, junto con el resto del cobro.                      |
 
-Detalle completo en `docs/checklist-produccion.md` § "Bloqueado hasta PRODUCCIÓN".
+**Qué falta** → `docs/checklist-produccion.md` § "Bloqueado hasta PRODUCCIÓN".
+**Cómo se hace** → 📕 **`docs/runbook-produccion.md`** — runbook del día D, con los valores ya
+verificados (package, publisher de AdMob, dominio, dependencias). Se ejecuta de arriba hacia abajo.
+
+> ✅ **El paso 0 del runbook NO está bloqueado**: `yummigluglu.com` ya está registrado en Cloudflare,
+> así que publicar las 4 páginas de `web/` en el dominio propio se puede hacer **hoy**, sin esperar a
+> Google. Hoy `index.html` y `app-ads.txt` siguen sin publicar.
+
+> 🔴 **El paso 5 (QA de compras) no se saltea**: `react-native-purchases` saltó de `^8.9.0` a
+> `^10.6.0` y **ese flujo nunca se reprobó en dispositivo**.
 
 > ⚠️ Mientras tanto AdMob muestra **"Estado de aprobación: Debe revisarse"** y sirve pocos anuncios (_limited ad serving_). **Es la consecuencia esperada de no tener la ficha vinculada, no un bug.**
 
