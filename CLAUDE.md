@@ -351,7 +351,42 @@ Los hooks viven en `hooks/`. Cuando una pantalla ya resuelve colores vía Native
 
 ### Edge Functions (Supabase)
 
-`supabase/functions/revenuecat-webhook/` — recibe eventos de RevenueCat (INITIAL_PURCHASE, RENEWAL, CANCELLATION, etc.) y actualiza la tabla `suscripciones` usando `service_role` (el cliente nunca escribe directamente en esa tabla). Deploy: `supabase functions deploy revenuecat-webhook`. Requiere vars de entorno en Supabase: `REVENUECAT_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+`supabase/functions/revenuecat-webhook/` — recibe eventos de RevenueCat (INITIAL_PURCHASE, RENEWAL, CANCELLATION, etc.) y actualiza la tabla `suscripciones` usando `service_role` (el cliente nunca escribe directamente en esa tabla). Requiere vars de entorno en Supabase: `REVENUECAT_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+
+> 🔴 **DEPLOY OBLIGATORIO CON `--no-verify-jwt`:**
+>
+> ```bash
+> supabase functions deploy revenuecat-webhook --no-verify-jwt
+> ```
+>
+> **Sin ese flag, NINGUNA COMPRA ACTIVA PREMIUM.** RevenueCat llama servidor a servidor y
+> manda el shared secret **crudo** en `Authorization`, no un JWT de Supabase. Con
+> `verify_jwt: true` el gateway responde `401 UNAUTHORIZED_INVALID_JWT_FORMAT` y **el código de
+> la función nunca corre**: `suscripciones` no se actualiza, el usuario paga y la app lo deja
+> en `free`. La comparación timing-safe del secret **ES** la autenticación. Mismo criterio que
+> `ssv-recompensa`. No hay `supabase/config.toml`, así que el flag se pasa **en cada deploy**.
+
+> ⚠️ **Pasó de verdad (detectado y arreglado el 2026-08-22).** La función estaba desplegada con
+> `verify_jwt: true` **desde abril**, y encima lo desplegado era la versión **vieja, sin ninguna
+> de las 4 defensas de abajo** (encabezado "Baby Bites", `!==` en vez de `timingSafeEqual`, sin
+> validación de UUID, sin idempotencia). **El hardening vivía solo en el repo.** No se detectó
+> nunca porque **jamás hubo una compra real** que ejercitara el webhook. Redesplegada en la
+> **v5** con el código del repo y `verify_jwt: false`.
+
+> 🔎 **Cómo verificar que está bien, sin escribir nada** — el truco es el **grupo de control**:
+> pegarle a la función y mirar **quién** responde. El gateway contesta **JSON con `code` en
+> inglés**; el código propio contesta **texto plano en español**.
+>
+> ```bash
+> U=https://uoqzkbbnesmvmgbjikrn.supabase.co/functions/v1/revenuecat-webhook
+> curl -s -X GET $U                       # -> 405 "Method Not Allowed"  ✅ corre el código
+> curl -s -X POST $U -H "Authorization: x" -d {}   # -> 401 "Unauthorized"     ✅ corre el código
+> # Si devuelve {"code":"UNAUTHORIZED_INVALID_JWT_FORMAT"} -> el gateway lo bloquea. ROTO.
+> ```
+
+> ⚠️ **La otra mitad vive en RevenueCat**: Dashboard → Integrations → Webhooks → el header
+> `Authorization` debe ser **exactamente** el valor de `REVENUECAT_WEBHOOK_SECRET`, **sin**
+> prefijo `Bearer`. El código compara el header completo contra el secret.
 
 **Hardening del webhook (4 defensas — manejan datos de pago, no romper):**
 
@@ -361,6 +396,18 @@ Los hooks viven en `hooks/`. Cuando una pantalla ya resuelve colores vía Native
 4. **Operacional — secret rotado y largo** — `REVENUECAT_WEBHOOK_SECRET` debe ser ≥ 32 chars random. Vive solo en Supabase Edge Function secrets (`supabase secrets set REVENUECAT_WEBHOOK_SECRET=...`) y en RevenueCat Dashboard → Integrations → Webhooks. **NUNCA en el repo, ni en `.env.local`, ni en logs.** Si hay sospecha de filtración: rotar inmediatamente en ambos lados (Supabase + RC dashboard).
 
 **Lo que estas defensas NO previenen** (limitaciones de RC): si el secret se filtra, un atacante puede activar/desactivar premium para users **existentes** (no inventar IDs). El daño máximo es regalar premium o bloquear suscripciones legítimas — no exfiltrar datos de tarjetas (esos viven en RC/Stripe, nunca en nuestra DB).
+
+`supabase/functions/welcome-email/` — correo de bienvenida tras el registro. La invoca el
+CLIENTE (`useAuthStore.ts` → `supabase.functions.invoke('welcome-email')`), sin `await` y con
+`.catch(() => {})`: si falla, el registro NO se rompe. Deploy: `supabase functions deploy
+welcome-email` (**verify_jwt ON, y acá está BIEN** — la llama el cliente con el JWT del usuario;
+no confundirla con el webhook de RevenueCat, que es servidor a servidor).
+
+**Regla general para decidir el flag**: ¿quién llama? **El cliente con `functions.invoke`** →
+`verify_jwt: true`. **Un tercero servidor a servidor** (RevenueCat, Google SSV, Stripe) →
+`verify_jwt: false` + autenticación propia dentro de la función. `verify_jwt` **no se ve en el
+código**: es config de despliegue, así que un `index.ts` impecable puede estar muerto detrás del
+gateway sin que nada en el repo lo delate.
 
 `supabase/functions/canjear-desbloqueo/` — concede un desbloqueo temporal de 24h de una receta premium tras un anuncio recompensado (rewarded). Identifica al usuario por su JWT (no confía en ids del body), valida que la receta sea premium, y hace upsert en `desbloqueos_temporales` con `service_role` (el cliente NO puede escribir esa tabla). Deploy: `supabase functions deploy canjear-desbloqueo` (verify_jwt ON). Ver sección "Anuncios (AdMob)".
 
