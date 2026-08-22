@@ -384,6 +384,28 @@ Los hooks viven en `hooks/`. Cuando una pantalla ya resuelve colores vía Native
 > # Si devuelve {"code":"UNAUTHORIZED_INVALID_JWT_FORMAT"} -> el gateway lo bloquea. ROTO.
 > ```
 
+> ✅ **VERIFICADO EXTREMO A EXTREMO el 2026-08-22** con **RevenueCat → Integrations → Webhooks →
+> `babybites` → "Send test event"**. Respuesta: **`{"ok":true,"ignorado":"TEST"}`** — ese JSON
+> sale de la rama `default` del switch de `index.ts`, así que prueba que el código corrió.
+> Los headers lo confirman (`x-served-by: supabase-edge-runtime`, `x-deno-execution-id`).
+>
+> **Un solo click prueba 6 etapas**: gateway → **compare timing-safe del secret (matcheó: el
+> header de RC está bien cargado)** → parse → validación de UUID → `SELECT` en
+> `webhook_events_procesados` (o sea que `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_URL` están bien
+> y la tabla responde) → switch.
+>
+> ⚠️ **Lo que el evento `TEST` NO prueba**, porque corta en el switch antes de llegar:
+> `auth.admin.getUserById()`, el **`upsert` en `suscripciones`** (el que realmente da premium) y
+> el `INSERT` de idempotencia. Eso solo se ejercita con un `INITIAL_PURCHASE` real → **paso 5 del
+> runbook, compra sandbox en dispositivo**. No dar el cobro por probado con el test event.
+>
+> 💡 **"Send test event" es la forma canónica de verificar este webhook**: es gratis, no toca
+> plata y no escribe nada. Repetirlo después de cualquier cambio de secret, de URL o de deploy.
+
+> ✅ Config confirmada en RC: URL correcta, **Environment = "Both Production and Sandbox"**
+> (necesario para que las compras sandbox del paso 5 lleguen al webhook), filtros en All apps /
+> All events.
+
 > ⚠️ **La otra mitad vive en RevenueCat**: Dashboard → Integrations → Webhooks → el header
 > `Authorization` debe ser **exactamente** el valor de `REVENUECAT_WEBHOOK_SECRET`, **sin**
 > prefijo `Bearer`. El código compara el header completo contra el secret.
