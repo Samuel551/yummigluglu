@@ -220,7 +220,33 @@ Acá está el reuso que te mencionaba. El Himnario ya tenía suscripción, así 
 
 #### A4.1 — SHA-1 de **Play App Signing** (la causa más probable)
 
-- [ ] Crear un **OAuth Client de Android NUEVO** en Google Cloud (`yummi-glu-glu`) con el SHA-1 de Play y package `com.yummigluglu.app`
+- [x] ~~Crear un **OAuth Client de Android NUEVO** con el SHA-1 de Play~~ — ✅ **YA ESTABA HECHO.**
+
+Verificado en pantalla el **2026-08-22** en Google Cloud → Google Auth Platform → _Clientes_. Existen los **tres** clientes necesarios:
+
+| Cliente                        | Creado     | Para qué                                                        |
+| ------------------------------ | ---------- | --------------------------------------------------------------- |
+| `Yummi Glu Glu Android - Play` | 3 ago 2026 | 🔑 SHA-1 de **Play App Signing** → builds distribuidas por Play |
+| `Yummi Glu Glu Android`        | 7 jun 2026 | SHA-1 del keystore de EAS → dev client                          |
+| `Yummi Glu Glu Web`            | 7 jun 2026 | Su ID va en `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`                  |
+
+> ✅ Están **los dos clientes de Android en paralelo**, que es justo lo que esta sección advertía: si se reemplaza uno por otro, se arregla producción y se rompe el desarrollo.
+
+> ⚠️ **Lo que SÍ queda sin verificar**: el login con Google **nunca se volvió a probar en una build distribuida por Play** después de crear ese cliente el 3 de agosto. El reporte del tester es del 3 de agosto, o sea del **mismo día**. Sumar al QA del paso 5: **entrar con Google desde el APK de la prueba cerrada.**
+
+#### A4.3 — Límite de 100 usuarios de OAuth: ✅ NO aplica
+
+Verificado el 2026-08-22 en Google Auth Platform → _Acceso a los datos_: las tres tablas
+(**no sensibles**, **sensibles**, **restringidos**) dicen **"No hay filas para mostrar"**.
+
+El tope de 100 usuarios —que es **irreversible**, "no se puede restablecer ni cambiar"— solo rige
+para apps que piden **permisos sensibles o restringidos sin aprobación**. Sin ninguno, no aplica.
+
+> Los scopes `openid`, `email` y `profile` **no aparecen listados** porque son los básicos de OIDC:
+> van implícitos y Google no los muestra en esa tabla. Que funcionan está probado por uso real.
+
+> 🔴 **No tocar el botón "Volver al modo de prueba"** de la pantalla _Público_. Volver a Testing
+> rompe el login con Google de todo usuario que no esté cargado a mano como test user.
 
 > **Por qué falla justo en Play y no en el dev client**: al subir un AAB, **Google lo vuelve a firmar** con su propia clave (Play App Signing). El APK que le llega al tester **no está firmado con el keystore de EAS**, así que la huella que la app presenta en runtime es **la de Google** — una que Google Cloud no tiene registrada → `DEVELOPER_ERROR`. Mismo código, distinta firma.
 >
