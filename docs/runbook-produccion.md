@@ -130,19 +130,27 @@ entitlement no se concede y la app lo deja en `free`.
 > Si alguna vez se filtra: Google Cloud → la service account → _Manage keys_ → **borrar la clave**
 > y generar otra. Rotar la clave la invalida al instante; el JSON viejo queda muerto.
 
-### 4.0 — Confirmar QUÉ proyecto de Google Cloud está vinculado
+### 4.0 — ❌ NO existe. No busques "Acceso a la API" en Play Console.
 
-Play Console → **Configuración** → **Acceso a la API**. Ahí figura el proyecto de Google Cloud
-vinculado. **Ese es el proyecto donde va la service account**, no otro.
+> 🔴 **Google ELIMINÓ este requisito.** Textual en su doc oficial
+> ([android-publisher/getting_started](https://developers.google.com/android-publisher/getting_started)):
+> _"You no longer need to link your developer account to a Google Cloud Project in order to access
+> the Google Play Developer API."_
+>
+> **No hay que vincular ningún proyecto de Google Cloud con Play Console.** La service account se
+> crea en el proyecto de Google Cloud que se quiera y se le da acceso **solo** invitándola en
+> Play Console → **Usuarios y permisos** (paso 4.4). Nada más.
+>
+> ⚠️ Este paso estaba en el runbook y **hizo perder tiempo el 2026-08-22** buscando una página que
+> ya no cumple esa función. Se deja documentado en negativo a propósito: si alguien lee un tutorial
+> viejo que manda a _Configuración → Acceso a la API_, **que sepa que puede saltearlo**.
 
-> ⚠️ Debería ser `yummi-glu-glu` (el mismo del login con Google). **Confirmarlo en pantalla**: si
-> Play tiene vinculado otro proyecto, la service account creada en `yummi-glu-glu` no sirve para
-> las notificaciones en tiempo real. Si no hay ninguno vinculado, vincular `yummi-glu-glu` desde
-> esa misma pantalla.
+**Proyecto de Google Cloud a usar: `yummi-glu-glu`** — el mismo del login con Google. No por
+obligación, sino para no dispersar credenciales en varios proyectos.
 
 ### 4.1 — Habilitar 3 APIs (no 1)
 
-Google Cloud Console → **APIs y servicios** → _Habilitar API_, en el proyecto del punto 4.0:
+Google Cloud Console → **APIs y servicios** → _Habilitar API_, en el proyecto `yummi-glu-glu`:
 
 - **Google Play Android Developer API**
 - **Google Play Developer Reporting API**
