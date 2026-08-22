@@ -1,11 +1,12 @@
 import '../global.css';
 import { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Alert } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { supabase } from '@/lib/supabase';
+import { mensajeError, mensajeErrorDeepLink } from '@/lib/errores';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
 import { useTemaStore } from '@/store/useTemaStore';
@@ -83,18 +84,43 @@ export default function RootLayout() {
   useEffect(() => {
     const procesarDeepLink = async (url: string | null) => {
       if (!url) return;
-      const fragment = url.split('#')[1];
-      if (!fragment) return;
-      const params = new URLSearchParams(fragment);
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
-      const type = params.get('type');
+
+      // Los datos vienen en el FRAGMENT (#) en el flujo implícito, pero los errores
+      // pueden llegar en la QUERY (?) según el tipo de redirección. Se leen las dos
+      // partes: perder un error acá es exactamente el bug que había abajo.
+      const [antesDelHash, fragment] = url.split('#');
+      const indiceQuery = antesDelHash.indexOf('?');
+      const params = new URLSearchParams(fragment ?? '');
+      const paramsQuery = new URLSearchParams(
+        indiceQuery >= 0 ? antesDelHash.slice(indiceQuery + 1) : ''
+      );
+      const leer = (clave: string) => params.get(clave) ?? paramsQuery.get(clave);
+
+      // 🔴 Enlace vencido o ya usado. Supabase manda
+      // `#error=access_denied&error_code=otp_expired&error_description=...`.
+      // Antes esto caía en el `return` de más abajo y el usuario veía la app
+      // abrirse y NO PASAR NADA — sin mensaje y sin saber que debía pedir otro.
+      const codigoError = leer('error_code') ?? leer('error');
+      if (codigoError) {
+        Alert.alert(
+          'Enlace no válido',
+          mensajeErrorDeepLink(codigoError, leer('error_description'))
+        );
+        return;
+      }
+
+      const access_token = leer('access_token');
+      const refresh_token = leer('refresh_token');
+      const type = leer('type');
       if (!access_token || !refresh_token) return;
       setProcesandoAuth(true);
       try {
         const { error } = await supabase.auth.setSession({ access_token, refresh_token });
         if (error) {
           console.warn('Error procesando deep link de auth:', error.message);
+          // Mismo criterio: fallar callado deja al usuario mirando una pantalla
+          // que no reacciona.
+          Alert.alert('No pudimos completar el acceso', mensajeError(error));
           return;
         }
         // En reset de contraseña (type=recovery) el link solo autentica de forma

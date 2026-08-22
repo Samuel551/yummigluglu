@@ -47,7 +47,7 @@ const TIPOS_FREE: TipoRecordatorio[] = ['comida', 'control', 'lista_compras'];
 
 const PLACEHOLDER_TITULO: Record<TipoRecordatorio, string> = {
   comida: 'Ej: Hora del almuerzo',
-  hidratacion: 'Ej: Ofrecele agüita',
+  hidratacion: 'Ej: Ofrécele agüita',
   diario: 'Ej: ¿Cómo le fue con la palta?',
   hito: 'Ej: Introducir el huevo',
   control: 'Ej: Control con el pediatra',

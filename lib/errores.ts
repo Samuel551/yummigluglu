@@ -23,8 +23,11 @@ const MENSAJES_POR_TEXTO: Record<string, string> = {
 
 // Match exacto por error.code (Supabase auth >= 2024)
 const MENSAJES_POR_CODE: Record<string, string> = {
+  // El texto viejo nombraba "Supabase", "plan free" y "SMTP custom", y encima en
+  // voseo. Es un mensaje que ve el USUARIO FINAL: no entiende nada de eso y no
+  // puede hacer nada al respecto. El detalle técnico vive en el console.warn.
   over_email_send_rate_limit:
-    'Supabase bloqueó el envío de correos por límite del plan free. Esperá ~1h o configurá Resend como SMTP custom.',
+    'Enviamos demasiados correos en poco tiempo. Espera una hora e inténtalo de nuevo.',
   over_request_rate_limit: 'Demasiadas solicitudes. Espera unos segundos e inténtalo de nuevo.',
   email_address_invalid: 'El email no parece válido. Revisa el formato.',
   weak_password: 'La contraseña es muy débil. Usa al menos 6 caracteres.',
@@ -48,6 +51,35 @@ const MENSAJES_POR_CODE: Record<string, string> = {
   '10': 'El inicio con Google no está disponible en esta versión. Usa tu correo y contraseña.',
   PLAY_SERVICES_NOT_AVAILABLE: 'Necesitas actualizar Google Play Services para entrar con Google.',
 };
+
+/**
+ * Errores que Supabase manda **en la URL del deep link**, no en un objeto `Error`.
+ * Llegan como `#error=access_denied&error_code=otp_expired&error_description=...`
+ * cuando el enlace del correo venció o ya se usó.
+ *
+ * 🔴 Antes esto no se leía: `procesarDeepLink` cortaba en seco al no encontrar
+ * `access_token` y el usuario tocaba el enlace, se le abría la app y **no pasaba
+ * absolutamente nada**. Sin mensaje y sin forma de saber que tenía que pedir otro.
+ */
+const MENSAJES_DEEP_LINK: Record<string, string> = {
+  otp_expired:
+    'El enlace del correo venció. Vuelve a solicitarlo desde la pantalla de inicio de sesión.',
+  access_denied:
+    'El enlace del correo ya no es válido. Es posible que lo hayas usado antes. Solicita uno nuevo.',
+  validation_failed: 'El enlace del correo no es válido. Solicita uno nuevo.',
+  server_error: 'Tuvimos un problema al validar el enlace. Inténtalo de nuevo en unos minutos.',
+  unexpected_failure:
+    'Tuvimos un problema al validar el enlace. Inténtalo de nuevo en unos minutos.',
+};
+
+/** Traduce el `error_code` (o `error`) que viene en la URL de un deep link de auth. */
+export function mensajeErrorDeepLink(codigo: string | null, descripcion: string | null): string {
+  // El detalle crudo va al log: el mensaje traducido lo esconde y sin esto un
+  // reporte de tester vuelve a ser una investigación a ciegas.
+  console.warn('[deepLink] auth error en la URL', { codigo, descripcion });
+  if (codigo && MENSAJES_DEEP_LINK[codigo]) return MENSAJES_DEEP_LINK[codigo];
+  return 'No pudimos validar el enlace del correo. Solicita uno nuevo desde la pantalla de inicio de sesión.';
+}
 
 export function mensajeError(error: unknown): string {
   let codigoDesconocido: string | null = null;
