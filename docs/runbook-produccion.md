@@ -113,14 +113,113 @@ Después, en RevenueCat: asociar cada producto a un **Offering** y al **Entitlem
 
 ## Paso 4 — Service Account de Play → RevenueCat
 
-**Requiere**: acceso a producción.
+**Requiere**: acceso a producción ✅ (concedido el 2026-08-22) + Paso 3 cerrado ✅.
 
-1. Google Cloud Console → crear **Service Account** en el proyecto ligado a Play
-2. Play Console → **Usuarios y permisos** → invitarla con permisos de datos financieros / pedidos
-3. Descargar el **JSON** de credenciales
-4. RevenueCat → configuración de la app de Play Store → subir el JSON
+Sin esto RevenueCat **no puede validar las compras contra Google**: el usuario paga, el
+entitlement no se concede y la app lo deja en `free`.
 
-Sin esto RevenueCat **no puede validar las compras contra Google**.
+> 🔴 **EL JSON ES UNA CREDENCIAL Y EL REPO ES PÚBLICO** (`github.com/Samuel551/yummigluglu`,
+> `private: false`, verificado contra la API). Google lo descarga como
+> `<project-id>-<key-id>.json` (ej. `yummi-glu-glu-3f2a1b9c8d7e.json`). Ese archivo da acceso a
+> los **datos financieros y los pedidos** de Play Console.
+>
+> **Guardalo FUERA del proyecto** (ej. `C:\Users\Samuel\secretos\`). El `.gitignore` ya atrapa
+> `yummi-glu-glu-*.json`, `*service-account*.json`, `*-credentials.json` y `secretos/`
+> (verificado con `git check-ignore`), pero eso es el **cinturón de seguridad, no el plan**.
+>
+> Si alguna vez se filtra: Google Cloud → la service account → _Manage keys_ → **borrar la clave**
+> y generar otra. Rotar la clave la invalida al instante; el JSON viejo queda muerto.
+
+### 4.0 — Confirmar QUÉ proyecto de Google Cloud está vinculado
+
+Play Console → **Configuración** → **Acceso a la API**. Ahí figura el proyecto de Google Cloud
+vinculado. **Ese es el proyecto donde va la service account**, no otro.
+
+> ⚠️ Debería ser `yummi-glu-glu` (el mismo del login con Google). **Confirmarlo en pantalla**: si
+> Play tiene vinculado otro proyecto, la service account creada en `yummi-glu-glu` no sirve para
+> las notificaciones en tiempo real. Si no hay ninguno vinculado, vincular `yummi-glu-glu` desde
+> esa misma pantalla.
+
+### 4.1 — Habilitar 3 APIs (no 1)
+
+Google Cloud Console → **APIs y servicios** → _Habilitar API_, en el proyecto del punto 4.0:
+
+- **Google Play Android Developer API**
+- **Google Play Developer Reporting API**
+- **Google Cloud Pub/Sub API** ← la que casi siempre se olvida; sin ella el paso 4.6 falla
+
+### 4.2 — Crear la Service Account CON 2 roles
+
+Google Cloud Console → **IAM y administración** → **Cuentas de servicio** → _Crear cuenta de
+servicio_. En el paso 2 ("Otorgar acceso"), asignar **los dos**:
+
+| Rol                   | Para qué                                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------------------- |
+| **Pub/Sub Editor**    | Habilita las notificaciones de servidor. Si tira error de permisos, subir a **Pub/Sub Admin**. |
+| **Monitoring Viewer** | Deja monitorear la cola de notificaciones.                                                     |
+
+El paso 3 (acceso de usuarios) se saltea. **Copiar el email de la cuenta** (`…@….iam.gserviceaccount.com`) — se usa en 4.4.
+
+> ⚠️ El runbook viejo decía que no hacían falta roles. **Era incorrecto.** Sin `Pub/Sub Editor`,
+> RevenueCat no puede crear el topic en 4.6.
+
+### 4.3 — Generar y descargar el JSON
+
+En la lista de cuentas de servicio → menú de 3 puntos → **Administrar claves** → _Agregar clave_ →
+**Crear clave nueva** → formato **JSON** → descargar.
+
+**Al bajarlo, moverlo a `C:\Users\Samuel\secretos\` inmediatamente.** No dejarlo en Descargas ni,
+mucho menos, en la carpeta del proyecto.
+
+### 4.4 — Invitar la cuenta en Play Console con 3 permisos
+
+Play Console → **Usuarios y permisos** → _Invitar a un usuario_ → pegar el email de 4.2.
+
+- **Permisos de app**: agregar `com.yummigluglu.app`
+- **Permisos de cuenta**, los tres:
+  - ✅ Ver información de la app y descargar informes masivos (solo lectura)
+  - ✅ Ver datos financieros, pedidos y respuestas de encuestas de cancelación
+  - ✅ **Administrar pedidos y suscripciones**
+
+Enviar la invitación.
+
+### 4.5 — Subir el JSON a RevenueCat
+
+RevenueCat → **Project Settings** → la app de **Google Play Store** → arrastrar el JSON al campo
+**Service Account Credentials JSON** → guardar.
+
+### 4.6 — Notificaciones en tiempo real (RTDN)
+
+Recién **después** de que las credenciales estén activas:
+
+1. RevenueCat → Google Play App Settings → botón **"Connect to Google"** → genera un **Topic ID** → copiarlo.
+2. Play Console → **Monetizar** → **Configuración de monetización** → _Notificaciones para
+   desarrolladores en tiempo real_ → pegar en **Nombre del tema**.
+3. Elegir **"Suscripciones, compras anuladas y todos los productos únicos"** → guardar.
+4. Apretar **"Enviar notificación de prueba"**. Si aparece un **"Last received"** en RevenueCat, cerró.
+
+Sin RTDN, RevenueCat se entera de renovaciones y cancelaciones **por sondeo** en vez de al instante.
+
+---
+
+### 🔴 Los 3 gotchas que cuestan horas
+
+> ⏳ **Propagación de hasta 36 HORAS.** Es lo que dice la doc oficial de RevenueCat, textual. Si
+> justo después de cargar el JSON el Paso 5 falla, **lo más probable es que sea esto, NO un bug**.
+> No empezar a "arreglar" el flujo de compra antes de descartarlo.
+>
+> 💡 **Atajo documentado por RevenueCat**: entrar a Play Console → _Monetizar_ → editar la
+> descripción de cualquier producto → guardar. Eso puede activar las credenciales al instante.
+
+> ⚠️ **Domain Restricted Sharing.** Las organizaciones de Google Cloud creadas **después del 3 de
+> mayo de 2024** traen esa política prendida por defecto, y **bloquea agregar la service account**.
+> Si el paso 4.4 o el 4.6 rebotan por política, es esto: hay que desactivarla o hacer un override a
+> nivel del proyecto.
+
+> ⚠️ **El paso 4.6 pide un permiso extra sobre el topic.** La cuenta de Google
+> `google-play-developer-notifications@system.gserviceaccount.com` necesita el rol **Pub/Sub
+> Publisher** sobre el topic creado. Se agrega en Google Cloud → Pub/Sub → el topic → _Permisos_ →
+> _Agregar principal_.
 
 ## Paso 5 — QA del flujo de compra (NO SALTEAR)
 

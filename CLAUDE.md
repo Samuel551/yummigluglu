@@ -240,6 +240,18 @@ Sin `SUPABASE_URL` y `SUPABASE_ANON_KEY` la app lanza una excepción al arrancar
 > ✅ **Key de RevenueCat de producción (resuelto el 2026-08-02).** `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` empieza con `goog_`, sincronizada en `.env.local` y en los environments `production` y `preview` de EAS. Antes era una `test_` (sandbox): las compras **no se procesan de verdad** con esa, y el síntoma **no aparece en desarrollo**. La key `goog_` se genera **sola** al crear la app de Google Play Store en RevenueCat (Apps & providers) — no hay botón para crearla, y **no confundirla con el "REST API Identifier"** (`app…`) ni con una "Secret API key" (esa NUNCA va en el cliente).
 >
 > 🔴 **Sigue faltando para cobrar: el Service Account de Google Play.** La app de Play Store en RevenueCat existe pero sin `Service Account Credentials JSON`, así que **RevenueCat todavía no puede validar las compras contra Google**. Ese JSON sale de Google Cloud (proyecto `yummi-glu-glu`, el mismo del login con Google) + Play Console → _Users and permissions_, así que **está atado a abrir la Play Console**. Mismo requisito para conectar las _Google developer notifications_ (que RevenueCat se entere de renovaciones y cancelaciones al instante en vez de por sondeo).
+>
+> 📕 **Los pasos exactos y verificados están en `docs/runbook-produccion.md` § Paso 4** (2026-08-22, contra la doc oficial de RevenueCat). Tres cosas que el runbook viejo NO decía y cuestan horas:
+>
+> - Hay que habilitar **3 APIs**, no 1: Play Android Developer, Play Developer Reporting y **Cloud Pub/Sub**.
+> - La service account necesita **2 roles**: **Pub/Sub Editor** + **Monitoring Viewer**. El runbook decía que no hacían falta roles y **era falso**.
+> - ⏳ **Las credenciales tardan HASTA 36 HORAS en propagar** (dicho por RevenueCat, textual). Si el QA de compras falla justo después de cargar el JSON, **el primer sospechoso es la propagación, NO el código**. Atajo: editar la descripción de cualquier producto en Play → _Monetizar_ y guardar, eso puede activarlas al instante.
+
+> 🔴 **El JSON del Service Account es una CREDENCIAL y este repo es PÚBLICO** (`github.com/Samuel551/yummigluglu`, `private: false`, verificado contra la API el 2026-08-22). Google lo descarga como `<project-id>-<key-id>.json` — un nombre que **no parece un secreto** y que `git add .` se lleva puesto. Commitearlo entrega los **datos financieros y los pedidos** de Play Console.
+>
+> **Guardarlo FUERA del proyecto** (`C:\Users\Samuel\secretos\`). El `.gitignore` ya atrapa `yummi-glu-glu-*.json`, `*service-account*.json`, `*service_account*.json`, `*-credentials.json` y `secretos/` — verificado con `git check-ignore`, no asumido. Pero eso es el **cinturón de seguridad, no el plan**: el archivo no debería llegar nunca a la carpeta.
+>
+> Si se filtra: Google Cloud → la service account → _Manage keys_ → **borrar la clave** y generar otra. Rotar invalida la vieja al instante.
 
 > ⚠️ **En un `.env` una variable duplicada NO da error y gana la PRIMERA.** Costó una vuelta: al reemplazar la key de RevenueCat quedó la vieja arriba y la nueva abajo, y el parser seguía tomando la de sandbox en silencio. Al editar `.env.local`, **reemplazar la línea, no agregar otra**, y verificar con:
 >

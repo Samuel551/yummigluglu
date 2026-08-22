@@ -59,3 +59,14 @@ supabase/.temp/
 # Carga masiva de imagenes de recetas (artefactos locales)
 scripts/salida-webp/
 scripts/__pycache__/
+
+# 🔴 Credenciales de Google Cloud / Play Console (Service Account JSON).
+# EL REPO ES PUBLICO. Un JSON de service account commiteado = acceso de terceros
+# a los datos financieros y a los pedidos de Play Console. Google los descarga
+# con el nombre "<project-id>-<key-id>.json", ej. yummi-glu-glu-3f2a1b9c8d7e.json.
+# Esto es el cinturon de seguridad, NO el plan: guarda el JSON FUERA del proyecto.
+yummi-glu-glu-*.json
+*service-account*.json
+*service_account*.json
+*-credentials.json
+secretos/
