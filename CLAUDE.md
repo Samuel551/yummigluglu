@@ -65,20 +65,36 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 
 > **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
 
-## Estado al 2026-08-19 — qué falta y qué NO hay que tocar
+## Estado al 2026-08-22 — qué falta y qué NO hay que tocar
 
 **Del lado del código no queda deuda**: 0 errores de `tsc`, 0 `style` como función (hay regla de ESLint que lo impide), 0 agujeros de seguridad conocidos.
 
-**Prueba cerrada COMPLETA** (2026-08-19): los 3 requisitos tachados en Play Console — versión publicada, 12+ verificadores, 14 días corridos. **Solicitud de acceso a producción enviada**, Google revisa en 7 días o menos. Producción sigue figurando **"Inactivo"** hasta que aprueben.
+### 🎉 ACCESO A PRODUCCIÓN CONCEDIDO (2026-08-22)
+
+Google aprobó la solicitud enviada el 2026-08-19. **Verificado en pantalla**, no asumido: Play Console →
+_Prueba y lanza_ → **Producción** muestra el botón **"Crear una versión nueva"** habilitado y **ya no
+aparece** el cartel de _Solicitar acceso a producción_.
+
+> 🔴 **ACCESO ≠ PUBLICADA.** El track de Producción sigue diciendo **"Inactivo"**, y eso es correcto:
+> significa que **no hay ninguna versión publicada en producción**. La app **todavía NO está en el
+> catálogo público de Play**. Todo lo que dependa de "app pública" (AdMob, `app-ads.txt`) sigue
+> bloqueado hasta que se publique una versión Y Google la apruebe.
+
+**No hace falta rebuildear para publicar**: el AAB `versionCode 2` ya está aceptado por Play en la pista
+de prueba cerrada (subido el 19-08, con RevenueCat v10 / Billing 8). Se **promueve** ese mismo bundle de
+prueba cerrada a producción. Un rebuild solo agrega riesgo y quema otro `versionCode`.
+
+**Crear los productos de suscripción tampoco obliga a rebuildear**: los Offerings los pide el SDK en
+runtime. La app no hornea SKUs.
 
 ### ⏰ Deadlines de Google — con fecha, no negociables
 
-| Fecha           | Qué                                            | Estado                                   |
-| --------------- | ---------------------------------------------- | ---------------------------------------- |
-| **31 ago 2026** | **Play Billing Library ≥ 8**                   | 🔴 Aviso rojo activo desde el 2026-08-04 |
-| **30 sep 2026** | **Verificación de desarrolladores de Android** | ✅ **Ya registrada** (verificado 19-08)  |
+| Fecha           | Qué                                            | Estado                                       |
+| --------------- | ---------------------------------------------- | -------------------------------------------- |
+| **31 ago 2026** | **Play Billing Library ≥ 8**                   | 🟡 Debería estar apagado — falta confirmarlo |
+| **30 sep 2026** | **Verificación de desarrolladores de Android** | ✅ **Ya registrada** (verificado 19-08)      |
 
-**Play Billing 8** — el código ya cumple: `react-native-purchases@^10.6.0` (commit `f8534cd`). ⚠️ **El aviso NO se apaga al arreglar `package.json`: se apaga al subir un AAB compilado con esa librería.** Como producción está "Inactivo", el AAB va a la **pista de prueba cerrada**, que no requiere aprobación previa y alcanza para apagar el aviso. **No atar este deadline al trámite de acceso a producción.**
+**Play Billing 8** — el código ya cumple: `react-native-purchases@^10.6.0` (commit `f8534cd`). ⚠️ **El aviso NO se apaga al arreglar `package.json`: se apaga al subir un AAB compilado con esa librería.** Ese AAB (`versionCode 2`) **ya se subió el 2026-08-19** a la pista de prueba cerrada, así que el aviso rojo **debería haberse apagado solo**. **Falta ir a mirarlo** en Play Console → _Panel_ (avisos) antes de dar el deadline por muerto. **No atar este deadline al trámite de producción**: la prueba cerrada alcanzaba.
 
 **Verificación de desarrolladores** — ✅ **RESUELTO, no hay nada que hacer.** Verificado el 2026-08-19 en
 Play Console → _Página principal_ → **Verificación de desarrolladores de Android** → pestaña _Nombres de
@@ -87,29 +103,50 @@ los paquetes_: las dos apps de la cuenta figuran **`Registrada`** (`com.yummiglu
 de Play y estas entraron. Enforcement inicial en Brasil, Indonesia, Singapur y Tailandia; expansión
 global en 2027.
 
-### 🔒 Las 4 tareas bloqueadas hasta PRODUCCIÓN
+### 🔓 Las 4 tareas: 2 se desbloquearon, 2 siguen esperando
 
-Todas dependen de que la app esté **publicada públicamente**. Verificado el 2026-08-05 — **no insistir antes**:
+El corte **ya no es "acceso a producción" para las cuatro**. Son dos grupos distintos:
 
-| Tarea                                   | Por qué no se puede antes                                                                             |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Vincular AdMob ↔ ficha de Play          | El buscador de AdMob solo ve el **catálogo público** de Play; una app en prueba cerrada no aparece.   |
-| Validar **`app-ads.txt`**               | AdMob lo rastrea desde el sitio del desarrollador **de la ficha vinculada** → depende de la anterior. |
-| Productos de suscripción → entitlements | Requiere acceso a producción en Play Console.                                                         |
-| Service Account de Play → RevenueCat    | Decisión del owner: se hace al pasar a producción, junto con el resto del cobro.                      |
+| Tarea                                   | Requiere                       | Estado al 22-08                                                            |
+| --------------------------------------- | ------------------------------ | -------------------------------------------------------------------------- |
+| Productos de suscripción → entitlements | Acceso a producción            | 🟢 **DESBLOQUEADA** — se puede hacer ya                                    |
+| Service Account de Play → RevenueCat    | Acceso a producción            | 🟢 **DESBLOQUEADA** — se puede hacer ya                                    |
+| Vincular AdMob ↔ ficha de Play          | App **pública en el catálogo** | 🔒 Sigue bloqueada — el buscador de AdMob solo ve el catálogo público      |
+| Validar **`app-ads.txt`**               | La vinculación anterior        | 🔒 Sigue bloqueada — AdMob lo rastrea desde el sitio de la ficha vinculada |
 
 **Qué falta** → `docs/checklist-produccion.md` § "Bloqueado hasta PRODUCCIÓN".
 **Cómo se hace** → 📕 **`docs/runbook-produccion.md`** — runbook del día D, con los valores ya
 verificados (package, publisher de AdMob, dominio, dependencias). Se ejecuta de arriba hacia abajo.
 
-> ✅ **Paso 0 HECHO (2026-08-19)**: `yummigluglu.com` quedó como Custom Domain del Worker
-> `yummigluglu-web`. Verificado con `curl`: las 4 páginas dan **200** y el `app-ads.txt` servido es
-> idéntico al del repo. **Queda un pendiente**: apuntar en la ficha de Play el _sitio web del
-> desarrollador_ y la _política de privacidad_ a `yummigluglu.com` — hoy siguen en el `workers.dev`,
-> y AdMob rastrea `app-ads.txt` desde el sitio **que figura en la ficha**.
+### 🔴 EL ORDEN IMPORTA — no publicar antes de conectar el cobro
+
+```
+Paso 3 (productos)  ──>  Paso 4 (Service Account)  ──>  Paso 5 (QA de compras)
+                                                              │
+                                                              ▼
+                                              PUBLICAR versión de producción
+                                                              │
+                                       Google aprueba (~días) │
+                                                              ▼
+                                          Paso 1 (AdMob ↔ Play) ──> Paso 2 (app-ads.txt)
+```
+
+> 🔴 **Publicar antes del paso 4 es un bug que cuesta plata real.** Sin el Service Account cargado,
+> **RevenueCat no puede validar la compra contra Google**: el usuario paga, el entitlement no se
+> concede y la app lo deja en `free`. Resultado: cobro sin producto, reembolso y reseña de 1 estrella
+> el primer día. La tentación de apretar "Crear una versión nueva" ahora mismo es fuerte —
+> **el cobro se conecta primero.**
 
 > 🔴 **El paso 5 (QA de compras) no se saltea**: `react-native-purchases` saltó de `^8.9.0` a
-> `^10.6.0` y **ese flujo nunca se reprobó en dispositivo**.
+> `^10.6.0` y **ese flujo nunca se reprobó en dispositivo**. Es el SDK que maneja el dinero, y
+> saltó **dos majors**.
+
+> ✅ **Paso 0 CERRADO ENTERO (2026-08-19)**: `yummigluglu.com` quedó como Custom Domain del Worker
+> `yummigluglu-web` (las 4 páginas dan **200** por `curl`, y el `app-ads.txt` servido es idéntico al
+> del repo), **y las dos URLs de la ficha de Play ya apuntan al dominio propio** — política de
+> privacidad en `https://yummigluglu.com/privacidad.html` (pasó por revisión) y sitio web en
+> `https://yummigluglu.com` (los _Detalles de contacto_ **no** pasan por revisión, se aplican al
+> instante). Ambas **confirmadas en pantalla**.
 
 > ⚠️ Mientras tanto AdMob muestra **"Estado de aprobación: Debe revisarse"** y sirve pocos anuncios (_limited ad serving_). **Es la consecuencia esperada de no tener la ficha vinculada, no un bug.**
 

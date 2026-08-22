@@ -1,8 +1,14 @@
-# Runbook — el día que Google apruebe producción
+# Runbook — producción
 
-> **Para qué sirve este archivo**: cuando llegue la aprobación de acceso a producción, no hay que
-> averiguar nada. Se ejecuta de arriba hacia abajo. Todos los valores están abajo, ya verificados
-> contra el código (2026-08-19).
+> 🎉 **EL DÍA D LLEGÓ: 2026-08-22.** Google concedió el **acceso a producción** (verificado en
+> pantalla: _Prueba y lanza_ → **Producción** muestra "Crear una versión nueva" habilitado, sin
+> cartel de solicitud).
+>
+> 🔴 **Acceso ≠ publicada.** El track sigue **"Inactivo"** = no hay versión publicada, la app **no
+> está en el catálogo público**. Los pasos 1 y 2 siguen esperando eso.
+>
+> **Para qué sirve este archivo**: no hay que averiguar nada. Se ejecuta **en el orden del grafo del
+> final**, no por número. Todos los valores están abajo, verificados contra el código (2026-08-19).
 >
 > Estado de tareas → `docs/checklist-produccion.md`. Esto es **cómo se hace**, no **qué falta**.
 
@@ -53,17 +59,21 @@ google.com, pub-8216818579305822, DIRECT, f08c47fec0942fa0
 No hubo que resubir archivos: el mismo Worker con los mismos assets pasó a servirse también desde
 el dominio propio.
 
-### ⏳ Lo que queda del paso 0
+### ✅ Lo que faltaba del paso 0 — también cerrado (2026-08-19)
 
-- [ ] En la **ficha de Play**, apuntar **sitio web del desarrollador** y **política de privacidad**
-      a `yummigluglu.com` (hoy siguen apuntando al `workers.dev`)
+Las dos URLs de la ficha de Play ya apuntan al dominio propio, **confirmadas en pantalla**:
 
-> ⚠️ Esto **no es cosmético**: AdMob rastrea `app-ads.txt` desde el sitio del desarrollador **que
-> figura en la ficha de Play**. Si la ficha sigue apuntando a `*.workers.dev`, el archivo correcto en
-> el dominio correcto **no se valida igual** — `workers.dev` es dominio compartido (Public Suffix
-> List, como `github.io`) y la validación queda ambigua.
+| Campo                  | Dónde está                                                                             | Valor                                     | ¿Pasa por revisión?            |
+| ---------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------- | ------------------------------ |
+| Política de privacidad | Protegido con Play → Contenido de la app → Política de Privacidad                      | `https://yummigluglu.com/privacidad.html` | **SÍ**                         |
+| Sitio web              | Aumenta la cantidad de usuarios → Ficha principal de Play Store → Detalles de contacto | `https://yummigluglu.com`                 | **NO** — se aplica al instante |
 
-> 💡 Cloudflare hace **clean URLs**: `/privacidad.html` devuelve **307** hacia `/privacidad`, que da 200. Un `curl` sin `-L` parece roto y **no lo está**.
+> ⚠️ **Los "Detalles de contacto" NO pasan por revisión.** Por eso el campo _Sitio web_ nunca aparece
+> en la lista de cambios pendientes y parece que no se guardó. Hay que **ir a mirar el campo** para
+> confirmarlo; la lista de revisión no sirve como prueba para esos campos.
+
+> El de política de privacidad **exige URL completa con `https://`** y va la **página**, no la raíz.
+> El de _Sitio web_ va con **dominio raíz sin path**.
 
 ---
 
@@ -129,12 +139,48 @@ Depende del paso 4. Configurar **verificadores de licencia** en Play Console
 
 ---
 
+## Paso 6 — Publicar la versión de producción
+
+**Requiere**: pasos 3, 4 y 5 cerrados. **No antes.**
+
+Play Console → **Prueba y lanza** → **Producción** → **Crear una versión nueva** → en _Paquetes de
+aplicación_ elegir **"Agregar desde la biblioteca"** y tomar el **`versionCode 2`** ya subido a la
+prueba cerrada.
+
+> ✅ **No se rebuildea.** Ese bundle ya está firmado, aceptado por Play y trae RevenueCat v10 /
+> Billing 8. Rebuildear solo quema otro `versionCode` y agrega riesgo.
+
+> ⏳ La primera publicación en producción pasa por **revisión humana de Google** (días, no minutos).
+> Recién cuando quede _Activo_ y la ficha sea visible en el catálogo público arrancan los pasos 1 y 2.
+
+> 💡 Se puede lanzar por **etapas** (10 % → 50 % → 100 %) desde la misma pantalla. Con base de
+> usuarios chica no aporta mucho, pero es la red de seguridad si el QA de compras dejó dudas.
+
+---
+
 ## Orden de dependencias
 
 ```
-Paso 0 (dominio + web)  ──── se puede HOY, no depende de nadie
-                    │
-Aprobación de Google ├──> Paso 1 (AdMob ↔ Play) ──> Paso 2 (app-ads.txt)
-                    │
-                    └──> Paso 3 (productos) ──> Paso 4 (Service Account) ──> Paso 5 (QA compras)
+Paso 0 (dominio + ficha)              ✅ CERRADO el 2026-08-19
+Acceso a producción concedido         ✅ 2026-08-22
+        │
+        ├──> Paso 3 (productos de suscripción)
+        │            │
+        │            ▼
+        │       Paso 4 (Service Account → RevenueCat)
+        │            │
+        │            ▼
+        │       Paso 5 (QA del flujo de compra)   🔴 NO SALTEAR
+        │            │
+        │            ▼
+        └──────> Paso 6 (PUBLICAR producción)
+                     │
+          Google aprueba (revisión humana, días)
+                     │
+                     ▼
+                Paso 1 (AdMob ↔ ficha de Play) ──> Paso 2 (app-ads.txt)
 ```
+
+> 🔴 **La única regla innegociable del orden**: el **cobro se conecta antes de publicar**. Sin el
+> Service Account (paso 4), RevenueCat **no puede validar la compra contra Google** → el usuario paga
+> y la app lo deja en `free`. Cobro sin producto, reembolso y reseña de 1 estrella el primer día.
