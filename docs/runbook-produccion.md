@@ -171,6 +171,31 @@ El paso 3 (acceso de usuarios) se saltea. **Copiar el email de la cuenta** (`…
 > ⚠️ El runbook viejo decía que no hacían falta roles. **Era incorrecto.** Sin `Pub/Sub Editor`,
 > RevenueCat no puede crear el topic en 4.6.
 
+> 🔴 **LA TRAMPA DEL FILTRO — pasó de verdad el 2026-08-22.** Al filtrar por `Pub/Sub` en el
+> selector de roles, Google mezcla en la misma lista los roles de **Pub/Sub** y los de
+> **Pub/Sub _Lite_**, que es **otro producto** (zonal, con su propia API y sus propios permisos).
+> Se eligió **"Editor de Pub/Sub Lite"** (`roles/pubsublite.editor`) creyendo que era el correcto.
+>
+> **`roles/pubsublite.editor` NO otorga ningún permiso sobre Pub/Sub normal.** El rol que va es
+> **`roles/pubsub.editor`**, que en la UI en español figura **exactamente** como `Editor de Pub/Sub`
+> — sin nada después de "Pub/Sub".
+>
+> Variantes que aparecen en ese filtro y **NO** sirven: `Publicador de Pub/Sub`,
+> `Suscriptor de Pub/Sub`, `Visualizador de Pub/Sub`, y **toda** la familia `… de Pub/Sub Lite`.
+>
+> 💡 **El error no da la cara acá**: la cuenta se crea igual, sin advertencias. Revienta recién en
+> el **4.6**, con un error de permisos al crear el topic, a horas de distancia y sin pista de la
+> causa. **Verificar los roles en pantalla antes de seguir** (ver recuadro siguiente).
+
+> ✅ **Cómo verificar los roles después de crear la cuenta** — el asistente de creación no deja
+> revisarlos, pero IAM sí: Google Cloud Console → **IAM y administración** → **IAM**
+> (`console.cloud.google.com/iam-admin/iam?project=yummi-glu-glu`) → buscar la cuenta en la columna
+> _Entidad_. La columna _Rol_ tiene que decir **`Editor de Pub/Sub`** y **`Visualizador de
+Monitoring`**.
+>
+> **Los roles son editables para siempre** (✏️ lápiz en la fila): equivocarse acá no obliga a
+> rehacer la cuenta ni a regenerar el JSON.
+
 ### 4.3 — Generar y descargar el JSON
 
 En la lista de cuentas de servicio → menú de 3 puntos → **Administrar claves** → _Agregar clave_ →
