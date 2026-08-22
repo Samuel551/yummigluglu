@@ -232,7 +232,9 @@ Acá está el reuso que te mencionaba. El Himnario ya tenía suscripción, así 
 
 #### A4.2 — Publicar el consent screen
 
-- [ ] Google Cloud Console → `yummi-glu-glu` → OAuth consent screen → **Publish app** (Testing → Production)
+- [x] ~~Google Cloud Console → `yummi-glu-glu` → OAuth consent screen → **Publish app**~~ — ✅ **YA ESTABA HECHO.** Verificado en pantalla el **2026-08-22**: Google Auth Platform → _Público_ → **Estado de publicación: "En producción"**, tipo _Usuarios externos_.
+
+> ⚠️ **Esta tarea estaba sin tildar y contradecía a la tabla de hipótesis descartadas de más arriba**, que desde el 2026-08-04 ya decía "Público dice En producción". Cuando dos partes del mismo documento se contradicen, **gana la que cita una observación en pantalla**, no la casilla sin tildar.
 
 > La app usa solo scopes básicos (`email`, `profile`, `openid`), que son **no sensibles**: publicar es **un click, sin cola de verificación**. Mientras siga en Testing, **solo loguean las cuentas cargadas como test users** — un usuario real de Play no entra.
 >

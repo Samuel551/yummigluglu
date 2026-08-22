@@ -819,7 +819,7 @@ Login con Google vía `@react-native-google-signin/google-signin` (v16+) + `supa
 
 **Config externa (no reconstruir a ciegas):**
 
-- **Google Cloud Console** — proyecto `Yummi Glu Glu` (id `yummi-glu-glu`), consent screen **External** (modo Testing → solo cuentas agregadas como testers pueden loguear hasta publicar). Dos OAuth clients:
+- **Google Cloud Console** — proyecto `Yummi Glu Glu` (id `yummi-glu-glu`), consent screen **External**, **estado "En producción"** (verificado en pantalla el 2026-08-22 en Google Auth Platform → _Público_). Cualquier usuario de Play puede entrar con Google; **ya no hace falta cargar test users**. Este archivo decía "modo Testing" y era **falso**. Dos OAuth clients:
   - **Web Client** → su Client ID va en `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (es el que se pasa a `GoogleSignin.configure({ webClientId })` Y el que se carga en Supabase). Redirect URI autorizado: `https://uoqzkbbnesmvmgbjikrn.supabase.co/auth/v1/callback`.
   - **Android Client** → package `com.yummigluglu.app` + **SHA-1 del keystore de EAS**. NO se usa en código, pero debe existir o Google tira `DEVELOPER_ERROR`. El SHA-1 se saca de expo.dev → proyecto → Credentials (NO por `eas credentials` interactivo). **Si rotás el keystore, hay que actualizar el SHA-1 en este client.**
 - **Supabase** → Dashboard → Authentication → Providers → Google habilitado con el Web Client ID + Secret.
