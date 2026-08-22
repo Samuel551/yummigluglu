@@ -214,7 +214,7 @@ export default function AgendaScreen() {
               titulo="Esta función es Premium"
               beneficios={[
                 'Recordatorios ilimitados (free: máx 3)',
-                'Hitos alimentarios automáticos hasta 5 años',
+                'Los próximos 5 hitos alimentarios, en vez de 1',
                 'Activar la semana entera del plan de un toque',
                 'Hidratación, diario y recurrencia personalizada',
               ]}

@@ -45,7 +45,7 @@ interface SuscripcionState {
   cerrarSesionRevenueCat: () => Promise<void>;
   cargarSuscripcion: () => Promise<void>;
   cargarPaquetes: () => Promise<void>;
-  comprarPremium: () => Promise<void>;
+  comprarPremium: (paquete: PurchasesPackage) => Promise<void>;
   restaurarCompras: () => Promise<void>;
   limpiarError: () => void;
 }
@@ -131,15 +131,17 @@ export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
     }
   },
 
-  comprarPremium: async () => {
+  // 🔴 Recibe el paquete ELEGIDO por el usuario. Antes tomaba `paquetes[0]` mientras la
+  // pantalla mostraba "PLAN MENSUAL / por mes" en texto fijo: con un offering de dos
+  // planes, si el anual venía primero la app anunciaba precio mensual y cobraba un año.
+  // El periodo y el precio salen del paquete (`lib/planes.ts`). NO volver a elegirlo acá.
+  comprarPremium: async (paquete) => {
     if (!revenueCatListo) {
       set({ error: 'Las compras no están disponibles en este momento.' });
       return;
     }
-    const { paquetes } = get();
-    const paquete = paquetes[0];
     if (!paquete) {
-      set({ error: 'No hay paquetes disponibles. Intenta más tarde.' });
+      set({ error: 'No hay planes disponibles. Intenta más tarde.' });
       return;
     }
 

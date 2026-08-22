@@ -147,7 +147,9 @@ export default function VideosScreen() {
             <Text style={{ fontSize: 15, color: c.grisTexto, lineHeight: 22, marginTop: 10 }}>
               {esPremium
                 ? 'Mira la preparación completa de cada receta en clips cortos y claros.'
-                : 'Cada semana hay videos gratis para ti. Los demás se desbloquean con Premium o viendo un anuncio.'}
+                : // La rotación es MENSUAL: cron `rotar-videos-premium` con schedule '0 3 1 * *'
+                  // (migración 033). Decía "cada semana" y contradecía al badge "GRATIS ESTE MES".
+                  'Cada mes hay videos gratis para ti. Los demás se desbloquean con Premium o viendo un anuncio.'}
             </Text>
           </View>
 

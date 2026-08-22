@@ -188,7 +188,7 @@ export default function DetalleRecetaScreen() {
     if (!gano) {
       Alert.alert(
         'Anuncio incompleto',
-        'Necesitas ver el anuncio completo para desbloquear la receta.'
+        'Necesitas ver el anuncio completo para desbloquear el video.'
       );
     } else if (await desbloquear(id)) {
       await cargarReceta(); // la vista ahora devuelve el contenido completo
