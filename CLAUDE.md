@@ -381,7 +381,10 @@ components/
 ```
 hooks/
   useColoresTema.ts  # Retorna la paleta activa (Colors.light | Colors.dark) + flag `isDark`. Usar en pantallas con inline `style`.
+  useEsAdmin.ts      # `true` si el usuario esta en la tabla `admins`. SOLO para decidir que se dibuja — ver nota abajo.
 ```
+
+> 🔴 **`useEsAdmin()` es UI, NO seguridad.** Oculta la seccion "AVANZADO" del perfil (la fila "Panel admin") para todo el que no este en la tabla `admins` — antes se le mostraba a **todos los usuarios**. Pero cualquiera puede navegar a `/admin` escribiendo la ruta: **la autorizacion real la hace RLS con `es_admin()`**, que bloquea lectura y escritura aunque la pantalla se abra. Nunca tratar el ocultamiento como una defensa; se apoya en la misma tabla que RLS justamente para que no haya dos verdades. Arranca en `false` a proposito (mientras viaja la consulta no se muestra nada), y la policy `using (auth.uid() = user_id)` hace que un no-admin reciba **cero filas sin error**.
 
 Los hooks viven en `hooks/`. Cuando una pantalla ya resuelve colores vía NativeWind `className` con prefijo `dark:`, no necesita el hook. El hook existe para pantallas con inline `style` donde no se puede expresar dark mode con clases.
 

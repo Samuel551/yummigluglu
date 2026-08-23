@@ -9,6 +9,7 @@ import { useTemaStore } from '@/store/useTemaStore';
 import { usePaisStore } from '@/store/usePaisStore';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
+import { useEsAdmin } from '@/hooks/useEsAdmin';
 import { formatearEdad } from '@/constants/Etapas';
 import { getPais } from '@/constants/Paises';
 import { BanderaPais } from '@/components/BanderaPais';
@@ -22,6 +23,7 @@ export default function PerfilScreen() {
   const { perfiles, perfilActivo, setPerfilActivo } = usePerfilStore();
   const { pais, setPais } = usePaisStore();
   const esPremium = useSuscripcionStore((s) => s.esPremium);
+  const esAdmin = useEsAdmin();
   const [modalPaisVisible, setModalPaisVisible] = useState(false);
   const limiteAlcanzadoFree = perfiles.length >= MAX_PERFILES_FREE && !esPremium;
   const paisActual = getPais(pais);
@@ -420,18 +422,24 @@ export default function PerfilScreen() {
             </View>
           </SectionList>
 
-          {/* ── AVANZADO ── */}
-          <Eyebrow label="AVANZADO" c={c} />
-          <SectionList c={c}>
-            <RowItem
-              icon="shield"
-              label="Panel admin"
-              valor=""
-              onPress={() => router.push('/admin')}
-              c={c}
-              isFirst
-            />
-          </SectionList>
+          {/* ── AVANZADO — solo para admins ──
+              No se renderiza para el resto: ni el título de la sección.
+              🔴 Esto es UI, NO seguridad. El gate real es RLS + es_admin(). */}
+          {esAdmin && (
+            <>
+              <Eyebrow label="AVANZADO" c={c} />
+              <SectionList c={c}>
+                <RowItem
+                  icon="shield"
+                  label="Panel admin"
+                  valor=""
+                  onPress={() => router.push('/admin')}
+                  c={c}
+                  isFirst
+                />
+              </SectionList>
+            </>
+          )}
 
           {/* ── CERRAR SESIÓN ── */}
           <View style={{ paddingHorizontal: 24, marginTop: 12 }}>
