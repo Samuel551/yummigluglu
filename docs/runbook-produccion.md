@@ -158,18 +158,50 @@ Google Cloud Console → **APIs y servicios** → _Habilitar API_, en el proyect
 
 ### 4.2 — Crear la Service Account CON 2 roles
 
-Google Cloud Console → **IAM y administración** → **Cuentas de servicio** → _Crear cuenta de
-servicio_. En el paso 2 ("Otorgar acceso"), asignar **los dos**:
+> 💡 **HACELO POR CLOUD SHELL, no por el selector web.** El selector de roles en español hizo
+> fallar esto **dos veces** (ver recuadros abajo). Cloud Shell (ícono `>_` arriba a la derecha en
+> la consola, ya viene autenticado — `gcloud` **no** está instalado en la máquina del owner)
+> trabaja por **ID de rol**, donde no hay traducción ni ambigüedad posible:
+>
+> ```bash
+> gcloud iam service-accounts create revenuecat-play \
+>   --display-name="RevenueCat Play" --project=yummi-glu-glu
+>
+> for R in roles/pubsub.admin roles/monitoring.viewer; do
+>   gcloud projects add-iam-policy-binding yummi-glu-glu \
+>     --member="serviceAccount:revenuecat-play@yummi-glu-glu.iam.gserviceaccount.com" \
+>     --role="$R"
+> done
+> ```
 
-| Rol                   | Para qué                                                                                       |
-| --------------------- | ---------------------------------------------------------------------------------------------- |
-| **Pub/Sub Editor**    | Habilita las notificaciones de servidor. Si tira error de permisos, subir a **Pub/Sub Admin**. |
-| **Monitoring Viewer** | Deja monitorear la cola de notificaciones.                                                     |
+Por la consola web: Google Cloud Console → **IAM y administración** → **Cuentas de servicio** →
+_Crear cuenta de servicio_. En el paso 2 ("Otorgar acceso"), asignar **los dos**:
+
+| Rol                   | ID                        | Para qué                                                                 |
+| --------------------- | ------------------------- | ------------------------------------------------------------------------ |
+| **Pub/Sub Admin**     | `roles/pubsub.admin`      | Crear el topic de 4.6 **y escribirle la política de IAM**. Ver ⚠️ abajo. |
+| **Monitoring Viewer** | `roles/monitoring.viewer` | Deja monitorear la cola de notificaciones.                               |
 
 El paso 3 (acceso de usuarios) se saltea. **Copiar el email de la cuenta** (`…@….iam.gserviceaccount.com`) — se usa en 4.4.
 
-> ⚠️ El runbook viejo decía que no hacían falta roles. **Era incorrecto.** Sin `Pub/Sub Editor`,
-> RevenueCat no puede crear el topic en 4.6.
+> 🔴 **`Pub/Sub Editor` NO ALCANZA — verificado el 2026-08-23, este runbook lo decía mal.**
+> RevenueCat no solo **crea** el topic: después le **escribe una política de IAM** encima. Y
+> `roles/pubsub.editor` **no incluye `pubsub.topics.setIamPolicy`**; `roles/pubsub.admin` sí.
+>
+> **El mensaje de error miente por omisión**: dice _"do not have permission to create a Google
+> Cloud Pub/Sub topic"_ — pero crear sí puede. El que falla es el paso siguiente. Eso manda a
+> auditar el rol equivocado y se pierde media hora.
+>
+> Probalo en vez de creerlo (el primero sale **vacío**):
+>
+> ```bash
+> gcloud iam roles describe roles/pubsub.editor --format="value(includedPermissions)" | tr ';' '\n' | grep -i setiampolicy
+> gcloud iam roles describe roles/pubsub.admin  --format="value(includedPermissions)" | tr ';' '\n' | grep -i setiampolicy
+> ```
+>
+> ✅ `pubsub.admin` es amplio **dentro de Pub/Sub**, pero sigue acotado a **un producto**. No
+> confundir con el rol básico `Editor` (`roles/editor`), que da control sobre **todo el proyecto**
+> — incluido el OAuth del login con Google. Ese **nunca** va.
 
 > 🔴 **LA TRAMPA DEL FILTRO — pasó de verdad el 2026-08-22.** Al filtrar por `Pub/Sub` en el
 > selector de roles, Google mezcla en la misma lista los roles de **Pub/Sub** y los de
@@ -187,11 +219,19 @@ El paso 3 (acceso de usuarios) se saltea. **Copiar el email de la cuenta** (`…
 > el **4.6**, con un error de permisos al crear el topic, a horas de distancia y sin pista de la
 > causa. **Verificar los roles en pantalla antes de seguir** (ver recuadro siguiente).
 
-> ✅ **Cómo verificar los roles después de crear la cuenta** — el asistente de creación no deja
-> revisarlos, pero IAM sí: Google Cloud Console → **IAM y administración** → **IAM**
-> (`console.cloud.google.com/iam-admin/iam?project=yummi-glu-glu`) → buscar la cuenta en la columna
-> _Entidad_. La columna _Rol_ tiene que decir **`Editor de Pub/Sub`** y **`Visualizador de
-Monitoring`**.
+> ✅ **Cómo verificar los roles después de crear la cuenta.** Lo confiable es por Cloud Shell,
+> porque imprime **IDs** y no nombres traducidos:
+>
+> ```bash
+> gcloud projects get-iam-policy yummi-glu-glu --flatten="bindings[].members" \
+>   --filter="bindings.members:revenuecat-play@yummi-glu-glu.iam.gserviceaccount.com" \
+>   --format="value(bindings.role)"
+> ```
+>
+> Tiene que devolver **exactamente** `roles/pubsub.admin` y `roles/monitoring.viewer`. Por la web:
+> **IAM y administración** → **IAM** (`console.cloud.google.com/iam-admin/iam?project=yummi-glu-glu`)
+> → buscar la cuenta en la columna _Entidad_; el _Rol_ debe decir **`Administrador de Pub/Sub`** y
+> **`Visualizador de Monitoring`**.
 >
 > **Los roles son editables para siempre** (✏️ lápiz en la fila): equivocarse acá no obliga a
 > rehacer la cuenta ni a regenerar el JSON.
@@ -214,24 +254,125 @@ Play Console → **Usuarios y permisos** → _Invitar a un usuario_ → pegar el
   - ✅ Ver datos financieros, pedidos y respuestas de encuestas de cancelación
   - ✅ **Administrar pedidos y suscripciones**
 
-Enviar la invitación.
+Enviar la invitación. Las service accounts **no aceptan** la invitación como un humano: quedan
+`Activo` al instante, no hay correo pendiente.
+
+> 🔴 **Al agregar la app, Play precarga `Administrador (todos los permisos)` → 14 permisos, varios
+> de ESCRITURA** (publicar versiones, editar la ficha). Google mismo advierte ahí: _"Este usuario
+> tendrá control total sobre esta app"_. **Hay que destildarlo a mano** y dejar solo
+> **`Ver la información de la app (solo lectura)`**.
+>
+> El criterio no es "¿molesta darlo?" sino **"¿qué es lo peor que pasa si esta llave se filtra?"** —
+> este JSON se le entrega a un tercero. Con Administrador, lo peor es que publiquen una versión
+> falsa a tus usuarios. Con solo lectura, que sepan cómo se llama la app.
+
+> ✅ **Verificación cruzada gratis**: al entrar al detalle de permisos de la app vas a ver **4
+> casillas marcadas y EN GRIS (no destildables)**. No es un bug: son **heredadas** de los permisos
+> de cuenta, que aplican a todas las apps. El mapeo cierra 1 a 1 — si ves estas 4, los 3 de cuenta
+> quedaron bien:
+>
+> | Permiso de cuenta                                      | Se hereda como                                                          |
+> | ------------------------------------------------------ | ----------------------------------------------------------------------- |
+> | Ver información de la app y descargar informes masivos | `Ver la información de la app` + `Ver información de calidad de la app` |
+> | Ver datos financieros, pedidos y encuestas             | `Ver los datos financieros`                                             |
+> | Administrar pedidos y suscripciones                    | `Administrar los pedidos y las suscripciones`                           |
+
+> ⚠️ **`Administrar pedidos y suscripciones` es INNEGOCIABLE**: es el permiso que deja a RevenueCat
+> **reconocer (acknowledge)** la compra contra Google. Sin él, **Google la reembolsa sola a los 3
+> días** — el usuario paga, usa premium, y recupera la plata.
+
+> ⚠️ **Play le pone una FECHA DE VENCIMIENTO por default a la invitación** (acá salió
+> `Vence el 31 ago 2032`, mientras los otros usuarios figuran "Sin vencimiento"). **Sacarla**
+> (fila → _Administrar_ → vencimiento del acceso). El problema no es la fecha, es el **modo de
+> falla**: ese día no hay error ni aviso, RevenueCat simplemente deja de validar compras y la app
+> manda a `free` a gente que pagó. Un vencimiento silencioso en el camino de la plata es una bomba
+> de tiempo.
+
+> 🧹 **Limpieza pendiente**: en la lista quedó `revenuecat-yummigluglu@yummi-glu-glu…`, una service
+> account del intento de abril que **nunca se terminó de configurar** (no aparece en la IAM policy
+> del proyecto, o sea que no tiene ningún rol de Cloud). **No se reusó** —no teníamos su JSON ni sus
+> roles verificados—. Sacarla de _Usuarios y permisos_ **después** de que el paso 5 pase OK: una SA
+> sin usar con acceso a datos financieros es superficie de ataque regalada.
+>
+> ⚠️ Ojo también con `revenuecat-play@`**`himnario-comunitario`**`.iam.gserviceaccount.com`, de la
+> OTRA app del owner: la parte antes del `@` es **idéntica** a la nuestra.
 
 ### 4.5 — Subir el JSON a RevenueCat
 
-RevenueCat → **Project Settings** → la app de **Google Play Store** → arrastrar el JSON al campo
-**Service Account Credentials JSON** → guardar.
+RevenueCat → **Project settings** → **Apps** → la app de **Google Play Store** → arrastrar el JSON
+al campo **Service Account Credentials JSON** → **Save changes** (subirlo NO lo guarda solo).
+
+> ✅ **Cómo saber que cerró**: aparece el badge **`Valid credentials`**, y el cartel amarillo
+> _"Upload your service account credentials file and save in order to connect to Google"_ del bloque
+> de abajo **desaparece**. RevenueCat se autentica de verdad contra Google al guardar, así que ese
+> badge valida **en cadena los pasos 4.1 a 4.5** — incluido que las credenciales ya propagaron.
+
+> 💡 **RevenueCat CACHEA esa validación.** Si cambiás roles en IAM, no alcanza con volver a la
+> pestaña: **F5** y apretar el **🔄 al lado de `Valid credentials`** para forzar la reconsulta.
+> Si no, mirás el resultado de hace 10 minutos y creés que el fix no funcionó.
+
+> ℹ️ El proyecto en RevenueCat se llama **"Baby Bites"** (nombre viejo, pre-rename). **Está bien, no
+> tocarlo** — misma cicatriz que el slug de EAS (`baby-bites`) y el webhook (`babybites`).
 
 ### 4.6 — Notificaciones en tiempo real (RTDN)
 
+> ✅ **CERRADO el 2026-08-23.** `Last received 2026-08-23, 4:23 a.m. UTC`, topic
+> `projects/yummi-glu-glu/topics/Play-Store-Notifications`. Los pasos y las trampas de abajo son
+> los reales, ejecutados — no los teóricos.
+
 Recién **después** de que las credenciales estén activas:
 
-1. RevenueCat → Google Play App Settings → botón **"Connect to Google"** → genera un **Topic ID** → copiarlo.
-2. Play Console → **Monetizar** → **Configuración de monetización** → _Notificaciones para
-   desarrolladores en tiempo real_ → pegar en **Nombre del tema**.
-3. Elegir **"Suscripciones, compras anuladas y todos los productos únicos"** → guardar.
-4. Apretar **"Enviar notificación de prueba"**. Si aparece un **"Last received"** en RevenueCat, cerró.
+1. RevenueCat → Project settings → **Apps** → la app de **Google Play Store** → bloque _Google
+   developer notifications_ → desplegable **Select…** → elegir `Play-Store-Notifications`
+   (_"Will be generated by RevenueCat"_) → botón **Connect to Google** → **Save changes**.
+   Queda un **Topic ID**; copiarlo **con el botón de copiar** 📋, no a mano.
+2. **Cloud Shell — el permiso que RevenueCat NO pone** (ver 🔴 abajo):
+   ```bash
+   gcloud pubsub topics add-iam-policy-binding Play-Store-Notifications \
+     --member="serviceAccount:google-play-developer-notifications@system.gserviceaccount.com" \
+     --role="roles/pubsub.publisher" --project=yummi-glu-glu
+   ```
+3. Play Console → **Monetizar** → **Configuración de monetización** → _Notificaciones en tiempo
+   real para desarrolladores_ → tildar **Habilitar notificaciones en tiempo real** → pegar el
+   Topic ID en **Nombre del tema**.
+4. Elegir **"Suscripciones, compras anuladas y todos los productos únicos"** → guardar.
+5. Apretar **"Enviar notificación de prueba"**. Si **no** sale el cartel rojo, publicó bien; la
+   confirmación real es el **"Last received"** en RevenueCat (F5, no se auto-refresca).
 
 Sin RTDN, RevenueCat se entera de renovaciones y cancelaciones **por sondeo** en vez de al instante.
+
+> 🔴 **RevenueCat crea el topic con la política de IAM VACÍA.** Verificado: un
+> `gcloud pubsub topics get-iam-policy Play-Store-Notifications` recién creado devuelve solo
+> `etag: ACAB`, **sin una sola línea de `bindings:`**. Falta el permiso de **publicar** para la
+> cuenta de Google `google-play-developer-notifications@system.gserviceaccount.com` — que no es del
+> proyecto, es de Google, y por eso no aparece en ninguna lista de IAM.
+>
+> Sin ese binding, **"Enviar notificación de prueba" falla** con _"Asegúrate de haber ingresado el
+> nombre del tema en el formato correcto, de que Google Cloud esté configurado correctamente y de
+> tener los permisos necesarios"_ — un mensaje que enumera tres causas y no dice cuál es.
+>
+> Son **dos cuentas distintas** y cada una necesita lo suyo: `revenuecat-play@…` **crea y lee**
+> (`roles/pubsub.admin`, paso 4.2), `google-play-developer-notifications@system…` **publica**
+> (`roles/pubsub.publisher` sobre el topic, paso 2 de arriba).
+
+> 🔴 **TRAMPA DE TRADUCCIÓN en el campo "Nombre del tema".** Play Console en español dice que el
+> formato es `proyectos/{project_id}/temas/{topic_name}`. **Es falso**: Google tradujo los
+> segmentos literales de la ruta. El valor va **en inglés**:
+>
+> ```
+> projects/yummi-glu-glu/topics/Play-Store-Notifications
+> ```
+>
+> 💡 Pegar con el botón de copiar de RevenueCat esquiva esto **y** los espacios invisibles. El
+> contador de caracteres sirve de verificación: ese valor mide **54/300** exactos — si marca más,
+> hay espacios de sobra.
+
+> ⚠️ **El checkbox `Track new purchases from server-to-server notifications` va APAGADO.** Google
+> no manda el `app_user_id` en sus notificaciones, así que RevenueCat crearía suscriptores con IDs
+> anónimos (`$RCAnonymousID:…`). El webhook `revenuecat-webhook` **valida el `app_user_id` con un
+> regex de UUID** contra `auth.users`: esas compras se rechazarían y quedarían suscripciones
+> fantasma imposibles de atribuir. El SDK ya hace `logIn(user.id)` con el UUID de Supabase — toda
+> compra real llega identificada.
 
 ---
 

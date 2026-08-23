@@ -109,8 +109,8 @@ El corte **ya no es "acceso a producción" para las cuatro**. Son dos grupos dis
 
 | Tarea                                   | Requiere                       | Estado al 22-08                                                            |
 | --------------------------------------- | ------------------------------ | -------------------------------------------------------------------------- |
-| Productos de suscripción → entitlements | Acceso a producción            | 🟢 **DESBLOQUEADA** — se puede hacer ya                                    |
-| Service Account de Play → RevenueCat    | Acceso a producción            | 🟢 **DESBLOQUEADA** — se puede hacer ya                                    |
+| Productos de suscripción → entitlements | Acceso a producción            | ✅ **HECHA** (22-08) — productos en Play + catálogo de RC conectado        |
+| Service Account de Play → RevenueCat    | Acceso a producción            | ✅ **HECHA** (23-08) — credenciales válidas + RTDN conectadas              |
 | Vincular AdMob ↔ ficha de Play          | App **pública en el catálogo** | 🔒 Sigue bloqueada — el buscador de AdMob solo ve el catálogo público      |
 | Validar **`app-ads.txt`**               | La vinculación anterior        | 🔒 Sigue bloqueada — AdMob lo rastrea desde el sitio de la ficha vinculada |
 
@@ -239,13 +239,44 @@ Sin `SUPABASE_URL` y `SUPABASE_ANON_KEY` la app lanza una excepción al arrancar
 
 > ✅ **Key de RevenueCat de producción (resuelto el 2026-08-02).** `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` empieza con `goog_`, sincronizada en `.env.local` y en los environments `production` y `preview` de EAS. Antes era una `test_` (sandbox): las compras **no se procesan de verdad** con esa, y el síntoma **no aparece en desarrollo**. La key `goog_` se genera **sola** al crear la app de Google Play Store en RevenueCat (Apps & providers) — no hay botón para crearla, y **no confundirla con el "REST API Identifier"** (`app…`) ni con una "Secret API key" (esa NUNCA va en el cliente).
 >
-> 🔴 **Sigue faltando para cobrar: el Service Account de Google Play.** La app de Play Store en RevenueCat existe pero sin `Service Account Credentials JSON`, así que **RevenueCat todavía no puede validar las compras contra Google**. Ese JSON sale de Google Cloud (proyecto `yummi-glu-glu`, el mismo del login con Google) + Play Console → _Users and permissions_, así que **está atado a abrir la Play Console**. Mismo requisito para conectar las _Google developer notifications_ (que RevenueCat se entere de renovaciones y cancelaciones al instante en vez de por sondeo).
+> ✅ **PASO 4 CERRADO ENTERO (2026-08-23) — el cobro ya está conectado contra Google.** La app de
+> Play Store en RevenueCat tiene el `Service Account Credentials JSON` cargado y muestra el badge
+> **`Valid credentials`**, y las _Google developer notifications_ están conectadas con
+> `Last received 2026-08-23, 4:23 a.m. UTC` sobre el topic
+> `projects/yummi-glu-glu/topics/Play-Store-Notifications`.
 >
-> 📕 **Los pasos exactos y verificados están en `docs/runbook-produccion.md` § Paso 4** (2026-08-22, contra la doc oficial de RevenueCat). Tres cosas que el runbook viejo NO decía y cuestan horas:
+> - Service account: **`revenuecat-play@yummi-glu-glu.iam.gserviceaccount.com`**, roles
+>   `roles/pubsub.admin` + `roles/monitoring.viewer`.
+> - JSON en **`C:\Users\Samuel\secretos\`** — FUERA del repo (que es público).
+> - Invitada en Play Console con **3 permisos de cuenta** (incluido _Administrar pedidos y
+>   suscripciones_) y solo lectura a nivel app.
+>
+> 🔴 **Esto NO significa que el cobro esté probado.** Falta el **paso 5: QA de compra real en
+> dispositivo**. Lo verificado es el canal (credenciales + notificaciones), no la transacción.
+>
+> 📕 **Los pasos exactos, ejecutados y con todas las trampas, están en
+> `docs/runbook-produccion.md` § Paso 4.** Lo que costó horas y no estaba escrito:
 >
 > - Hay que habilitar **3 APIs**, no 1: Play Android Developer, Play Developer Reporting y **Cloud Pub/Sub**.
-> - La service account necesita **2 roles**: **Pub/Sub Editor** + **Monitoring Viewer**. El runbook decía que no hacían falta roles y **era falso**.
-> - ⏳ **Las credenciales tardan HASTA 36 HORAS en propagar** (dicho por RevenueCat, textual). Si el QA de compras falla justo después de cargar el JSON, **el primer sospechoso es la propagación, NO el código**. Atajo: editar la descripción de cualquier producto en Play → _Monetizar_ y guardar, eso puede activarlas al instante.
+> - 🔴 **`Pub/Sub Editor` NO alcanza: va `roles/pubsub.admin`.** Editor **no tiene
+>   `pubsub.topics.setIamPolicy`**, y RevenueCat no solo crea el topic — después le escribe la
+>   política de IAM. El error dice _"no permission to create a Pub/Sub topic"_ y **eso desorienta**:
+>   crear sí puede; falla el paso siguiente. (Este archivo decía "Pub/Sub Editor" y **era falso**.)
+> - 🔴 **RevenueCat crea el topic con la política de IAM VACÍA** (`etag: ACAB`, sin `bindings`). Hay
+>   que darle **a mano** `roles/pubsub.publisher` sobre el topic a
+>   `google-play-developer-notifications@system.gserviceaccount.com` — una cuenta **de Google**, no
+>   del proyecto. Sin eso, _"Enviar notificación de prueba"_ falla.
+> - 🔴 **Play Console traduce mal el formato del topic**: dice `proyectos/…/temas/…` y el valor real
+>   va **en inglés** (`projects/…/topics/…`).
+> - 🔴 **Al invitar la cuenta, Play precarga `Administrador (todos los permisos)`** sobre la app (14
+>   permisos, varios de escritura). Destildarlo: este JSON se le entrega a un tercero.
+> - 💡 **Usar Cloud Shell (`>_`), no el selector de roles web.** `gcloud` no está instalado local. Por
+>   ID de rol desaparece la ambigüedad de los nombres traducidos (`Editor de Pub/Sub Lite` es **otro
+>   producto**; `Editor` a secas es el rol básico de **todo el proyecto**).
+> - ⏳ **Las credenciales pueden tardar HASTA 36 HORAS en propagar** (dicho por RevenueCat, textual).
+>   Acá **no** hizo falta esperar —validaron al instante—, pero si el QA de compras falla justo
+>   después de cargar el JSON, **el primer sospechoso es la propagación, NO el código**. Atajo:
+>   editar la descripción de cualquier producto en Play → _Monetizar_ y guardar.
 
 > 🔴 **El JSON del Service Account es una CREDENCIAL y este repo es PÚBLICO** (`github.com/Samuel551/yummigluglu`, `private: false`, verificado contra la API el 2026-08-22). Google lo descarga como `<project-id>-<key-id>.json` — un nombre que **no parece un secreto** y que `git add .` se lleva puesto. Commitearlo entrega los **datos financieros y los pedidos** de Play Console.
 >
