@@ -1,7 +1,23 @@
-import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView, Switch } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+  Switch,
+  Alert,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import {
+  saludosActivos,
+  setSaludosActivos,
+  reprogramarSaludos,
+  cancelarSaludos,
+  MESES_CUMPLEMES_MAX,
+} from '@/lib/saludos';
+import { solicitarPermisosNotificaciones } from '@/lib/notificaciones';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePerfilStore, MAX_PERFILES_FREE } from '@/store/usePerfilStore';
@@ -27,6 +43,47 @@ export default function PerfilScreen() {
   const [modalPaisVisible, setModalPaisVisible] = useState(false);
   const limiteAlcanzadoFree = perfiles.length >= MAX_PERFILES_FREE && !esPremium;
   const paisActual = getPais(pais);
+
+  /**
+   * Saludos de cumpleaños. La preferencia vive en AsyncStorage (es por
+   * DISPOSITIVO: las notificaciones locales las programa el teléfono que las
+   * tiene), así que hay que hidratarla al montar en vez de leerla de un store.
+   */
+  const [saludos, setSaludos] = useState(true);
+
+  useEffect(() => {
+    saludosActivos().then(setSaludos);
+  }, []);
+
+  const cambiarSaludos = async (activos: boolean) => {
+    setSaludos(activos); // optimista: el Switch no puede quedarse trabado
+
+    if (!activos) {
+      await setSaludosActivos(false);
+      // Al apagar hay que CANCELAR lo ya programado: las notificaciones locales
+      // viven en el SISTEMA y seguirían sonando aunque la preferencia diga que no.
+      await cancelarSaludos().catch(() => {});
+      return;
+    }
+
+    // ⚠️ Prender el switch sin permiso dejaría un control que dice "activado" y
+    // no manda nada nunca — la peor clase de bug, porque el usuario no tiene
+    // forma de darse cuenta. Se piden acá, que además es el momento en contexto:
+    // acaba de decir que los quiere. Este es también el único camino para quien
+    // ya tenía la app instalada y nunca pasó por el onboarding nuevo.
+    const permiso = await solicitarPermisosNotificaciones().catch(() => false);
+    if (!permiso) {
+      setSaludos(false);
+      Alert.alert(
+        'Permiso necesario',
+        'Para enviarte los saludos necesitamos permiso para mostrar notificaciones. Puedes activarlo en los ajustes de tu teléfono.'
+      );
+      return;
+    }
+
+    await setSaludosActivos(true);
+    await reprogramarSaludos(perfiles).catch(() => {});
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.fondoApp }}>
@@ -416,6 +473,42 @@ export default function PerfilScreen() {
               <Switch
                 value={c.isDark}
                 onValueChange={(val) => setTema(val ? 'dark' : 'light')}
+                trackColor={{ false: '#D1D5DB', true: c.verde }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </SectionList>
+
+          {/* ── NOTIFICACIONES ──
+              🔴 Este toggle NO es un lujo. Sin él, el único modo que tiene un
+              padre de dejar de recibir los saludos es apagar las notificaciones
+              de la app entera desde Ajustes de Android — y ahí se lleva puestos
+              también los recordatorios de comida de la agenda. Un interruptor
+              propio evita que un "esto me molesta" se convierta en perder todo. */}
+          <Eyebrow label="NOTIFICACIONES" c={c} />
+          <SectionList c={c}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 13 }}>
+              <View style={{ width: 28, alignItems: 'center', marginRight: 14 }}>
+                <Text style={{ fontSize: 18, lineHeight: 27 }}>🎂</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: '600',
+                    color: c.negro,
+                    letterSpacing: -0.1,
+                  }}
+                >
+                  Saludos de cumpleaños
+                </Text>
+                <Text style={{ fontSize: 12, color: c.grisTexto, marginTop: 2 }}>
+                  Cumpleaños y cumplemés hasta los {MESES_CUMPLEMES_MAX} meses
+                </Text>
+              </View>
+              <Switch
+                value={saludos}
+                onValueChange={cambiarSaludos}
                 trackColor={{ false: '#D1D5DB', true: c.verde }}
                 thumbColor="#FFFFFF"
               />

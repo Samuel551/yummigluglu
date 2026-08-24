@@ -16,6 +16,8 @@ import { usePerfilStore } from '@/store/usePerfilStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
 import { ALERGENOS } from '@/constants/Alergias';
 import { calcularEtapaPorEdad, getEtapaInfo, formatearEdad } from '@/constants/Etapas';
+import { solicitarPermisosNotificaciones } from '@/lib/notificaciones';
+import { reprogramarSaludos } from '@/lib/saludos';
 
 const AVATARES = [
   '🍼',
@@ -94,6 +96,26 @@ export default function OnboardingScreen() {
     setAlergias((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]));
   };
 
+  /**
+   * Saludos de cumpleaños. `saludosRespondido` no distingue "sí" de "ahora no"
+   * a propósito: solo sirve para dejar de mostrar la tarjeta. Lo que decide si
+   * se programa algo es `saludosOk`, que es la respuesta REAL del sistema — el
+   * usuario puede aceptar acá y rechazar el diálogo de Android un segundo
+   * después, y en ese caso no hay permiso y no hay nada que programar.
+   */
+  const [saludosRespondido, setSaludosRespondido] = useState(false);
+  const [saludosOk, setSaludosOk] = useState(false);
+
+  const aceptarSaludos = async () => {
+    setSaludosRespondido(true);
+    try {
+      setSaludosOk(await solicitarPermisosNotificaciones());
+    } catch {
+      // Un permiso que falla no puede trabar el alta del perfil.
+      setSaludosOk(false);
+    }
+  };
+
   // Avanzar al siguiente paso con validación
   const avanzar = () => {
     if (paso === 1) {
@@ -130,6 +152,12 @@ export default function OnboardingScreen() {
       avatar_emoji: avatarEmoji,
     });
     if (perfil) {
+      // Sin `await` y con `.catch`: programar saludos es un extra, y si falla
+      // (permiso revocado entre medio, tope del sistema) NO puede impedir que
+      // el usuario entre a la app que acaba de configurar.
+      if (saludosOk) {
+        reprogramarSaludos([perfil]).catch(() => {});
+      }
       router.replace('/(tabs)');
     }
   };
@@ -405,6 +433,92 @@ export default function OnboardingScreen() {
               </View>
             )
           )}
+
+          {/* ── SALUDOS DE CUMPLEAÑOS ──
+              🔴 Aparece SOLO cuando la fecha ya es válida. Ese es el punto
+              exacto de máxima relevancia: el padre acaba de escribir el
+              cumpleaños de su hijo, y le ofrecemos saludarlo en esa fecha.
+
+              🔴 Y es un PRE-PERMISO: primero preguntamos nosotros, y solo si
+              dice que sí disparamos el diálogo del sistema. En Android 13+
+              `POST_NOTIFICATIONS` es un permiso de runtime y un rechazo lo
+              bloquea casi para siempre — no se gasta ese único disparo con
+              alguien que iba a decir que no. */}
+          {etapaCalculada && !saludosRespondido ? (
+            <View
+              style={{
+                marginTop: 18,
+                backgroundColor: c.card,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: c.cardBorde,
+                padding: 16,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Text style={{ fontSize: 22, lineHeight: 33 }}>🎂</Text>
+                <Text style={{ flex: 1, fontSize: 15, fontWeight: '800', color: c.negro }}>
+                  ¿Le mandamos un saludo?
+                </Text>
+              </View>
+              <Text style={{ fontSize: 13, color: c.grisTexto, marginTop: 8, lineHeight: 19 }}>
+                Te avisamos en el cumpleaños de {nombre.trim() || 'tu bebé'} y en cada cumplemés,
+                con un saludo de parte del equipo. Puedes desactivarlo cuando quieras.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+                <TouchableOpacity onPress={aceptarSaludos} activeOpacity={0.85} style={{ flex: 1 }}>
+                  <View
+                    style={{
+                      backgroundColor: c.verde,
+                      borderRadius: 12,
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: c.blanco }}>
+                      Sí, avísenme
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setSaludosRespondido(true)}
+                  activeOpacity={0.7}
+                  style={{ flex: 1 }}
+                >
+                  <View
+                    style={{
+                      borderRadius: 12,
+                      paddingVertical: 12,
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: c.cardBorde,
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: c.grisTexto }}>
+                      Ahora no
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+
+          {saludosOk ? (
+            <View
+              style={{
+                marginTop: 18,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                paddingHorizontal: 4,
+              }}
+            >
+              <Feather name="check-circle" size={16} color={c.verde} />
+              <Text style={{ flex: 1, fontSize: 13, color: c.verde, fontWeight: '600' }}>
+                Listo, te avisaremos en cada fecha especial.
+              </Text>
+            </View>
+          ) : null}
         </View>
       )}
 

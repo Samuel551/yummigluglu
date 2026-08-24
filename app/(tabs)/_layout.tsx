@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { usePerfilStore } from '@/store/usePerfilStore';
 import { useFavoritosStore } from '@/store/useFavoritosStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
+import { reprogramarSaludos } from '@/lib/saludos';
 
 // Ícono simple basado en texto/emoji hasta integrar Lucide
 function TabIcon({
@@ -45,6 +46,22 @@ export default function TabsLayout() {
     cargarPerfiles().finally(() => setPerfilesCargados(true));
     cargarFavoritos();
   }, [session, cargarPerfiles, cargarFavoritos]);
+
+  /**
+   * Renueva la ventana de saludos de cumpleaños y cumplemés.
+   *
+   * Depende de `perfiles`, no del arranque: así una sola línea cubre los cuatro
+   * casos que mueven las fechas — carga inicial, alta de un hijo, corrección de
+   * la fecha de nacimiento y borrado de un perfil.
+   *
+   * `reprogramarSaludos` es idempotente (cancela y reprograma) y sale sin hacer
+   * nada si no hay permiso o si el usuario los apagó, así que llamarla de más
+   * es barato. Nunca pide permisos: eso pasa en el onboarding, en contexto.
+   */
+  useEffect(() => {
+    if (perfiles.length === 0) return;
+    reprogramarSaludos(perfiles).catch(() => {});
+  }, [perfiles]);
 
   // Reset de contraseña en curso: gana sobre todo lo demás.
   if (recoveryPendiente) {
