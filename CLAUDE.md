@@ -775,6 +775,56 @@ En React Native, `detectSessionInUrl` del cliente Supabase **solo funciona en we
 
 **Para debuggear**: si el usuario hace click en el link y NO queda logueado, mirar consola para `Error procesando deep link de auth:` que loguea el handler. Causas comunes: token expirado (Supabase los hace expirar en 1h), URL sin fragment (chequear que Site URL en dashboard sea el deep link y no una URL https), `verifyOtp` requerido en vez de `setSession` (algunos flujos legacy).
 
+### RevenueCat — `TRANSFER`: la suscripción es de la CUENTA DE GOOGLE, no de la cuenta de la app
+
+> 🔴 **Bug encontrado el 2026-08-24, en producción, con plata real.** Una cuenta **free**
+> (`samuel.sanchez@alumnos.ucentral.cl`) tocó **"Restaurar compras"** en el mismo teléfono donde otra
+> cuenta había comprado, y **se llevó el premium**. No fue un fallo del botón: fue el comportamiento
+> **por defecto** de RevenueCat sumado a que el webhook tiraba el aviso a la basura.
+
+**Cómo funciona de verdad.** Google Play ata la suscripción a la **cuenta de Google del teléfono**,
+no al `user_id` de Supabase. Cuando otra cuenta de la app restaura, RevenueCat aplica su
+**Restore Behavior** — que por defecto es _Transfer to new App User ID_ — y **traspasa la
+entitlement**. Después avisa con un evento **`TRANSFER`**.
+
+> 🔴 **`TRANSFER` es el ÚNICO evento de RevenueCat que llega SIN `app_user_id`.** Identifica a las
+> partes con `transferred_from[]` y `transferred_to[]`. La validación de shape del webhook exigía
+> `app_user_id`, así que **el evento moría con un `400` antes de llegar al `switch`**. El comentario
+> del `default` decía "TRANSFER se ignora" y **era falso**: nunca llegaba hasta ahí.
+
+**Por qué el daño era permanente**: `sincronizar-suscripcion` **solo sube de plan, nunca baja** (a
+propósito — ver su encabezado). Si nadie da de baja al origen, **un pago deja premium a tantas
+cuentas como restauren en ese teléfono, para siempre**.
+
+**Cómo se midió, no se supuso**: 6 `POST` con `user_agent: RevenueCat` → **400**, todos con
+`content_length: 468`. Y la fila de `suscripciones` de la cuenta free tenía un `expires_at`
+**idéntico** al de la compra real (`2026-09-24 01:16:41+00`) → RevenueCat efectivamente le había
+pasado la entitlement.
+
+**El arreglo son DOS mitades, y una no está en el repo:**
+
+1. **Código** — `revenuecat-webhook` tiene ahora la **rama 3.b**: ante un `TRANSFER`, pone
+   `plan='free', activa=false` a cada `transferred_from`. Usa `update`, no `upsert` (si la fila no
+   existe, no hay que crearla). **No** activa a `transferred_to`: el evento no garantiza traer
+   `expiration_at_ms`, y el destinatario ya se activa por `sincronizar-suscripcion`, que **verifica
+   contra RevenueCat** en vez de inventar un vencimiento.
+2. **Dashboard de RevenueCat** — _Project settings_ → _General_ → **Restore Behavior**:
+
+   | Opción                                          | Qué hace                                                                      |
+   | ----------------------------------------------- | ----------------------------------------------------------------------------- |
+   | `Transfer to new App User ID`                   | **Default. Es el que causó esto.**                                            |
+   | `Transfer if there are no active subscriptions` | ✅ **Recomendada** — bloquea el traspaso mientras la sub esté activa.         |
+   | `Keep with original App User ID`                | El que restaura recibe error. Traba al usuario legítimo que cambió de cuenta. |
+   | `Share between App User IDs`                    | Legacy. **Si te salís, no podés volver.**                                     |
+
+> 🔴 **EL ORDEN IMPORTA para devolver una entitlement mal transferida.** Primero **restaurar desde la
+> cuenta que pagó** (con el transfer todavía habilitado), y **recién ahí** cambiar el setting. Al
+> revés, la entitlement queda atrapada en la cuenta equivocada y el pagador no la puede recuperar.
+
+> ⚠️ **Deploy: `supabase functions deploy revenuecat-webhook --no-verify-jwt`.** NO usar el MCP
+> `deploy_edge_function` — no expone `verify_jwt` y puede volver a dejar la función muerta detrás del
+> gateway (ya pasó en abril).
+
 ### RevenueCat — polling post-compra
 
 Después de `comprarPremium()` o `restaurarCompras()`, el store hace polling a Supabase hasta 10 veces con intervalos de 1 segundo esperando que el webhook de RevenueCat actualice la tabla `suscripciones`. En producción el webhook tarda < 5 segundos. Si `esPremium` no cambia en 10s, la compra se completa igualmente en RC pero la UI no lo reflejará hasta el próximo `cargarSuscripcion()`.
