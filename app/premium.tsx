@@ -15,7 +15,7 @@ import { PACKAGE_TYPE } from 'react-native-purchases';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
 import { usePerfilStore, MAX_PERFILES_FREE } from '@/store/usePerfilStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
-import { construirPlanes, PlanPresentado } from '@/lib/planes';
+import { construirPlanes, formatearVencimiento, PlanPresentado } from '@/lib/planes';
 import { NUTRIBOT_LIMITE_FREE, NUTRIBOT_LIMITE_PREMIUM } from '@/constants/Nutribot';
 import type { ThemePalette } from '@/constants/Colors';
 
@@ -221,30 +221,6 @@ function PrecioUnico({ plan, c }: { plan: PlanPresentado; c: ThemePalette }) {
       </Text>
     </View>
   );
-}
-
-// `toLocaleDateString` depende de Intl, que en Android puede venir recortado
-// según el motor. Se formatea a mano, igual que en `agenda.tsx`.
-const MESES = [
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre',
-];
-
-function formatearVencimiento(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
 }
 
 // Deep link al centro de suscripciones de Google Play. Con `package` abre

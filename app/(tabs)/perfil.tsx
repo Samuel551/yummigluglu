@@ -18,6 +18,7 @@ import {
   MESES_CUMPLEMES_MAX,
 } from '@/lib/saludos';
 import { solicitarPermisosNotificaciones } from '@/lib/notificaciones';
+import { formatearVencimiento } from '@/lib/planes';
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/useAuthStore';
 import { usePerfilStore, MAX_PERFILES_FREE } from '@/store/usePerfilStore';
@@ -39,6 +40,8 @@ export default function PerfilScreen() {
   const { perfiles, perfilActivo, setPerfilActivo } = usePerfilStore();
   const { pais, setPais } = usePaisStore();
   const esPremium = useSuscripcionStore((s) => s.esPremium);
+  const suscripcion = useSuscripcionStore((s) => s.suscripcion);
+  const vencimientoPremium = formatearVencimiento(suscripcion?.expires_at);
   const esAdmin = useEsAdmin();
   const [modalPaisVisible, setModalPaisVisible] = useState(false);
   const limiteAlcanzadoFree = perfiles.length >= MAX_PERFILES_FREE && !esPremium;
@@ -138,6 +141,58 @@ export default function PerfilScreen() {
               </Text>
             )}
           </View>
+
+          {/* ── ACCESO A LA PANTALLA PREMIUM (solo para premium) ──
+              🔴 Sin esto, un suscriptor NO TIENE forma de llegar a `/premium`.
+              La única fila que navegaba ahí es la de "Agregar otro hijo", y solo
+              aparece cuando un usuario FREE llega al límite de perfiles.
+              O sea: arreglamos la pantalla y la puerta seguía sin existir.
+              Un estado sin salida no se arregla arreglando el destino. */}
+          {esPremium ? (
+            <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
+              <TouchableOpacity onPress={() => router.push('/premium')} activeOpacity={0.85}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 14,
+                    backgroundColor: c.verdeClaro,
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: c.verde,
+                    paddingVertical: 16,
+                    paddingHorizontal: 16,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: c.verde,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Feather name="award" size={20} color={c.blanco} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: c.negro }}>
+                      Tu Premium está activo
+                    </Text>
+                    <Text style={{ fontSize: 12.5, color: c.grisTexto, marginTop: 3 }}>
+                      {/* Sin fecha = premium de cortesía: no renueva nada.
+                          Decir "se renueva" ahí sería mentirle al usuario. */}
+                      {vencimientoPremium
+                        ? `Se renueva el ${vencimientoPremium}`
+                        : 'Ver detalles y administrar'}
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={c.verde} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           {/* Separador */}
           <Separator c={c} />

@@ -107,3 +107,39 @@ export function construirPlanes(paquetes: PurchasesPackage[]): PlanPresentado[] 
     };
   });
 }
+
+// ─── Vencimiento de la suscripción ────────────────────────────────────────────
+
+// `toLocaleDateString` depende de Intl, que en Android puede venir recortado
+// según el motor. Se formatea a mano, igual que en `agenda.tsx` y `saludos.ts`.
+const MESES_LARGOS = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+];
+
+/**
+ * Formatea el `expires_at` de `suscripciones` para mostrarlo al usuario.
+ *
+ * Devuelve `null` cuando no hay fecha, y eso NO es un error: son los premium de
+ * CORTESÍA, que no vienen de Google Play y no renuevan nada. Quien llama tiene
+ * que decir "sin fecha de vencimiento", nunca "se renueva el…".
+ *
+ * Vive acá y no dentro de una pantalla porque lo usan dos: `app/premium.tsx` y
+ * la tarjeta de Perfil que lleva hasta ella.
+ */
+export function formatearVencimiento(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getDate()} de ${MESES_LARGOS[d.getMonth()]} de ${d.getFullYear()}`;
+}
