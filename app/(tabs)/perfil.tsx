@@ -16,6 +16,7 @@ import {
   reprogramarSaludos,
   cancelarSaludos,
   MESES_CUMPLEMES_MAX,
+  probarSaludosAhora,
 } from '@/lib/saludos';
 import { solicitarPermisosNotificaciones } from '@/lib/notificaciones';
 import { formatearVencimiento } from '@/lib/planes';
@@ -568,6 +569,45 @@ export default function PerfilScreen() {
                 thumbColor="#FFFFFF"
               />
             </View>
+
+            {/* 🔴 SOLO EN DESARROLLO. `__DEV__` es `false` en cualquier build de
+                preview o producción, así que este bloque NO existe para ningún
+                usuario final — Metro lo elimina del bundle.
+                Existe porque los saludos apuntan a fechas reales y sin esto la
+                única forma de probarlos sería esperar semanas o mentirle el
+                reloj al teléfono. */}
+            {__DEV__ ? (
+              <TouchableOpacity
+                onPress={async () => {
+                  const resumen = await probarSaludosAhora(perfiles);
+                  Alert.alert('Prueba de saludos', resumen);
+                }}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 13,
+                    borderTopWidth: 1,
+                    borderTopColor: c.cardBorde,
+                  }}
+                >
+                  <View style={{ width: 28, alignItems: 'center', marginRight: 14 }}>
+                    <Text style={{ fontSize: 16, lineHeight: 24 }}>🧪</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.negro }}>
+                      Probar saludo ahora
+                    </Text>
+                    <Text style={{ fontSize: 11.5, color: c.grisTexto, marginTop: 2 }}>
+                      Solo en desarrollo · llega en 10 segundos
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color={c.grisTexto} />
+                </View>
+              </TouchableOpacity>
+            ) : null}
           </SectionList>
 
           {/* ── AVANZADO — solo para admins ──

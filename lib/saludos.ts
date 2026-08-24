@@ -261,3 +261,60 @@ export async function reprogramarSaludos(perfiles: PerfilParaSaludo[]): Promise<
 
   return programadas;
 }
+
+// ─── Diagnóstico (solo desarrollo) ────────────────────────────────────────────
+
+/** Marca aparte para la notificación de prueba: `cancelarSaludos()` filtra por
+ *  igualdad exacta, así que una reprogramación no puede matarla antes de sonar. */
+const MARCA_PRUEBA = 'saludo_prueba';
+
+/**
+ * Dispara un saludo REAL en 10 segundos y devuelve qué quedó programado.
+ *
+ * ⚠️ Existe porque los saludos apuntan a fechas de verdad —el próximo cumplemés
+ * puede caer en semanas— y una feature que no se puede ver funcionando es una
+ * feature que nadie probó. Esto ejercita la cadena completa en el dispositivo:
+ * permisos, canal de Android, texto renderizado y entrega.
+ *
+ * Usa el texto que le tocaría al PRÓXIMO evento real del perfil, no un texto
+ * inventado: si el mensaje se ve mal, se ve mal acá.
+ *
+ * 🔴 Llamarla SOLO detrás de `__DEV__`. No es para producción.
+ */
+export async function probarSaludosAhora(perfiles: PerfilParaSaludo[]): Promise<string> {
+  if (Platform.OS === 'web') return 'No disponible en web: las notificaciones locales son nativas.';
+  if (!(await tienePermisosNotificaciones())) {
+    return 'Falta el permiso de notificaciones. Activa el toggle de arriba primero.';
+  }
+
+  const perfil = perfiles.find((p) => p.fecha_nacimiento);
+  if (!perfil) return 'No hay ningún perfil con fecha de nacimiento.';
+
+  const eventos = eventosSaludo(perfil.fecha_nacimiento);
+  const proximo = eventos[0];
+  if (!proximo) return `No hay saludos próximos para ${perfil.nombre} en los próximos meses.`;
+
+  const { titulo, cuerpo } = textoSaludo(perfil, proximo);
+  await programarNotificacionUnaVez(titulo, cuerpo, new Date(Date.now() + 10_000), {
+    tipo: MARCA_PRUEBA,
+    perfil_hijo_id: perfil.id,
+  });
+
+  // Cuenta lo que HAY EN EL SISTEMA, no lo que creemos haber programado: es la
+  // diferencia entre verificar y suponer.
+  const enSistema = (await listarNotificacionesProgramadas()).filter(
+    (n) => n.content?.data?.tipo === MARCA_SALUDO
+  ).length;
+
+  const proximas = eventos
+    .slice(0, 4)
+    .map(
+      (e) =>
+        `• ${e.fecha.getDate()}/${e.fecha.getMonth() + 1}/${e.fecha.getFullYear()} — ${
+          e.tipo === 'cumpleanos' ? 'cumpleaños' : `${e.mesesEdad} meses`
+        }`
+    )
+    .join('\n');
+
+  return `Llega en 10 segundos (${perfil.nombre}).\n\nEn el sistema hay ${enSistema} saludo(s) programado(s).\n\nPróximos:\n${proximas}`;
+}
