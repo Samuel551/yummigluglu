@@ -77,7 +77,7 @@ Todo esto necesita que la app esté **públicamente publicada**. Verificado el 2
 
 **El build (6) incluye 4 cosas que hoy NO están en el dispositivo de nadie:**
 
-- 🔴 **Play Billing Library 8.3.0** — obligatoria desde el **30 ago 2026** o se rechazan las actualizaciones
+- ✅ **Play Billing Library 8.3.0** — **DEADLINE CERRADO.** Se subió con el AAB `versionCode 2` el 2026-08-19 y el aviso rojo del Panel **se apagó ese mismo día** (confirmado por el owner el 2026-08-23). La pista de prueba cerrada alcanzó: no hizo falta publicar en producción.
 - La pantalla de eliminar cuenta
 - El fix del race condition de anuncios (premium veía banner al arrancar)
 - El badge "GRATIS ESTE MES" de la rotación de videos

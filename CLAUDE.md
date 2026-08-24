@@ -89,12 +89,14 @@ runtime. La app no hornea SKUs.
 
 ### ⏰ Deadlines de Google — con fecha, no negociables
 
-| Fecha           | Qué                                            | Estado                                       |
-| --------------- | ---------------------------------------------- | -------------------------------------------- |
-| **31 ago 2026** | **Play Billing Library ≥ 8**                   | 🟡 Debería estar apagado — falta confirmarlo |
-| **30 sep 2026** | **Verificación de desarrolladores de Android** | ✅ **Ya registrada** (verificado 19-08)      |
+| Fecha           | Qué                                            | Estado                                  |
+| --------------- | ---------------------------------------------- | --------------------------------------- |
+| **31 ago 2026** | **Play Billing Library ≥ 8**                   | ✅ **CERRADO** (confirmado 2026-08-23)  |
+| **30 sep 2026** | **Verificación de desarrolladores de Android** | ✅ **Ya registrada** (verificado 19-08) |
 
-**Play Billing 8** — el código ya cumple: `react-native-purchases@^10.6.0` (commit `f8534cd`). ⚠️ **El aviso NO se apaga al arreglar `package.json`: se apaga al subir un AAB compilado con esa librería.** Ese AAB (`versionCode 2`) **ya se subió el 2026-08-19** a la pista de prueba cerrada, así que el aviso rojo **debería haberse apagado solo**. **Falta ir a mirarlo** en Play Console → _Panel_ (avisos) antes de dar el deadline por muerto. **No atar este deadline al trámite de producción**: la prueba cerrada alcanzaba.
+**Play Billing 8** — ✅ **CERRADO, no queda nada que hacer.** El código cumple con `react-native-purchases@^10.6.0` (commit `f8534cd`), y el **aviso rojo del Panel de Play Console se apagó solo el mismo 2026-08-19**, el día que se subió el AAB `versionCode 2` a la pista de prueba cerrada. Confirmado por el owner el 2026-08-23.
+
+> 💡 **Lo que este caso probó, y sirve para el próximo deadline de Google:** el aviso **NO se apaga al arreglar `package.json`** — se apaga cuando Play **recibe un AAB compilado** con la librería nueva. Y **la pista de prueba cerrada alcanza**: no hizo falta publicar en producción ni esperar el trámite de acceso. Nunca atar un deadline de librería a un trámite de publicación.
 
 **Verificación de desarrolladores** — ✅ **RESUELTO, no hay nada que hacer.** Verificado el 2026-08-19 en
 Play Console → _Página principal_ → **Verificación de desarrolladores de Android** → pestaña _Nombres de
