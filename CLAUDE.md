@@ -163,7 +163,26 @@ El linter de seguridad de Supabase marca cosas que **están así a propósito**.
 | `anon_security_definer_function_executable` (varias)                                    | `stats_admin()` valida `es_admin()` adentro; las demás son funciones de **trigger**, que Postgres no deja invocar por RPC. |
 | `auth_leaked_password_protection`                                                       | Requiere **plan Pro**. El proyecto está en Free.                                                                           |
 
-**Sobre `recetas_teaser` en particular**: la vista necesita leer `suscripciones` y `desbloqueos_temporales` para decidir si muestra el video. Con `security_invoker` correría con los permisos del usuario y **las RLS de esas tablas la bloquearían** — la vista dejaría de poder decidir. Con `security_definer` corre con permisos del creador, **pero `auth.uid()` sigue siendo el del usuario que consulta**, así que el gateo sigue siendo por-usuario. El `grant` es solo para `authenticated`. El linter ve el patrón y avisa; no puede saber que el gateo está dentro de la vista.
+**Sobre `recetas_teaser` en particular**: la vista necesita leer `suscripciones` y `desbloqueos_temporales` para decidir si muestra el video. Con `security_invoker` correría con los permisos del usuario y **las RLS de esas tablas la bloquearían** — la vista dejaría de poder decidir. Con `security_definer` corre con permisos del creador, **pero `auth.uid()` sigue siendo el del usuario que consulta**, así que el gateo sigue siendo por-usuario. El linter ve el patrón y avisa; no puede saber que el gateo está dentro de la vista.
+
+> 🚨 **ESTE PÁRRAFO DECÍA "El `grant` es solo para `authenticated`" Y ERA FALSO.** La auditoría del **2026-08-24** encontró que `anon` **y** `authenticated` tenían **INSERT, UPDATE, DELETE y TRUNCATE** sobre la vista. Y como `recetas_teaser` es **auto-actualizable** y corre con `security_invoker = false`, esos grants dejaban **escribir en `recetas` salteándose su RLS por completo**. Medido ejecutando el ataque (dentro de `begin … rollback`): **`DELETE` como `anon` → 207 filas**, o sea el catálogo entero, sin cuenta y con la anon key que viaja dentro del APK.
+>
+> **Corregido en la migración `038_fix_grants_recetas_teaser.sql`**. Estado correcto y verificado hoy:
+>
+> ```sql
+> -- lo único que debe existir:
+> grant select on public.recetas_teaser to authenticated;
+> ```
+>
+> **Verificar así después de tocar la vista** (recrear una vista **resetea sus grants**, así que esto se puede reintroducir solo):
+>
+> ```sql
+> select grantee, privilege_type from information_schema.role_table_grants
+> where table_schema='public' and table_name='recetas_teaser' and grantee in ('anon','authenticated');
+> -- debe devolver EXACTAMENTE una fila: authenticated | SELECT
+> ```
+>
+> 🎯 **La lección, que aplica a toda la seguridad de este proyecto**: la RLS de `recetas` estaba impecable —se probó, bloquea todo— pero **nadie había probado la VISTA**. Auditar una tabla **no** audita las vistas que la exponen. Y este archivo describía una intención que jamás se verificó contra la base: **si una afirmación de seguridad no viene con la query que la comprueba, tratala como una hipótesis.**
 
 ### Fase 6 — NutriBot IA (implementada)
 
@@ -496,6 +515,18 @@ código**: es config de despliegue, así que un `index.ts` impecable puede estar
 gateway sin que nada en el repo lo delate.
 
 `supabase/functions/canjear-desbloqueo/` — concede un desbloqueo temporal de 24h de una receta premium tras un anuncio recompensado (rewarded). Identifica al usuario por su JWT (no confía en ids del body), valida que la receta sea premium, y hace upsert en `desbloqueos_temporales` con `service_role` (el cliente NO puede escribir esa tabla). Deploy: `supabase functions deploy canjear-desbloqueo` (verify_jwt ON). Ver sección "Anuncios (AdMob)".
+
+`supabase/functions/sincronizar-suscripcion/` — le **pregunta** a la API REST de RevenueCat si el usuario (identificado por su JWT) tiene una entitlement activa, y si la tiene actualiza `suscripciones` con `service_role`. Deploy: `supabase functions deploy sincronizar-suscripcion` (verify_jwt ON). Requiere el secret `REVENUECAT_SECRET_API_KEY`.
+
+> 🔧 **Por qué existe (bug del QA del 2026-08-24)**: "Restaurar compras" **no reparaba nada**. Llamaba a `restorePurchases()` y después **esperaba a que el webhook** actualizara la tabla — pero RevenueCat **no dispara webhook** cuando restaura algo que ya tenía. Verificado: durante toda la prueba `webhook_events_procesados` se quedó en 1. El cliente encuestaba 10 s y se rendía **sin mostrar ningún mensaje**.
+>
+> 🔴 **El problema de fondo era circular: el botón que existe para reparar un webhook caído dependía del webhook.** Cada vez que agregues un mecanismo de recuperación, preguntate **de qué depende** — si depende de lo mismo que puede fallar, no es una red de seguridad.
+>
+> ⚠️ **Solo SUBE de plan, NUNCA baja.** Si RC responde "no encontré nada", **no degrada**. Dos razones con dientes: (1) los premium de **cortesía** no existen en RevenueCat (`revenuecat_customer_id` en `NULL`) y un "no encontrado" les **borraría el regalo**; (2) un hipo de la API de RC le sacaría el premium a alguien que **sí está pagando**. Las bajas legítimas las maneja el webhook con `EXPIRATION`/`BILLING_ISSUE`.
+>
+> ⚠️ **Es agnóstica al nombre de la entitlement** (recorre todas y toma la de vencimiento más lejano; `expires_date: null` = vitalicia y gana). El identificador vive **solo** en el dashboard de RevenueCat y no aparece en ningún lado del código — hardcodearlo se rompería **en silencio** el día que alguien lo renombre. Hoy se llama `premium`, verificado contra la API.
+>
+> ⚠️ **`comprarPremium` también la llama como red de seguridad.** Su polling corta a los ~10 s y **en la primera compra real el webhook tardó 12 s**: el camino feliz medido en producción ya se pasaba de la ventana.
 
 `supabase/functions/eliminar-cuenta/` — borra la cuenta del usuario. **Requisito de Google Play**: toda app con registro debe ofrecer eliminación de cuenta dentro de la app, no solo por correo. Deploy: `supabase functions deploy eliminar-cuenta` (verify_jwt ON).
 
