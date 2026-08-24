@@ -47,6 +47,8 @@ interface SuscripcionState {
   cargarPaquetes: () => Promise<void>;
   comprarPremium: (paquete: PurchasesPackage) => Promise<void>;
   restaurarCompras: () => Promise<void>;
+  /** Verifica la suscripción contra RevenueCat vía Edge Function, sin depender del webhook. */
+  sincronizarConServidor: () => Promise<void>;
   limpiarError: () => void;
 }
 
@@ -149,21 +151,65 @@ export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
     try {
       await Purchases.purchasePackage(paquete);
 
-      // Pollear Supabase hasta que el webhook de RevenueCat actualice la DB.
-      // En producción el webhook tarda < 5 segundos.
+      // Camino rápido: el webhook de RevenueCat suele escribir la fila en
+      // pocos segundos. Se pollea porque es gratis y no toca RevenueCat.
       for (let intento = 0; intento < 10; intento++) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         await get().cargarSuscripcion();
         if (get().esPremium) break;
       }
+
+      // 🔴 Red de seguridad OBLIGATORIA — el polling solo NO alcanza.
+      //
+      // En la primera compra real (2026-08-24) el webhook tardó **12 segundos**
+      // en escribir la fila, y este bucle se rinde a los ~10. O sea que el
+      // camino feliz medido en producción YA se pasa de la ventana: el usuario
+      // paga, el bucle se agota y la app lo deja en free sin decir nada.
+      //
+      // `sincronizar-suscripcion` no espera a nadie: le pregunta a RevenueCat
+      // por la API REST y escribe la fila. Determinístico en vez de carrera.
+      if (!get().esPremium) {
+        await get().sincronizarConServidor();
+      }
+
+      if (!get().esPremium) {
+        set({
+          error:
+            'Tu pago se procesó, pero no pudimos activar el Premium todavía. Toca "Restaurar compras" en unos minutos.',
+        });
+      }
     } catch (e) {
       const err = e as { userCancelled?: boolean; message?: string };
       if (!err.userCancelled) {
-        set({ error: err.message ?? 'Error al procesar la compra.' });
+        // El mensaje crudo de RevenueCat viene en inglés y es críptico: va al
+        // log, no a la pantalla.
+        console.warn('Compra premium: error de RevenueCat —', err.message);
+        set({ error: 'No pudimos completar la compra. Intenta de nuevo.' });
       }
     } finally {
       set({ comprando: false });
     }
+  },
+
+  /**
+   * Le pregunta al servidor si este usuario tiene una suscripción activa en
+   * RevenueCat, y actualiza `suscripciones` si la hay.
+   *
+   * Existe porque NO se puede depender del webhook para reparar: ver el
+   * encabezado de `supabase/functions/sincronizar-suscripcion/index.ts`.
+   */
+  sincronizarConServidor: async () => {
+    const { error: fnError } = await supabase.functions.invoke('sincronizar-suscripcion', {
+      body: {},
+    });
+    if (fnError) {
+      // `functions.invoke` NO propaga el cuerpo del error: ante cualquier 4xx/5xx
+      // devuelve el genérico "non-2xx status code". Por eso se loguea el
+      // original y el mensaje user-facing lo pone quien llama.
+      console.warn('Sincronizar suscripción: falló la Edge Function —', fnError.message);
+      return;
+    }
+    await get().cargarSuscripcion();
   },
 
   restaurarCompras: async () => {
@@ -173,15 +219,30 @@ export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
     }
     set({ comprando: true, error: null });
     try {
+      // Le pide a RevenueCat que re-sincronice con Google Play.
       await Purchases.restorePurchases();
 
-      for (let intento = 0; intento < 10; intento++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        await get().cargarSuscripcion();
-        if (get().esPremium) break;
+      // 🔴 Acá estaba el bug (encontrado en el QA del 2026-08-24).
+      //
+      // Antes esto era un bucle de 10 segundos esperando a que el WEBHOOK
+      // actualizara la tabla. Pero `restorePurchases()` **no dispara webhook**
+      // si RevenueCat ya tenía la compra y nada cambió — que es exactamente el
+      // caso de "restaurar". Verificado: durante toda la prueba
+      // `webhook_events_procesados` se quedó en 1.
+      //
+      // Resultado viejo: 10 segundos de spinner y nada, sin ningún mensaje.
+      // El botón que existe para reparar un webhook caído dependía del webhook.
+      await get().sincronizarConServidor();
+
+      if (!get().esPremium) {
+        set({
+          error:
+            'No encontramos una suscripción activa en esta cuenta de Google Play. Revisa que sea la misma con la que compraste.',
+        });
       }
     } catch (e) {
-      set({ error: (e as Error).message });
+      console.warn('Restaurar compras: error de RevenueCat —', (e as Error).message);
+      set({ error: 'No pudimos restaurar tus compras. Intenta de nuevo.' });
     } finally {
       set({ comprando: false });
     }
