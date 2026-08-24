@@ -825,6 +825,38 @@ pasado la entitlement.
 > `deploy_edge_function` — no expone `verify_jwt` y puede volver a dejar la función muerta detrás del
 > gateway (ya pasó en abril).
 
+### `app/premium.tsx` — la pantalla premium NO expulsa al suscriptor
+
+> 🔴 **Bug de producto (2026-08-24).** `premium.tsx` tenía un `useEffect` que hacía `router.back()`
+> apenas `esPremium` era `true`. Y **"Restaurar compras" vive en un solo lugar de toda la app: esa
+> pantalla.** Resultado: **un usuario premium no tenía ninguna forma de llegar al botón.**
+>
+> Es **el mismo patrón** que el bug del webhook: una red de seguridad escondida detrás de un guard
+> que asume que no hace falta usarla. 🎯 **Antes de esconder algo detrás de un estado, preguntate si
+> ese estado puede estar equivocado.** Acá `esPremium` sale de nuestra tabla — y nuestra tabla es
+> justamente lo que "Restaurar compras" existe para reparar.
+
+Ahora `esPremium` renderiza **`VistaPremiumActivo`**: plan, fecha de renovación, link a
+_Administrar suscripción_ en Google Play, la lista de beneficios, y **"Restaurar compras" discreto
+pero presente** al final.
+
+- ⚠️ **El botón de restaurar NO se saca.** Es la única vía de **autoservicio** cuando la suscripción
+  existe en Google Play pero la app no la refleja — exactamente lo que deja el webhook cuando falla,
+  y el webhook de este proyecto ya estuvo **muerto 4 meses** (abril → 22-08) sin que nadie lo notara.
+  La doc de RevenueCat además describe estados que **solo** se revierten restaurando.
+- ⚠️ **Sin `expires_at` se muestra "Sin fecha de vencimiento", no "se renueva el…"**: esas filas son
+  los premium de **cortesía**, que no vienen de Google Play y no renuevan nada.
+- ✅ **Efecto secundario buscado**: al terminar una compra el usuario ya no sale disparado de la
+  pantalla — ve la confirmación de que su Premium quedó activo.
+- ⚠️ El early return va **después de todos los hooks**. React exige que la cantidad y el orden de
+  hooks sea idéntico en cada render.
+
+**`RECEIPT_ALREADY_IN_USE_ERROR` (código `"7"`)** ya no cae en el mensaje genérico. Es RevenueCat
+diciendo que la suscripción pertenece a **otra cuenta de la app** — aparece cuando el _Restore
+Behavior_ no permite el traspaso. Decirle "Intenta de nuevo" es invitarlo a reintentar algo que
+nunca va a funcionar; ahora dice que inicie sesión con la cuenta correcta. Se compara contra
+`Purchases.PURCHASES_ERROR_CODE`, no contra el string suelto.
+
 ### RevenueCat — polling post-compra
 
 Después de `comprarPremium()` o `restaurarCompras()`, el store hace polling a Supabase hasta 10 veces con intervalos de 1 segundo esperando que el webhook de RevenueCat actualice la tabla `suscripciones`. En producción el webhook tarda < 5 segundos. Si `esPremium` no cambia en 10s, la compra se completa igualmente en RC pero la UI no lo reflejará hasta el próximo `cargarSuscripcion()`.
