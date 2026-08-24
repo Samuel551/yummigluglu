@@ -49,20 +49,20 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 
 ## Estado de Fases
 
-| Fase | Descripción                                                  | Estado                       |
-| ---- | ------------------------------------------------------------ | ---------------------------- |
-| 0    | Setup: Expo Router + NativeWind + Supabase + Zustand + Husky | ✅ Completa                  |
-| 1    | Onboarding: flujo de 3 pasos para crear perfil de hijo       | ✅ Completa                  |
-| 2    | Catálogo de recetas con filtros + pantalla de detalle        | ✅ Completa                  |
-| 3    | Favoritos con optimistic updates                             | ✅ Completa                  |
-| 4    | Edición de cuenta (email/password) y perfiles de hijos       | ✅ Completa                  |
-| 5    | Plan semanal + Lista de compras + Diario de alimentos        | ✅ Completa                  |
-| 6    | NutriBot IA (`asistente.tsx`)                                | ✅ Completa                  |
-| 7a   | Videos Premium (embed YouTube por receta)                    | ✅ Completa                  |
-| 7b   | Integración RevenueCat (suscripciones)                       | ✅ Completa                  |
-| 8    | Panel de administración del developer                        | ✅ Completa                  |
-| 9    | Anuncios AdMob (banner + intersticial + rewarded desbloqueo) | ✅ Completa                  |
-| 10   | Saludos de cumpleaños y cumplemés (notificaciones locales)   | ⚠️ Sin probar en dispositivo |
+| Fase | Descripción                                                  | Estado      |
+| ---- | ------------------------------------------------------------ | ----------- |
+| 0    | Setup: Expo Router + NativeWind + Supabase + Zustand + Husky | ✅ Completa |
+| 1    | Onboarding: flujo de 3 pasos para crear perfil de hijo       | ✅ Completa |
+| 2    | Catálogo de recetas con filtros + pantalla de detalle        | ✅ Completa |
+| 3    | Favoritos con optimistic updates                             | ✅ Completa |
+| 4    | Edición de cuenta (email/password) y perfiles de hijos       | ✅ Completa |
+| 5    | Plan semanal + Lista de compras + Diario de alimentos        | ✅ Completa |
+| 6    | NutriBot IA (`asistente.tsx`)                                | ✅ Completa |
+| 7a   | Videos Premium (embed YouTube por receta)                    | ✅ Completa |
+| 7b   | Integración RevenueCat (suscripciones)                       | ✅ Completa |
+| 8    | Panel de administración del developer                        | ✅ Completa |
+| 9    | Anuncios AdMob (banner + intersticial + rewarded desbloqueo) | ✅ Completa |
+| 10   | Saludos de cumpleaños y cumplemés (notificaciones locales)   | ✅ Completa |
 
 > **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
 
@@ -863,6 +863,11 @@ nunca va a funcionar; ahora dice que inicie sesión con la cuenta correcta. Se c
 Notificaciones **locales** derivadas de `perfiles_hijos.fecha_nacimiento`: **cumpleaños siempre**,
 **cumplemés hasta los 24 meses**, a las **9:00 locales**. Costo cero — no hay push, ni FCM, ni tokens,
 ni backend.
+
+> ✅ **VERIFICADO EN DISPOSITIVO (2026-08-24, 18:41).** Notificación recibida con la app **cerrada**,
+> con el ícono de la app, el nombre y el avatar del perfil en el título:
+> _"🎂 ¡Hola cumple 13 meses! ⭐"_. Salió la **variante 1 de las 3** del texto mensual, que es la que
+> corresponde (`13 % 3 = 1`) — la rotación determinística funciona. Validado además por una madre real.
 
 > 🔴 **NO se guardan en la tabla `recordatorios`: se DERIVAN.** Meterlos como filas crearía
 > recordatorios que el usuario nunca creó, mezclados con los suyos en la agenda, y una **segunda copia
