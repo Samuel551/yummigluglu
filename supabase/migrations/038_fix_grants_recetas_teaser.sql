@@ -1,0 +1,68 @@
+-- ============================================================
+-- Yummi Glu Glu — 🚨 FIX CRÍTICO: grants de escritura en recetas_teaser
+-- Encontrado en la auditoría de seguridad del 2026-08-24.
+-- ============================================================
+--
+-- 🔴 LA VULNERABILIDAD
+--
+-- `anon` y `authenticated` tenían INSERT, UPDATE, DELETE y TRUNCATE sobre la
+-- vista `recetas_teaser`. Verificado ejecutando el ataque (dentro de una
+-- transacción con rollback, no se modificó ninguna fila):
+--
+--   DELETE como anon vía la vista        -> 207 filas   ← el catálogo entero
+--   UPDATE como anon vía la vista        -> 103 filas
+--   UPDATE como authenticated no-admin   -> 103 filas
+--
+-- Cualquier persona con la anon key —que viaja dentro del APK y se extrae en
+-- minutos— podía **borrar las 207 recetas** o poner todos los videos en gratis.
+-- Sin cuenta. Sin login.
+--
+-- 🔬 POR QUÉ: tres cosas inofensivas por separado que juntas abren la puerta.
+--
+--   1. Los grants amplios de escritura sobre la vista (esto es lo que se arregla acá).
+--   2. `recetas_teaser` es **auto-actualizable**: Postgres traduce un UPDATE
+--      sobre la vista en un UPDATE sobre `recetas`.
+--   3. La vista es **SECURITY DEFINER** (`security_invoker = false`): corre con
+--      los permisos del dueño, así que **la RLS de `recetas` no se evalúa**.
+--
+-- O sea: la vista era una puerta trasera que rodeaba entera la seguridad de la
+-- tabla. La RLS de `recetas` estaba perfecta —se probó, bloquea todo— pero
+-- nadie había probado la vista.
+--
+-- ⚠️ NO se toca `security_invoker`. Sigue en `false` A PROPÓSITO: la vista
+-- necesita leer `suscripciones` y `desbloqueos_temporales` para decidir si
+-- muestra `video_url`, y con `security_invoker = true` la RLS de esas tablas la
+-- bloquearía y **se rompería el desbloqueo de videos**. Ver CLAUDE.md §
+-- "Advertencias que NO se resuelven". El gateo sigue siendo por usuario porque
+-- `auth.uid()` adentro de la vista es el del que consulta.
+--
+-- La lectura solo se necesita para `authenticated`: la app siempre tiene sesión
+-- (los guards de `(tabs)/_layout.tsx` redirigen a login), y la policy de la
+-- tabla `recetas` ya exige `auth.role() = 'authenticated'`. Que `anon` pudiera
+-- leer la vista contradecía esa intención.
+-- ============================================================
+
+-- ─── 1. Sacar TODO, a los dos roles ───────────────────────────
+revoke all privileges on public.recetas_teaser from anon;
+revoke all privileges on public.recetas_teaser from authenticated;
+
+-- ─── 2. Devolver SOLO lectura, y solo a authenticated ─────────
+grant select on public.recetas_teaser to authenticated;
+
+-- ─── 3. Verificación ──────────────────────────────────────────
+-- Después de aplicar esto, debe devolver EXACTAMENTE una fila:
+--   authenticated | SELECT
+--
+--   select grantee, privilege_type
+--   from information_schema.role_table_grants
+--   where table_schema = 'public' and table_name = 'recetas_teaser'
+--     and grantee in ('anon', 'authenticated')
+--   order by grantee, privilege_type;
+--
+-- Y el ataque debe fallar:
+--
+--   begin;
+--   select set_config('request.jwt.claims', '{"role":"anon"}', true);
+--   set local role anon;
+--   select count(*) from public.recetas_teaser;   -- debe dar permission denied
+--   rollback;
