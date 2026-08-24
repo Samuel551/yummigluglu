@@ -49,19 +49,20 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 
 ## Estado de Fases
 
-| Fase | Descripción                                                  | Estado      |
-| ---- | ------------------------------------------------------------ | ----------- |
-| 0    | Setup: Expo Router + NativeWind + Supabase + Zustand + Husky | ✅ Completa |
-| 1    | Onboarding: flujo de 3 pasos para crear perfil de hijo       | ✅ Completa |
-| 2    | Catálogo de recetas con filtros + pantalla de detalle        | ✅ Completa |
-| 3    | Favoritos con optimistic updates                             | ✅ Completa |
-| 4    | Edición de cuenta (email/password) y perfiles de hijos       | ✅ Completa |
-| 5    | Plan semanal + Lista de compras + Diario de alimentos        | ✅ Completa |
-| 6    | NutriBot IA (`asistente.tsx`)                                | ✅ Completa |
-| 7a   | Videos Premium (embed YouTube por receta)                    | ✅ Completa |
-| 7b   | Integración RevenueCat (suscripciones)                       | ✅ Completa |
-| 8    | Panel de administración del developer                        | ✅ Completa |
-| 9    | Anuncios AdMob (banner + intersticial + rewarded desbloqueo) | ✅ Completa |
+| Fase | Descripción                                                  | Estado                       |
+| ---- | ------------------------------------------------------------ | ---------------------------- |
+| 0    | Setup: Expo Router + NativeWind + Supabase + Zustand + Husky | ✅ Completa                  |
+| 1    | Onboarding: flujo de 3 pasos para crear perfil de hijo       | ✅ Completa                  |
+| 2    | Catálogo de recetas con filtros + pantalla de detalle        | ✅ Completa                  |
+| 3    | Favoritos con optimistic updates                             | ✅ Completa                  |
+| 4    | Edición de cuenta (email/password) y perfiles de hijos       | ✅ Completa                  |
+| 5    | Plan semanal + Lista de compras + Diario de alimentos        | ✅ Completa                  |
+| 6    | NutriBot IA (`asistente.tsx`)                                | ✅ Completa                  |
+| 7a   | Videos Premium (embed YouTube por receta)                    | ✅ Completa                  |
+| 7b   | Integración RevenueCat (suscripciones)                       | ✅ Completa                  |
+| 8    | Panel de administración del developer                        | ✅ Completa                  |
+| 9    | Anuncios AdMob (banner + intersticial + rewarded desbloqueo) | ✅ Completa                  |
+| 10   | Saludos de cumpleaños y cumplemés (notificaciones locales)   | ⚠️ Sin probar en dispositivo |
 
 > **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
 
@@ -856,6 +857,64 @@ diciendo que la suscripción pertenece a **otra cuenta de la app** — aparece c
 Behavior_ no permite el traspaso. Decirle "Intenta de nuevo" es invitarlo a reintentar algo que
 nunca va a funcionar; ahora dice que inicie sesión con la cuenta correcta. Se compara contra
 `Purchases.PURCHASES_ERROR_CODE`, no contra el string suelto.
+
+### Fase 10 — Saludos de cumpleaños y cumplemés (`lib/saludos.ts`)
+
+Notificaciones **locales** derivadas de `perfiles_hijos.fecha_nacimiento`: **cumpleaños siempre**,
+**cumplemés hasta los 24 meses**, a las **9:00 locales**. Costo cero — no hay push, ni FCM, ni tokens,
+ni backend.
+
+> 🔴 **NO se guardan en la tabla `recordatorios`: se DERIVAN.** Meterlos como filas crearía
+> recordatorios que el usuario nunca creó, mezclados con los suyos en la agenda, y una **segunda copia
+> de la fecha** que habría que resincronizar cada vez que el padre corrige el cumpleaños en
+> `editar-perfil`. Derivarlos es cero migración y cero desincronización posible.
+
+> 🔴 **Ventana móvil de 12 meses, no los 24 cumplemés de una.** iOS topea en **64 notificaciones
+> pendientes por app** y con varios hijos se revienta. Se reprograma desde un `useEffect` que depende
+> de `perfiles` en `app/(tabs)/_layout.tsx`: esa única dependencia cubre los cuatro casos que mueven
+> fechas — carga inicial, alta de un hijo, corrección de la fecha y borrado.
+> `reprogramarSaludos()` es **idempotente** (cancela y reprograma), así que llamarla de más es barato.
+
+**Las dos trampas de fechas, ambas probadas con casos borde:**
+
+> 🔴 **`new Date('2025-03-03')` se interpreta como UTC.** En Chile (UTC-3/-4) devuelve el **2 de marzo
+> a las 21:00** — el saludo saldría **un día antes**, que es exactamente el error que arruina un
+> cumpleaños. Por eso existe `parsearFechaLocal`, que parte el string a mano.
+
+> 🔴 **`new Date(2026, 3, 31)` se desborda a mayo.** Un bebé nacido un **31** no tendría cumplemés en
+> los meses de 30 días. `fechaRecortada` recorta al último día real del mes. Verificado: nacido el 31
+> → abril da **30**, febrero da **28**; nacido el **29-feb** → 2027 da **28-feb**, 2028 da **29-feb**.
+
+> ✅ A los 24 meses el cumplemés corta, pero ese mismo día **aparece el cumpleaños de 2 años**: no hay
+> hueco en la transición.
+
+**El permiso se pide en el ONBOARDING, paso 2, cuando la fecha ya es válida** — no al instalar.
+
+> 🔴 **En Android 13+ `POST_NOTIFICATIONS` es un permiso de runtime, y un rechazo lo bloquea casi
+> definitivamente** (después solo se activa desde Ajustes del sistema). Tenés **un solo disparo bueno**.
+> Pedirlo apenas instala es gastarlo cuando el usuario todavía no sabe qué hace la app.
+>
+> Por eso hay un **pre-permiso propio**: primero la tarjeta 🎂 "¿Le mandamos un saludo?" con
+> _Sí, avísenme_ / _Ahora no_, y **solo si dice que sí** se dispara el diálogo del sistema. El momento
+> es el de máxima relevancia: el padre acaba de escribir el cumpleaños de su hijo.
+
+**Toggle en `Perfil → NOTIFICACIONES`.**
+
+> ⚠️ **No es un lujo.** Sin él, la única forma de dejar de recibir los saludos sería apagar las
+> notificaciones de la app entera desde Ajustes — llevándose puestos también los recordatorios de
+> comida de la agenda.
+
+> ⚠️ **Si lo activás sin permisos, los pide, y vuelve a `false` si los niegan.** Un switch que dice
+> "activado" y no manda nada nunca es la peor clase de bug: el usuario no tiene forma de darse cuenta.
+> Es además el único camino para quien ya tenía la app instalada y nunca pasó por el onboarding nuevo.
+
+> ⚠️ **La preferencia vive en AsyncStorage (`yummigluglu-saludos-activos`), NO en la base.** Las
+> notificaciones locales las programa el teléfono que las tiene: guardar la preferencia en el servidor
+> prometería una sincronización que el mecanismo no puede cumplir.
+
+**Marcador**: `data.tipo = 'saludo_cumple'`. `cancelarSaludos()` filtra por eso, así que **nunca toca
+las notificaciones de la agenda**. El type `NotificacionData` ya tenía `tipo` y `perfil_hijo_id` — no
+hubo que tocar `lib/notificaciones.ts`.
 
 ### RevenueCat — polling post-compra
 
