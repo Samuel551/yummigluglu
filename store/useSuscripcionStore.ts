@@ -241,7 +241,24 @@ export const useSuscripcionStore = create<SuscripcionState>((set, get) => ({
         });
       }
     } catch (e) {
-      console.warn('Restaurar compras: error de RevenueCat —', (e as Error).message);
+      const err = e as { code?: string; message?: string };
+      console.warn('Restaurar compras: error de RevenueCat —', err.message);
+
+      // ⚠️ `RECEIPT_ALREADY_IN_USE_ERROR` NO es un fallo transitorio: es
+      // RevenueCat diciendo que esa suscripción pertenece a OTRA cuenta de la
+      // app. Aparece cuando el Restore Behavior del proyecto no permite el
+      // traspaso (hoy: "Transfer if there are no active subscriptions").
+      //
+      // Sin este caso, el usuario veía "Intenta de nuevo" — una invitación a
+      // reintentar algo que nunca va a funcionar. Ver CLAUDE.md § TRANSFER.
+      if (err.code === Purchases.PURCHASES_ERROR_CODE.RECEIPT_ALREADY_IN_USE_ERROR) {
+        set({
+          error:
+            'Esta suscripción ya está activa en otra cuenta de Yummi Glu Glu. Inicia sesión con esa cuenta para usar tu Premium.',
+        });
+        return;
+      }
+
       set({ error: 'No pudimos restaurar tus compras. Intenta de nuevo.' });
     } finally {
       set({ comprando: false });
