@@ -72,6 +72,39 @@ export function getRecompensadoUnitId(): string {
 }
 
 /**
+ * Recolecta el consentimiento del usuario vía UMP (User Messaging Platform),
+ * la CMP de Google. Se llama ANTES de `initialize()`, que es el orden que
+ * Google exige: primero se sabe qué consintió el usuario, después se pide el ad.
+ *
+ * ⚠️ FUERA del EEE / Reino Unido / Suiza esto es un NO-OP. El SDK resuelve la
+ * geografía del lado del servidor, devuelve `NOT_REQUIRED` y NO muestra nada.
+ * Por eso está acá aunque hoy la app se publique solo en LATAM: no molesta a
+ * ningún usuario actual y evita un build entero el día que se agregue España.
+ *
+ * ⚠️ NO hace falta instalar nada: `user-messaging-platform` ya viaja dentro del
+ * APK como dependencia `api` de react-native-google-mobile-ads (ver su
+ * `android/build.gradle`). Antes de esto el SDK estaba en el binario sin usarse.
+ *
+ * ⚠️ Si falla, se sigue igual. Un error acá NO puede dejar la app sin anuncios:
+ * sin consentimiento AdMob sirve ads no personalizados, que es peor que lo ideal
+ * pero infinitamente mejor que cero ingresos. Por eso el catch traga y no corta.
+ *
+ * 🔴 ESTA ES LA MITAD QUE DESBLOQUEA LOS ADS, NO EL CUMPLIMIENTO COMPLETO.
+ * Si algún día se publica en el EEE, Google exige ADEMÁS un punto de entrada
+ * permanente para que el usuario cambie de opinión: `showPrivacyOptionsForm()`
+ * detrás de una fila en Perfil, visible solo cuando
+ * `getConsentInfo().privacyOptionsRequirementStatus === 'REQUIRED'`. Eso todavía
+ * NO está hecho — y no hace falta mientras no haya usuarios del EEE.
+ */
+async function recolectarConsentimiento(mod: ModuloAds): Promise<void> {
+  try {
+    await mod.AdsConsent.gatherConsent();
+  } catch (e) {
+    console.warn('AdMob: no se pudo recolectar el consentimiento — se sigue sin él', e);
+  }
+}
+
+/**
  * Inicializa el SDK de AdMob. Devuelve true si quedó listo.
  * No-op seguro en web / sin módulo nativo.
  */
@@ -87,6 +120,8 @@ export async function inicializarSdkAds(): Promise<boolean> {
       tagForChildDirectedTreatment: false,
       tagForUnderAgeOfConsent: false,
     });
+    // El consentimiento va ANTES de initialize(). Ver el bloque de arriba.
+    await recolectarConsentimiento(mod);
     await mobileAds().initialize();
     return true;
   } catch (e) {
