@@ -152,10 +152,13 @@ export default function RootLayout() {
     // teclado cuadro a cuadro, así que entra y sale sincronizado.
     <KeyboardProvider>
       <View className="flex-1 bg-fondo-app dark:bg-[#121212]">
-        <StatusBar
-          style={tema === 'dark' ? 'light' : 'dark'}
-          backgroundColor={tema === 'dark' ? '#121212' : '#F7F5F0'}
-        />
+        {/*
+          NO volver a agregar `backgroundColor`: con `edgeToEdgeEnabled: true` la barra de estado
+          es SIEMPRE translucida, expo-status-bar IGNORA el prop y tira un console.warn en cada
+          render ("StatusBar backgroundColor is not supported with edge-to-edge enabled").
+          El color de fondo lo pone el <View> de abajo, que es justo lo que la libreria recomienda.
+        */}
+        <StatusBar style={tema === 'dark' ? 'light' : 'dark'} />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
