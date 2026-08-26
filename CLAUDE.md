@@ -66,34 +66,100 @@ El proyecto se desarrolla por **fases**. Al completar cada fase:
 
 > **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
 
-## Estado al 2026-08-22 — qué falta y qué NO hay que tocar
+## Estado al 2026-08-26 — qué falta y qué NO hay que tocar
 
 **Del lado del código no queda deuda**: 0 errores de `tsc`, 0 `style` como función (hay regla de ESLint que lo impide), 0 agujeros de seguridad conocidos.
 
-### 🎉 ACCESO A PRODUCCIÓN CONCEDIDO (2026-08-22)
+### 🎉 APP PUBLICADA EN PRODUCCIÓN (2026-08-26)
 
-Google aprobó la solicitud enviada el 2026-08-19. **Verificado en pantalla**, no asumido: Play Console →
-_Prueba y lanza_ → **Producción** muestra el botón **"Crear una versión nueva"** habilitado y **ya no
-aparece** el cartel de _Solicitar acceso a producción_.
+**La app está VIVA en el catálogo público de Google Play.** Play Console → _Página principal_ muestra
+`Yummi Glu Glu: comida bebé` (`com.yummigluglu.app`) con **Estado de la app: Producción**, 11 usuarios
+con la app instalada, última actualización 24 ago 2026.
 
-> 🔴 **ACCESO ≠ PUBLICADA.** El track de Producción sigue diciendo **"Inactivo"**, y eso es correcto:
-> significa que **no hay ninguna versión publicada en producción**. La app **todavía NO está en el
-> catálogo público de Play**. Todo lo que dependa de "app pública" (AdMob, `app-ads.txt`) sigue
-> bloqueado hasta que se publique una versión Y Google la apruebe.
+**Verificado contra el catálogo público, no solo contra Play Console:**
 
-**No hace falta rebuildear para publicar**: el AAB `versionCode 2` ya está aceptado por Play en la pista
-de prueba cerrada (subido el 19-08, con RevenueCat v10 / Billing 8). Se **promueve** ese mismo bundle de
-prueba cerrada a producción. Un rebuild solo agrega riesgo y quema otro `versionCode`.
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" \
+  "https://play.google.com/store/apps/details?id=com.yummigluglu.app&hl=es_CL"
+# -> 200, y el HTML trae "Yummi Glu Glu: comida bebé" + la insignia "Contiene anuncios"
+```
 
-**Crear los productos de suscripción tampoco obliga a rebuildear**: los Offerings los pide el SDK en
-runtime. La app no hornea SKUs.
+Ese `200` es lo que importa de verdad: **es exactamente lo que el buscador de AdMob necesita ver.**
+Play Console diciendo "Producción" es la mitad de la prueba; que la ficha le responda al mundo es la
+otra.
+
+**Versión viva**: `4 (1.0.0)`, track de Producción **Activo**, **6 países/regiones**, 12 instalaciones.
+(Ojo al leer notas viejas: el AAB de la prueba cerrada era el `versionCode 2` — ya quedó atrás.)
+
+> ✅ **Suscripciones verificadas ACTIVAS (2026-08-26).** Play Console → _Monetiza con Play_ →
+> _Suscripciones_: una suscripción `premium` ("Yummi Glu Glu Premium") con **2 planes básicos
+> activos** (mensual + anual), última actualización 22 ago 2026.
+>
+> Se revisó porque la ficha pública muestra "Contiene anuncios" pero **no** "Compras en la
+> aplicación" — era **propagación de la insignia**, no suscripciones inactivas. 💡 **La insignia de la
+> ficha NO sirve como prueba de que los productos están activos**: la prueba es la pantalla de
+> Suscripciones. Si algún día `premium.tsx` carga sin paquetes, mirar ahí, no la ficha.
+
+> ℹ️ **Histórico, por si aparece un doc o commit viejo que diga otra cosa**: el **acceso** a producción
+> se concedió el 2026-08-22 y la **publicación** vino después. Fueron dos cosas distintas separadas por
+> días. Cualquier nota anterior a esta fecha que diga "todavía NO está en el catálogo público" está
+> desactualizada, no equivocada.
+
+**Clasificación de contenido (IARC)** — cuestionario enviado y calificaciones **en vivo desde el
+2026-08-26**. Global Rating ID: `27b5ff8e-d8aa-8030-82e0-3f83538e6d8f`. **No requiere ninguna acción.**
+
+> ⚠️ **Guardar ese Global Rating ID**: sirve para reusar la misma clasificación en otras tiendas que
+> licencian IARC sin volver a llenar el cuestionario. Y **si un cambio de la app cambiaría alguna
+> respuesta del cuestionario** (chat entre usuarios, contenido generado por usuarios, compras nuevas),
+> **hay que rehacerlo** — la clasificación vieja deja de ser válida.
+
+### 🔴 EL REPO VA ADELANTE DE PRODUCCIÓN — build 4 se quedó en `c487ccd`
+
+**El AAB `versionCode 4` que está publicado se compiló del commit `c487ccd` (2026-08-24 02:54 UTC)**,
+o sea **antes** de toda la tanda de arreglos de esa tarde. Medido, no supuesto:
+
+```bash
+npx eas-cli build:list --platform android --limit 6 --json   # -> vc 4 = git c487ccd
+git log --oneline c487ccd..HEAD -- app/ store/ lib/ components/ hooks/ constants/ types/
+```
+
+| Commit    | Qué es                                          | ¿En producción? |
+| --------- | ----------------------------------------------- | --------------- |
+| `ef18b93` | `premium.tsx` deja de expulsar al suscriptor    | ❌ **NO**       |
+| `5ed38d0` | **Fase 10** — saludos de cumpleaños y cumplemés | ❌ **NO**       |
+| `b05e166` | Tarjeta verde de acceso a premium en el perfil  | ❌ **NO**       |
+| `a228279` | Botón de prueba de saludos (`__DEV__`)          | ❌ irrelevante  |
+| `d8c0245` | Webhook procesa `TRANSFER`                      | ✅ **SÍ**       |
+
+> ✅ **El backend SÍ está al día.** `revenuecat-webhook` está en la **v10**, con `verify_jwt: false`
+> y la rama 3.b de `TRANSFER` presente en el código desplegado (verificado leyendo la función
+> desplegada, no el repo). Las Edge Functions se despliegan aparte del APK — por eso el backend
+> puede ir adelante del cliente.
+
+> 🔴 **El que duele no es la Fase 10, es `ef18b93`.** En producción, `premium.tsx` todavía tiene el
+> `useEffect` que hace `router.back()` apenas `esPremium` es `true`. Y **"Restaurar compras" existe
+> en UN SOLO archivo de toda la app: `app/premium.tsx`** (verificado con `grep` sobre `app/**/*.tsx`).
+>
+> **Conclusión: hoy, en producción, un usuario premium NO PUEDE llegar al botón de "Restaurar
+> compras". La pantalla lo expulsa antes de que lo vea.**
+>
+> Y eso se cruza justo con el bug de `TRANSFER`: al que le transfirieron mal la entitlement, la vía de
+> autoservicio para recuperarla **es exactamente ese botón**. El webhook ya está arreglado en el
+> servidor, pero **la mitad cliente del arreglo no está en el teléfono de nadie.**
+
+🎯 **La lección para la próxima**: desplegar una Edge Function es instantáneo; publicar el cliente
+tarda días y hay que acordarse de hacerlo. **Cuando un arreglo tiene mitad servidor y mitad cliente,
+el servidor se adelanta solo y da la falsa sensación de "ya está".** Antes de dar por cerrado un fix,
+preguntarse **en qué binario vive** — y si vive en el APK, no está cerrado hasta que se publica.
 
 ### ⏰ Deadlines de Google — con fecha, no negociables
 
-| Fecha           | Qué                                            | Estado                                  |
-| --------------- | ---------------------------------------------- | --------------------------------------- |
-| **31 ago 2026** | **Play Billing Library ≥ 8**                   | ✅ **CERRADO** (confirmado 2026-08-23)  |
-| **30 sep 2026** | **Verificación de desarrolladores de Android** | ✅ **Ya registrada** (verificado 19-08) |
+| Fecha           | Qué                                             | Estado                                  |
+| --------------- | ----------------------------------------------- | --------------------------------------- |
+| **31 ago 2026** | **Play Billing Library ≥ 8**                    | ✅ **CERRADO** (confirmado 2026-08-23)  |
+| **30 sep 2026** | **Verificación de desarrolladores de Android**  | ✅ **Ya registrada** (verificado 19-08) |
+| **feb 2027**    | **Umbrales de memoria + código DEX optimizado** | 🔴 **HOY NO SE CUMPLE** — ver abajo     |
+| **abr 2027**    | **Zero-Tap Sign-In (Restore Credentials API)**  | 🔴 **No implementado** — ver abajo      |
 
 **Play Billing 8** — ✅ **CERRADO, no queda nada que hacer.** El código cumple con `react-native-purchases@^10.6.0` (commit `f8534cd`), y el **aviso rojo del Panel de Play Console se apagó solo el mismo 2026-08-19**, el día que se subió el AAB `versionCode 2` a la pista de prueba cerrada. Confirmado por el owner el 2026-08-23.
 
@@ -106,16 +172,105 @@ los paquetes_: las dos apps de la cuenta figuran **`Registrada`** (`com.yummiglu
 de Play y estas entraron. Enforcement inicial en Brasil, Indonesia, Singapur y Tailandia; expansión
 global en 2027.
 
-### 🔓 Las 4 tareas: 2 se desbloquearon, 2 siguen esperando
+### 📉 Requisitos de calidad de Play (anunciados 2026-08) — feb y abr 2027
 
-El corte **ya no es "acceso a producción" para las cuatro**. Son dos grupos distintos:
+Correo de Google recibido el 2026-08-26. Son **dos requisitos nuevos**, y la sanción es distinta a la de
+Billing 8: no rechazan el build, sino que _"las apps que no cumplan los umbrales pueden ver **reducida su
+visibilidad y sus capacidades de publicación** en Google Play"_.
 
-| Tarea                                   | Requiere                       | Estado al 22-08                                                            |
-| --------------------------------------- | ------------------------------ | -------------------------------------------------------------------------- |
-| Productos de suscripción → entitlements | Acceso a producción            | ✅ **HECHA** (22-08) — productos en Play + catálogo de RC conectado        |
-| Service Account de Play → RevenueCat    | Acceso a producción            | ✅ **HECHA** (23-08) — credenciales válidas + RTDN conectadas              |
-| Vincular AdMob ↔ ficha de Play          | App **pública en el catálogo** | 🔒 Sigue bloqueada — el buscador de AdMob solo ve el catálogo público      |
-| Validar **`app-ads.txt`**               | La vinculación anterior        | 🔒 Sigue bloqueada — AdMob lo rastrea desde el sitio de la ficha vinculada |
+> 🎯 **Por eso este deadline es más peligroso que el de Billing 8, no menos.** Aquel **fallaba fuerte**:
+> Play rechazaba el AAB y te enterabas al instante. Este **degrada en silencio** — la app se sigue
+> publicando y simplemente se la ve menos. Es el mismo patrón de fallo silencioso que ya mordió tres
+> veces en este proyecto. **La única defensa es medir en Android vitals, no esperar un error.**
+
+**1) Memoria + código DEX optimizado — feb 2027**
+
+Tres métricas: **memoria dinámica** (anonymous RSS + swap, medida en foreground/background y por
+categoría de dispositivo), **memoria de bitmaps** (que no queden retenidos en background/cached) y
+**código DEX optimizado con un mínimo de 25% de cobertura** entre optimización, shrinking y ofuscación.
+
+> 🔴 **Este proyecto HOY no cumple el de DEX, y se comprueba sin abrir Play Console:**
+>
+> ```bash
+> ls node_modules/expo-build-properties   # -> no existe
+> grep -c "expo-build-properties" app.json # -> 0
+> ```
+>
+> Sin ese plugin, Expo compila el release **sin R8/ProGuard** → cobertura de optimización **0%**, contra
+> un mínimo de **25%**. El fix se escribe en 5 minutos (`npx expo install expo-build-properties` + el
+> plugin con `enableProguardInReleaseBuilds` y `enableShrinkResourcesInReleaseBuilds`) y **se prueba en
+> días**.
+>
+> ⚠️ **R8 rompe por reflexión, y en React Native los sospechosos son los módulos nativos**: RevenueCat,
+> AdMob, Google Sign In, Reanimated, keyboard-controller. Cada uno puede necesitar reglas
+> `-keep` propias.
+>
+> 🔴 **Un crash por minificación NO aparece en el dev client** — el dev client no minifica. Solo se ve
+> en un build de release. O sea: se prueba con APK `preview` y **QA completo, incluido el flujo de
+> compra**, o no se probó.
+>
+> ⚠️ **NO tocar esto el mismo día que se publica otra cosa.** Hay 5 meses. Va en su propia versión, y
+> se mide antes/después en Play Console → **Android vitals**, que ya trae los paneles nuevos de memoria
+> dinámica y de bitmaps.
+
+**2) Zero-Tap Sign-In — abr 2027**
+
+Toda app con login debe **restaurar la sesión sola** cuando el usuario cambia de teléfono, vía la
+**Restore Credentials API** de Android. Acá aplica de lleno: la sesión de Supabase vive en
+`AsyncStorage`, que **no viaja en la migración de dispositivo** — hoy el que cambia de celular tiene que
+volver a loguearse. Es trabajo real, no un flag. Se planifica **después** del de memoria.
+
+### 🟡 Las 2 "acciones recomendadas" de Play Console — ninguna es bloqueante
+
+Aparecen en _Producción → Panel de control de la versión_ sobre la versión `4 (1.0.0)`. Son
+**recomendaciones**, no requisitos: no frenan publicaciones ni tienen fecha de corte. Diagnosticadas
+el 2026-08-26.
+
+**1) "Tu app usa APIs o parámetros obsoletos para la pantalla de borde a borde"**
+
+> 🔴 **NO se puede arreglar desde este repo. La llamada está en el CORE de React Native.** Google lo
+> detecta por **análisis estático del bytecode**, así que basta con que la llamada **exista** en el
+> APK — no hace falta que se ejecute nunca.
+>
+> Medido, no supuesto (Kotlin usa sintaxis de propiedad, así que buscar `setStatusBarColor(` a secas
+> **no alcanza** — hay que buscar también `.statusBarColor =`):
+>
+> ```bash
+> grep -rlE "\.statusBarColor *=|\.navigationBarColor *=|setStatusBarColor\(|setNavigationBarColor\(" \
+>   node_modules/react-native/ReactAndroid/src node_modules/*/android node_modules/@*/*/android
+> ```
+>
+> Devuelve: **`react-native/ReactAndroid`** (`StatusBarModule.kt`, líneas 38-78), `react-native-screens`,
+> `react-native-keyboard-controller`, `expo-image-picker` y `expo-dev-launcher` (este último solo en
+> debug). **Ninguna es código de la app.** Se apaga cuando React Native y esas librerías la saquen —
+> no hay nada que hacer más que actualizar cuando salga la versión que la elimine.
+
+> ✅ **Lo que SÍ era nuestro y se limpió**: `app/_layout.tsx` pasaba `backgroundColor` al `<StatusBar>`.
+> Con `edgeToEdgeEnabled: true` **expo-status-bar lo ignora** y tira un `console.warn` en cada render
+> (`StatusBar.android.tsx` lo warnea explícitamente). Era una prop muerta que ensuciaba la consola.
+> **Sacarla NO apaga la recomendación de Play** — el bytecode sigue ahí — pero deja de mentir sobre lo
+> que el código hace.
+
+**2) "Quita las restricciones de cambio de tamaño y orientación… pantalla grande"**
+
+Sale de `app.json` → `"orientation": "portrait"`, que compila a `android:screenOrientation="portrait"`.
+
+> ⚠️ **No sacarlo a la ligera.** En Android 16 (targetSdk 36) esa restricción **ya se ignora** en
+> pantallas ≥ 600dp, así que en tablets la app **ya** se redimensiona: quitarla del manifest no cambia
+> nada allá, y en cambio **habilita el giro en teléfonos**, donde toda la UI está diseñada en vertical.
+> El trabajo real no es borrar una línea: es **adaptar los layouts a horizontal y a tablet**. Es un
+> proyecto de UX, no un fix. Queda como deuda, no como tarea de lanzamiento.
+
+### 🔓 Las 4 tareas: las 4 desbloqueadas — 2 hechas, 2 para hacer YA
+
+Con la app pública en el catálogo cayó el último bloqueo externo:
+
+| Tarea                                   | Requiere                       | Estado al 26-08                                                         |
+| --------------------------------------- | ------------------------------ | ----------------------------------------------------------------------- |
+| Productos de suscripción → entitlements | Acceso a producción            | ✅ **HECHA** (22-08) — pero verificar que digan **Activo** (ver arriba) |
+| Service Account de Play → RevenueCat    | Acceso a producción            | ✅ **HECHA** (23-08) — credenciales válidas + RTDN conectadas           |
+| Vincular AdMob ↔ ficha de Play          | App **pública en el catálogo** | 🔓 **DESBLOQUEADA (26-08)** — la ficha da 200. Runbook § **Paso 1**     |
+| Validar **`app-ads.txt`**               | La vinculación anterior        | 🔓 Se desbloquea al cerrar la anterior. Runbook § **Paso 2**            |
 
 **Qué falta** → `docs/checklist-produccion.md` § "Bloqueado hasta PRODUCCIÓN".
 **Cómo se hace** → 📕 **`docs/runbook-produccion.md`** — runbook del día D, con los valores ya
@@ -123,15 +278,19 @@ verificados (package, publisher de AdMob, dominio, dependencias). Se ejecuta de 
 
 ### 🔴 EL ORDEN IMPORTA — no publicar antes de conectar el cobro
 
+> ✅ **Esta cadena ya se recorrió hasta abajo.** Lo único vivo del diagrama es la **última fila**
+> (pasos 1 y 2). Se deja completo porque explica **por qué** ese es el orden — y porque el mismo
+> razonamiento aplica a la próxima app.
+
 ```
-Paso 3 (productos)  ──>  Paso 4 (Service Account)  ──>  Paso 5 (QA de compras)
-                                                              │
-                                                              ▼
-                                              PUBLICAR versión de producción
-                                                              │
-                                       Google aprueba (~días) │
-                                                              ▼
-                                          Paso 1 (AdMob ↔ Play) ──> Paso 2 (app-ads.txt)
+Paso 3 (productos) ✅  ──>  Paso 4 (Service Account) ✅  ──>  Paso 5 (QA de compras)
+                                                                     │
+                                                                     ▼
+                                              PUBLICAR versión de producción ✅ (26-08)
+                                                                     │
+                                              Google aprueba (~días) ✅
+                                                                     ▼
+                                    Paso 1 (AdMob ↔ Play) 🔓 ──> Paso 2 (app-ads.txt) 🔓
 ```
 
 > 🔴 **Publicar antes del paso 4 es un bug que cuesta plata real.** Sin el Service Account cargado,
@@ -557,9 +716,35 @@ Monetización de usuarios **free** con `react-native-google-mobile-ads`. Set "le
 
 **IDs de unidad**: en `__DEV__` se usan SIEMPRE los IDs de prueba de Google (constantes en `lib/ads.ts`). En producción, las env `EXPO_PUBLIC_ADMOB_*`; si faltan, fallback a test (inofensivo). El **App ID** (`~...`) va en `app.json` → plugin `react-native-google-mobile-ads` (`androidAppId`), se hornea al buildear → cambiarlo requiere rebuild.
 
+**Consentimiento (UMP / CMP) — agregado el 2026-08-26.** `inicializarSdkAds()` llama a
+`AdsConsent.gatherConsent()` **antes** de `initialize()`. Google exige una CMP certificada para servir
+anuncios personalizados en el **EEE, Reino Unido y Suiza**.
+
+> ⚠️ **Fuera de esas regiones es un NO-OP**: el SDK resuelve la geografía del lado del servidor,
+> devuelve `NOT_REQUIRED` y **no muestra nada**. Hoy la app se publica solo en LATAM (6 países), así
+> que ningún usuario ve un formulario. Se implementó igual porque el día que se agregue **España** el
+> arreglo costaría **un build entero**.
+
+> ✅ **No hubo que instalar nada**: `com.google.android.ump:user-messaging-platform` ya viajaba dentro
+> del APK como dependencia **`api`** de `react-native-google-mobile-ads` (ver su `android/build.gradle`,
+> línea 139). El SDK estaba en el binario **sin usarse** desde el primer build.
+
+> ⚠️ **Si falla, se sigue.** El `catch` traga el error a propósito: sin consentimiento AdMob sirve ads
+> **no personalizados**, que es peor que lo ideal pero infinitamente mejor que cero ingresos. Un error
+> de consentimiento nunca puede dejar la app sin anuncios.
+
+> 🔴 **ESTO ES LA MITAD QUE DESBLOQUEA LOS ADS, NO EL CUMPLIMIENTO COMPLETO DEL EEE.** Si algún día se
+> publica ahí, Google exige **además** un punto de entrada permanente para que el usuario cambie de
+> opinión: `AdsConsent.showPrivacyOptionsForm()` detrás de una fila en Perfil, visible solo cuando
+> `getConsentInfo().privacyOptionsRequirementStatus === 'REQUIRED'`. **No está hecho** — y no hace
+> falta mientras no haya usuarios del EEE.
+
+> ℹ️ `recolectarConsentimiento()` es **privada**: no cambia la API exportada de `ads.ts`, así que
+> `ads.web.ts` **no necesitó tocarse**. Si algún día se exporta, hay que replicarla en el fork.
+
 Piezas:
 
-- `lib/ads.ts` — carga perezosa del módulo, `inicializarSdkAds()` (rating PG, no-niños), resolvers de IDs.
+- `lib/ads.ts` — carga perezosa del módulo, `inicializarSdkAds()` (rating PG, no-niños, consentimiento UMP), resolvers de IDs.
 - `store/useAnunciosStore.ts` — `{ listo, inicializar }`. `inicializar()` se llama una vez en `app/_layout.tsx`; arranca la precarga de intersticial + rewarded.
 - `components/AnuncioBanner.tsx` — banner adaptativo. Devuelve `null` si premium / SDK no listo / sin módulo. Colocar en zonas NO invasivas (ej. `ListFooterComponent` de la lista de recetas).
 - `lib/intersticial.ts` — manager singleton con **doble tope anti-molestia**: recién al 3er "momento natural" (`TRIGGERS_POR_AD`) Y máximo 1 cada 4 min (`MIN_MS_ENTRE_ADS`). Se registra el momento con `registrarMomentoIntersticial()` (ej. al abrir el detalle de una receta).

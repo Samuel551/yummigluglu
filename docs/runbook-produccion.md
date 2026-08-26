@@ -77,9 +77,17 @@ Las dos URLs de la ficha de Play ya apuntan al dominio propio, **confirmadas en 
 
 ---
 
-## Paso 1 — Vincular AdMob ↔ ficha de Play
+## Paso 1 — Vincular AdMob ↔ ficha de Play — 🔓 DESBLOQUEADO (2026-08-26)
 
 **Requiere**: app pública en Play (el buscador de AdMob solo ve el catálogo público).
+
+> ✅ **Requisito cumplido el 2026-08-26.** La ficha responde **HTTP 200** en
+> `play.google.com/store/apps/details?id=com.yummigluglu.app`, así que el buscador de AdMob **ya la
+> encuentra**. Este es el paso a ejecutar AHORA.
+>
+> ⚠️ **Si el buscador de AdMob todavía no la lista, no es un bug: es el índice de AdMob, que va
+> atrasado respecto del catálogo.** Esperar y reintentar; no crear una app nueva en AdMob "por las
+> dudas" — duplicarla parte las métricas en dos y no se puede fusionar.
 
 AdMob → **Apps** → Yummi Glu Glu → **Configuración de la app** → vincular a la tienda → buscar
 `com.yummigluglu.app`.
@@ -87,9 +95,9 @@ AdMob → **Apps** → Yummi Glu Glu → **Configuración de la app** → vincul
 Mientras no esté vinculada, AdMob muestra **"Estado de aprobación: Debe revisarse"** y sirve pocos
 anuncios (_limited ad serving_). **Es la consecuencia esperada, no un bug.**
 
-## Paso 2 — Validar `app-ads.txt`
+## Paso 2 — Validar `app-ads.txt` — 🔓 se desbloquea al cerrar el Paso 1
 
-**Requiere**: paso 0 + paso 1. AdMob rastrea el archivo desde el sitio del desarrollador **de la
+**Requiere**: paso 0 ✅ + paso 1. AdMob rastrea el archivo desde el sitio del desarrollador **de la
 ficha vinculada**.
 
 AdMob → **Apps** → pestaña **app-ads.txt** → ver estado. El rastreo **no es inmediato** (puede

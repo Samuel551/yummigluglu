@@ -62,9 +62,18 @@ validado nada de eso.
 > como cualquier app, y en la mayoría es automático. **Publicar versiones nuevas NO reinicia
 > los 14 días** — iterar durante la prueba es justamente lo que Google espera.
 
-## 🔒 Bloqueado hasta PRODUCCIÓN (no insistir antes)
+## 🔓 DESBLOQUEADO — la app se publicó el 2026-08-26
 
-Todo esto necesita que la app esté **públicamente publicada**. Verificado el 2026-08-05:
+> 🎉 **La app está pública en el catálogo de Google Play.** Verificado con `curl` contra
+> `play.google.com/store/apps/details?id=com.yummigluglu.app` → **HTTP 200** con la ficha real.
+> **Las 4 tareas de la tabla de abajo dejaron de estar bloqueadas**; 2 ya están hechas (22 y 23-08) y
+> las otras 2 (AdMob ↔ Play y `app-ads.txt`) se ejecutan ahora, en ese orden, desde
+> `docs/runbook-produccion.md` § Paso 1 y § Paso 2.
+>
+> La tabla se conserva porque documenta **por qué** estuvo bloqueado cada ítem — útil para la próxima
+> app, y para no volver a intentarlos fuera de orden.
+
+Todo esto necesitaba que la app estuviera **públicamente publicada**. Diagnóstico del 2026-08-05:
 
 | Tarea                                   | Por qué no se puede antes                                                                           |
 | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
