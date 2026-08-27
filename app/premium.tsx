@@ -42,6 +42,7 @@ interface Beneficio {
  * | Perfiles ilimitados | `store/usePerfilStore.ts` → `MAX_PERFILES_FREE`         |
  * | Plan semanal        | `app/(tabs)/plan.tsx` — regenerar y programar la semana |
  * | Agenda completa     | `app/agenda.tsx` → `TIPOS_FREE` e hitos                 |
+ * | Siempre creciendo   | vista `recetas_teaser` — el gate cubre las recetas nuevas |
  *
  * ⚠️ **Lo que NO va acá: el catálogo de recetas.** Las recetas son SIEMPRE free
  * (migración `024`); solo se gatea el video. Esta lista decía "Recetas premium sin
@@ -84,6 +85,17 @@ const BENEFICIOS: Beneficio[] = [
     // `proximosHitos(fecha, 5)` en agenda.tsx: el 5 son CINCO HITOS, no cinco años.
     // El catálogo tiene 11 hitos y llega a los 48 meses (4 años). No decir "5 años".
     descripcion: 'Los 5 tipos de recordatorio y los próximos 5 hitos, en vez de 1.',
+  },
+  {
+    icon: 'trending-up',
+    titulo: 'Siempre creciendo',
+    // NO promete cadencia ("videos nuevos cada mes") a propósito: sería una promesa
+    // reclamable el mes que no se suba nada. Lo que sí promete —que lo nuevo queda
+    // incluido— lo cumple sola la vista `recetas_teaser`, que gatea `video_url` en
+    // TODA receta, incluidas las que todavía no existen. Por eso no dice "más recetas":
+    // las recetas son free para todos, solo se cobra el video.
+    descripcion:
+      'Cada video nuevo que sumamos queda incluido en tu suscripción, sin costo adicional.',
   },
 ];
 
