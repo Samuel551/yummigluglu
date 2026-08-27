@@ -77,7 +77,11 @@ Las dos URLs de la ficha de Play ya apuntan al dominio propio, **confirmadas en 
 
 ---
 
-## Paso 1 — Vincular AdMob ↔ ficha de Play — 🔓 DESBLOQUEADO (2026-08-26)
+## Paso 1 — Vincular AdMob ↔ ficha de Play — ✅ HECHO (2026-08-27)
+
+> ✅ **CERRADO.** _Configuración de la aplicación_ muestra **Detalles de la tienda** = `Google Play → com.yummigluglu.app`,
+> **Verificación de apps** = _Verificada_ y **Estado de aprobación** = ✅ **`Lista`** (ya no "Debe revisarse").
+> Se terminó el _limited ad serving_. Medido: **68 solicitudes (+126,67%)** en 7 días.
 
 **Requiere**: app pública en Play (el buscador de AdMob solo ve el catálogo público).
 
@@ -95,7 +99,17 @@ AdMob → **Apps** → Yummi Glu Glu → **Configuración de la app** → vincul
 Mientras no esté vinculada, AdMob muestra **"Estado de aprobación: Debe revisarse"** y sirve pocos
 anuncios (_limited ad serving_). **Es la consecuencia esperada, no un bug.**
 
-## Paso 2 — Validar `app-ads.txt` — 🔓 se desbloquea al cerrar el Paso 1
+## Paso 2 — Validar `app-ads.txt` — ✅ HECHO (2026-08-27)
+
+> ✅ **CERRADO.** AdMob → **Aplicaciones** → pestaña **app-ads.txt**: _"100% de las búsquedas del archivo
+> app-ads.txt están autorizadas"_. Fila de `com.yummigluglu.app`: **Estado ✅**, último rastreo **hace 1 hora**,
+> detalle _"Se encontró y verificó el archivo app-ads.txt"_.
+>
+> 🔴 **La pestaña NO está dentro de la app.** Es a nivel de cuenta: barra izquierda → **Aplicaciones** →
+> "Todas las aplicaciones" → pestaña **app-ads.txt**. Buscarla en _Configuración de la aplicación_ es el
+> error natural y ahí no está.
+>
+> 💡 **El rastreo tardó menos de 1 h, no las "+24 h" que documenta Google.** Mirar la pestaña el mismo día.
 
 **Requiere**: paso 0 ✅ + paso 1. AdMob rastrea el archivo desde el sitio del desarrollador **de la
 ficha vinculada**.

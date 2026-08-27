@@ -113,44 +113,43 @@ otra.
 > respuesta del cuestionario** (chat entre usuarios, contenido generado por usuarios, compras nuevas),
 > **hay que rehacerlo** — la clasificación vieja deja de ser válida.
 
-### 🔴 EL REPO VA ADELANTE DE PRODUCCIÓN — build 4 se quedó en `c487ccd`
+### ✅ EL DESFASE SE CERRÓ — build 5 (`89f0e98`) pasó revisión en prueba cerrada (2026-08-26)
 
-**El AAB `versionCode 4` que está publicado se compiló del commit `c487ccd` (2026-08-24 02:54 UTC)**,
-o sea **antes** de toda la tanda de arreglos de esa tarde. Medido, no supuesto:
+**Durante días el repo fue adelante del binario. Ya no.** El AAB `versionCode 5` / `1.1.0` se compiló
+del commit **`89f0e98`, que es HEAD, con el árbol limpio** — cero drift entre lo que se subió y lo que
+está acá. Medido, no supuesto:
 
 ```bash
-npx eas-cli build:list --platform android --limit 6 --json   # -> vc 4 = git c487ccd
-git log --oneline c487ccd..HEAD -- app/ store/ lib/ components/ hooks/ constants/ types/
+npx eas-cli build:list --platform android --limit 5 --json   # -> vc 5 = 1.1.0 = git 89f0e98
+git status --porcelain                                       # -> vacío
 ```
 
-| Commit    | Qué es                                          | ¿En producción? |
-| --------- | ----------------------------------------------- | --------------- |
-| `ef18b93` | `premium.tsx` deja de expulsar al suscriptor    | ❌ **NO**       |
-| `5ed38d0` | **Fase 10** — saludos de cumpleaños y cumplemés | ❌ **NO**       |
-| `b05e166` | Tarjeta verde de acceso a premium en el perfil  | ❌ **NO**       |
-| `a228279` | Botón de prueba de saludos (`__DEV__`)          | ❌ irrelevante  |
-| `d8c0245` | Webhook procesa `TRANSFER`                      | ✅ **SÍ**       |
+Lo que ese binario suma sobre lo que corría en producción (vc=4 = `c487ccd`):
 
-> ✅ **El backend SÍ está al día.** `revenuecat-webhook` está en la **v10**, con `verify_jwt: false`
-> y la rama 3.b de `TRANSFER` presente en el código desplegado (verificado leyendo la función
-> desplegada, no el repo). Las Edge Functions se despliegan aparte del APK — por eso el backend
-> puede ir adelante del cliente.
+| Commit    | Qué es                                                          |
+| --------- | --------------------------------------------------------------- |
+| `ef18b93` | **`premium.tsx` deja de expulsar al suscriptor** ← el que urgía |
+| `5ed38d0` | **Fase 10** — saludos de cumpleaños y cumplemés                 |
+| `b05e166` | Tarjeta verde de acceso a premium en el perfil                  |
+| `023735c` | Consentimiento UMP antes de inicializar AdMob                   |
+| `1de5034` | StatusBar sin la prop muerta                                    |
 
-> 🔴 **El que duele no es la Fase 10, es `ef18b93`.** En producción, `premium.tsx` todavía tiene el
-> `useEffect` que hace `router.back()` apenas `esPremium` es `true`. Y **"Restaurar compras" existe
-> en UN SOLO archivo de toda la app: `app/premium.tsx`** (verificado con `grep` sobre `app/**/*.tsx`).
->
-> **Conclusión: hoy, en producción, un usuario premium NO PUEDE llegar al botón de "Restaurar
-> compras". La pantalla lo expulsa antes de que lo vea.**
->
-> Y eso se cruza justo con el bug de `TRANSFER`: al que le transfirieron mal la entitlement, la vía de
-> autoservicio para recuperarla **es exactamente ese botón**. El webhook ya está arreglado en el
-> servidor, pero **la mitad cliente del arreglo no está en el teléfono de nadie.**
+> ✅ **`autoIncrement` funcionó**: EAS subió el versionCode **4 → 5 solo**. El rechazo de Play por
+> versionCode repetido (que costó un build entero el 19-08) no volvió.
 
-🎯 **La lección para la próxima**: desplegar una Edge Function es instantáneo; publicar el cliente
-tarda días y hay que acordarse de hacerlo. **Cuando un arreglo tiene mitad servidor y mitad cliente,
-el servidor se adelanta solo y da la falsa sensación de "ya está".** Antes de dar por cerrado un fix,
-preguntarse **en qué binario vive** — y si vive en el APK, no está cerrado hasta que se publica.
+> ✅ **`VistaPremiumActivo` ya está verificada en dispositivo** por el owner, con el APK del dev
+> client, el mismo día que se implementó. **No reabrir ese ítem**: ya se probó y se aprobó.
+
+> 🔴 **PASAR REVISIÓN EN PRUEBA CERRADA NO ES PUBLICAR.** Mientras el vc=5 no se promueva, los
+> usuarios de producción siguen con el vc=4 y con `premium.tsx` expulsándolos antes de que puedan
+> tocar "Restaurar compras". Y la promoción a Producción **tiene su propia revisión**: no hereda la de
+> la pista cerrada. No dar el fix por entregado hasta ver la versión activa en el track de Producción.
+
+🎯 **La lección que dejó el desfase, y que sigue valiendo**: desplegar una Edge Function es
+instantáneo; publicar el cliente tarda días y hay que acordarse de hacerlo. **Cuando un arreglo tiene
+mitad servidor y mitad cliente, el servidor se adelanta solo y da la falsa sensación de "ya está".**
+Antes de dar por cerrado un fix, preguntarse **en qué binario vive** — y si vive en el APK, no está
+cerrado hasta que se publica.
 
 ### ⏰ Deadlines de Google — con fecha, no negociables
 
@@ -261,16 +260,24 @@ Sale de `app.json` → `"orientation": "portrait"`, que compila a `android:scree
 > El trabajo real no es borrar una línea: es **adaptar los layouts a horizontal y a tablet**. Es un
 > proyecto de UX, no un fix. Queda como deuda, no como tarea de lanzamiento.
 
-### 🔓 Las 4 tareas: las 4 desbloqueadas — 2 hechas, 2 para hacer YA
+### ✅ Las 4 tareas: LAS 4 CERRADAS (27-08-2026)
 
 Con la app pública en el catálogo cayó el último bloqueo externo:
 
-| Tarea                                   | Requiere                       | Estado al 26-08                                                         |
+| Tarea                                   | Requiere                       | Estado al 27-08                                                         |
 | --------------------------------------- | ------------------------------ | ----------------------------------------------------------------------- |
 | Productos de suscripción → entitlements | Acceso a producción            | ✅ **HECHA** (22-08) — pero verificar que digan **Activo** (ver arriba) |
 | Service Account de Play → RevenueCat    | Acceso a producción            | ✅ **HECHA** (23-08) — credenciales válidas + RTDN conectadas           |
-| Vincular AdMob ↔ ficha de Play          | App **pública en el catálogo** | 🔓 **DESBLOQUEADA (26-08)** — la ficha da 200. Runbook § **Paso 1**     |
-| Validar **`app-ads.txt`**               | La vinculación anterior        | 🔓 Se desbloquea al cerrar la anterior. Runbook § **Paso 2**            |
+| Vincular AdMob ↔ ficha de Play          | App **pública en el catálogo** | ✅ **HECHA (27-08)** — AdMob: _Estado de aprobación: **Lista**_         |
+| Validar **`app-ads.txt`**               | La vinculación anterior        | ✅ **HECHA (27-08)** — rastreado y verificado, **100% autorizado**      |
+
+> ✅ **`app-ads.txt` VERIFICADO POR GOOGLE el 2026-08-27.** AdMob → **Aplicaciones** → pestaña
+> **app-ads.txt**: _"100% de las búsquedas del archivo app-ads.txt están autorizadas"_, y la fila de
+> `com.yummigluglu.app` marca **Estado ✅**, último rastreo **hace 1 hora**, detalle _"Se encontró y
+> verificó el archivo app-ads.txt"_.
+>
+> 💡 **El rastreo fue casi inmediato, no las +24 h que documenta Google.** No asumir la demora larga:
+> conviene mirar la pestaña el mismo día de vincular la ficha.
 
 **Qué falta** → `docs/checklist-produccion.md` § "Bloqueado hasta PRODUCCIÓN".
 **Cómo se hace** → 📕 **`docs/runbook-produccion.md`** — runbook del día D, con los valores ya
@@ -290,7 +297,7 @@ Paso 3 (productos) ✅  ──>  Paso 4 (Service Account) ✅  ──>  Paso 5 (
                                                                      │
                                               Google aprueba (~días) ✅
                                                                      ▼
-                                    Paso 1 (AdMob ↔ Play) 🔓 ──> Paso 2 (app-ads.txt) 🔓
+                                    Paso 1 (AdMob ↔ Play) ✅ ──> Paso 2 (app-ads.txt) ✅
 ```
 
 > 🔴 **Publicar antes del paso 4 es un bug que cuesta plata real.** Sin el Service Account cargado,
@@ -310,7 +317,12 @@ Paso 3 (productos) ✅  ──>  Paso 4 (Service Account) ✅  ──>  Paso 5 (
 > `https://yummigluglu.com` (los _Detalles de contacto_ **no** pasan por revisión, se aplican al
 > instante). Ambas **confirmadas en pantalla**.
 
-> ⚠️ Mientras tanto AdMob muestra **"Estado de aprobación: Debe revisarse"** y sirve pocos anuncios (_limited ad serving_). **Es la consecuencia esperada de no tener la ficha vinculada, no un bug.**
+> ✅ **RESUELTO el 2026-08-27.** AdMob → Apps → Yummi Glu Glu → _Configuración de la aplicación_ muestra
+> **Estado de aprobación: `Lista`** y _Detalles de la tienda de aplicaciones_ = `Google Play → com.yummigluglu.app`.
+> **Se terminó el _limited ad serving_.** Efecto medido: **68 solicitudes (+126,67%)** en 7 días.
+>
+> 💡 **"Estado de aprobación: Lista" ES la señal de que terminó el capado.** No hay otra pantalla que lo
+> confirme. Si algún día vuelve a decir _"Debe revisarse"_, la app volvió a estar limitada.
 
 ### 🔴 Advertencias que NO se resuelven — son intencionales
 
