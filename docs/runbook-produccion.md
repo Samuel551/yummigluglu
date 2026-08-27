@@ -459,6 +459,18 @@ nueva** → _Paquetes de aplicación_ → **"Agregar desde la biblioteca"** → 
 > ⚠️ **Las notas de la versión son obligatorias** en al menos un idioma, y la pantalla no deja
 > avanzar sin ellas. Tenerlas escritas ANTES de entrar al flujo.
 
+> ℹ️ **"Vuelve a subir tu paquete de aplicación para aplicar los cambios de mejora" → IGNORAR.**
+> Aparece bajo el ✅ _"2 de 2 mejoras activas"_ (Play App Signing + protección automática). Es
+> **informativo, no bloqueante**: el AAB se subió antes de que la protección automática quedara activa,
+> así que no se le aplica a ese bundle.
+>
+> 🔴 **"Volver a subir" exige un build NUEVO** — Play rechaza un `versionCode` repetido. Aplicar esa
+> mejora costaría quemar el vc 6 y retrasar días la publicación, por un extra anti-tamper que **no
+> afecta funcionalidad ni es requisito**. Se aplica sola al próximo AAB. **Publicar igual.**
+>
+> 💡 En este flujo, distinguir **ℹ️ informativo** (seguir) de **⚠️/🔴 bloqueante** (frenar). Este
+> proyecto ya perdió un build entero por reaccionar de más a un mensaje de Play.
+
 > ⏳ La promoción a Producción pasa por **revisión propia de Google**: no hereda la de la pista
 > cerrada. No darla por publicada hasta ver la versión **Activa** en el track de Producción.
 
