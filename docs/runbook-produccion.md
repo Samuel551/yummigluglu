@@ -438,18 +438,29 @@ Depende del paso 4. Configurar **verificadores de licencia** en Play Console
 
 **Requiere**: pasos 3, 4 y 5 cerrados. **No antes.**
 
-Play Console → **Prueba y lanza** → **Producción** → **Crear una versión nueva** → en _Paquetes de
-aplicación_ elegir **"Agregar desde la biblioteca"** y tomar el **`versionCode 2`** ya subido a la
-prueba cerrada.
+> 🔴 **EL BUNDLE ES EL `versionCode 5` (1.1.0), compilado de `89f0e98`.** Este párrafo decía
+> `versionCode 2` y quedó viejo: el 2 era el de la prueba cerrada de agosto. Verificá el número en
+> pantalla antes de confirmar — el bundle equivocado es un error que no se puede deshacer sin quemar
+> otro versionCode.
+
+**Camino corto (recomendado)**: Play Console → **Prueba y lanzamiento** → **Pruebas** → **Prueba
+cerrada** → la versión `5 (1.1.0)` → **Promocionar versión** → **Producción**.
+
+**Camino largo (equivalente)**: **Prueba y lanzamiento** → **Producción** → **Crear una versión
+nueva** → _Paquetes de aplicación_ → **"Agregar desde la biblioteca"** → elegir el `versionCode 5`.
 
 > ✅ **No se rebuildea.** Ese bundle ya está firmado, aceptado por Play y trae RevenueCat v10 /
 > Billing 8. Rebuildear solo quema otro `versionCode` y agrega riesgo.
 
-> ⏳ La primera publicación en producción pasa por **revisión humana de Google** (días, no minutos).
-> Recién cuando quede _Activo_ y la ficha sea visible en el catálogo público arrancan los pasos 1 y 2.
+> 🔴 **El porcentaje de lanzamiento por etapas va al 100%.** Con ~12 usuarios, un 20% le entrega la
+> versión a 2 personas — y el motivo entero de publicar es que `premium.tsx` (y con él el botón
+> "Restaurar compras") llegue a los suscriptores. Un rollout parcial deja el fix sin entregar.
 
-> 💡 Se puede lanzar por **etapas** (10 % → 50 % → 100 %) desde la misma pantalla. Con base de
-> usuarios chica no aporta mucho, pero es la red de seguridad si el QA de compras dejó dudas.
+> ⚠️ **Las notas de la versión son obligatorias** en al menos un idioma, y la pantalla no deja
+> avanzar sin ellas. Tenerlas escritas ANTES de entrar al flujo.
+
+> ⏳ La promoción a Producción pasa por **revisión propia de Google**: no hereda la de la pista
+> cerrada. No darla por publicada hasta ver la versión **Activa** en el track de Producción.
 
 ---
 
