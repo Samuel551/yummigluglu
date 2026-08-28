@@ -10,9 +10,20 @@ Estas recetas **nunca se bloquean**. El job mensual `rotar_videos_premium()` (pg
 en redes con la certeza de que quien abra la app **va a poder ver el video**, sin importar el mes ni
 si es premium. Con las de los grupos 1–3 eso no se puede prometer: rotan.
 
-> 🔒 **Sin links de YouTube a propósito.** Este repo es **público** y los videos son de YouTube _no
-> listado_ — pegar las URLs acá las volvería rastreables desde fuera de la app. Si necesitás los
-> links para publicar, se generan aparte y se guardan **fuera del repo**.
+> ✅ **ACTUALIZADO 2026-08-27: estos 53 videos YA SON PÚBLICOS en YouTube.** Canal:
+> `https://www.youtube.com/@yummigluglu`. Se hicieron públicos justamente para poder promocionarlos
+> como Shorts, que es el canal orgánico de costo cero. Como el grupo 0 nunca se bloquea, publicarlos
+> **no regala nada**: ya eran gratis para todos dentro de la app.
+>
+> 🔴 **LOS GRUPOS 1–3 SIGUEN NO LISTADOS Y ASÍ TIENEN QUE QUEDAR.** Esos 154 rotan: si se hacen
+> públicos, el candado premium del video queda de adorno porque cualquiera los encuentra buscando en
+> YouTube. **Auditado el 27-08**: de los videoIds visibles en el canal, 29/29 son del grupo 0 y **cero**
+> de los grupos 1–3.
+>
+> ⚠️ **Cómo auditarlo, porque el test obvio NO sirve**: `oEmbed` devuelve **200 tanto para públicos
+> como para no listados** (no listado = accesible con el link, y oEmbed consulta por link). La señal
+> que sí distingue es la **pestaña del canal**: los públicos aparecen en `/@yummigluglu/videos`, los no
+> listados no. Extraer los `"videoId":"…"` del HTML e intersectar con `rotacion_grupo`.
 
 ## Cómo regenerar esta lista
 
