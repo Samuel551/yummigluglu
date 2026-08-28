@@ -10,10 +10,11 @@ Estas recetas **nunca se bloquean**. El job mensual `rotar_videos_premium()` (pg
 en redes con la certeza de que quien abra la app **va a poder ver el video**, sin importar el mes ni
 si es premium. Con las de los grupos 1–3 eso no se puede prometer: rotan.
 
-> ✅ **ACTUALIZADO 2026-08-27: estos 53 videos YA SON PÚBLICOS en YouTube.** Canal:
-> `https://www.youtube.com/@yummigluglu`. Se hicieron públicos justamente para poder promocionarlos
-> como Shorts, que es el canal orgánico de costo cero. Como el grupo 0 nunca se bloquea, publicarlos
-> **no regala nada**: ya eran gratis para todos dentro de la app.
+> ⏳ **ACTUALIZADO 2026-08-27: estos 53 videos se están pasando a PÚBLICOS en YouTube, por tandas.**
+> **Van 29 de 53** al 27-08. Canal: `https://www.youtube.com/@yummigluglu`. Todos marcados
+> **"No es contenido para niños"** — confirmado por el owner, y es obligatorio que siga así.
+> Se hacen públicos para promocionarlos como Shorts, que es el canal orgánico de costo cero.
+> Como el grupo 0 nunca se bloquea, publicarlos **no regala nada**: ya eran gratis dentro de la app.
 >
 > 🔴 **LOS GRUPOS 1–3 SIGUEN NO LISTADOS Y ASÍ TIENEN QUE QUEDAR.** Esos 154 rotan: si se hacen
 > públicos, el candado premium del video queda de adorno porque cualquiera los encuentra buscando en
