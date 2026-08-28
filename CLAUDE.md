@@ -88,7 +88,7 @@ Ese `200` es lo que importa de verdad: **es exactamente lo que el buscador de Ad
 Play Console diciendo "Producción" es la mitad de la prueba; que la ficha le responda al mundo es la
 otra.
 
-**Versión viva**: `4 (1.0.0)`, track de Producción **Activo**, **6 países/regiones**, 12 instalaciones.
+**Versión viva**: `5 (1.1.0)` — publicada el **2026-08-27**. Track de Producción **Activo**, **6 países/regiones**.
 (Ojo al leer notas viejas: el AAB de la prueba cerrada era el `versionCode 2` — ya quedó atrás.)
 
 > ✅ **Suscripciones verificadas ACTIVAS (2026-08-26).** Play Console → _Monetiza con Play_ →
@@ -113,7 +113,7 @@ otra.
 > respuesta del cuestionario** (chat entre usuarios, contenido generado por usuarios, compras nuevas),
 > **hay que rehacerlo** — la clasificación vieja deja de ser válida.
 
-### ✅ EL DESFASE SE CERRÓ — build 5 (`89f0e98`) pasó revisión en prueba cerrada (2026-08-26)
+### ✅ PUBLICADO — build 5 (`89f0e98`) VIVO EN PRODUCCIÓN (2026-08-27)
 
 **Durante días el repo fue adelante del binario. Ya no.** El AAB `versionCode 5` / `1.1.0` se compiló
 del commit **`89f0e98`, que es HEAD, con el árbol limpio** — cero drift entre lo que se subió y lo que
@@ -140,10 +140,18 @@ Lo que ese binario suma sobre lo que corría en producción (vc=4 = `c487ccd`):
 > ✅ **`VistaPremiumActivo` ya está verificada en dispositivo** por el owner, con el APK del dev
 > client, el mismo día que se implementó. **No reabrir ese ítem**: ya se probó y se aprobó.
 
-> 🔴 **PASAR REVISIÓN EN PRUEBA CERRADA NO ES PUBLICAR.** Mientras el vc=5 no se promueva, los
-> usuarios de producción siguen con el vc=4 y con `premium.tsx` expulsándolos antes de que puedan
-> tocar "Restaurar compras". Y la promoción a Producción **tiene su propia revisión**: no hereda la de
-> la pista cerrada. No dar el fix por entregado hasta ver la versión activa en el track de Producción.
+> ✅ **PUBLICADO Y VERIFICADO el 2026-08-27.** Google aprobó la promoción a Producción, el owner
+> actualizó la app en su dispositivo y **confirmó los cambios nuevos en pantalla**. Verificado además
+> contra el catálogo público, que es la prueba independiente de Play Console:
+>
+> ```bash
+> curl -s "https://play.google.com/store/apps/details?id=com.yummigluglu.app&hl=es_CL" | grep -c 1.1.0
+> # -> 1.1.0 aparece en el HTML, y 1.0.0 YA NO aparece
+> ```
+>
+> 🎯 **Con esto llegó al teléfono de los usuarios el fix de `ef18b93`**: `premium.tsx` ya no expulsa al
+> suscriptor, así que **"Restaurar compras" volvió a ser alcanzable**. Era la única vía de autoservicio
+> para recuperar una entitlement mal transferida, y estuvo inaccesible en producción hasta hoy.
 
 🎯 **La lección que dejó el desfase, y que sigue valiendo**: desplegar una Edge Function es
 instantáneo; publicar el cliente tarda días y hay que acordarse de hacerlo. **Cuando un arreglo tiene
@@ -221,7 +229,7 @@ volver a loguearse. Es trabajo real, no un flag. Se planifica **después** del d
 
 ### 🟡 Las 2 "acciones recomendadas" de Play Console — ninguna es bloqueante
 
-Aparecen en _Producción → Panel de control de la versión_ sobre la versión `4 (1.0.0)`. Son
+Aparecen en _Producción → Panel de control de la versión_ sobre la versión `5 (1.1.0)`. Son
 **recomendaciones**, no requisitos: no frenan publicaciones ni tienen fecha de corte. Diagnosticadas
 el 2026-08-26.
 

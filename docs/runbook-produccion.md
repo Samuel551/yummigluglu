@@ -434,7 +434,13 @@ Depende del paso 4. Configurar **verificadores de licencia** en Play Console
 
 ---
 
-## Paso 6 — Publicar la versión de producción
+## Paso 6 — Publicar la versión de producción — ✅ HECHO (2026-08-27)
+
+> ✅ **CERRADO. El `versionCode 5` (1.1.0) está VIVO en Producción.** Google aprobó la promoción, el
+> owner actualizó la app en su dispositivo y confirmó los cambios en pantalla. El catálogo público
+> devuelve `1.1.0` y ya no devuelve `1.0.0`.
+>
+> 🎯 **Con esto el runbook queda completo de punta a punta**: los pasos 0 a 6, todos cerrados.
 
 **Requiere**: pasos 3, 4 y 5 cerrados. **No antes.**
 
