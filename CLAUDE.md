@@ -38,8 +38,10 @@ sensible (pagos, webhooks, vista `recetas_teaser`, anuncios), leer su sección e
   `D:\Proyectos\recetas\sql\`.
 - **Desplegar NutriBot** (`supabase functions deploy nutribot`): el repo va adelante de lo
   desplegado. ⏸️ Esperando orden del owner.
-- **3 archivos en `videos\_revisar-duplicados\`** esperan decisión del owner (no son copias): de la
-  102/103, de la 179 y de la 208.
+- **3 archivos en `videos\_revisar-duplicados\`** (de la 102/103, de la 179 y de la 208): el owner
+  decidió **dejarlos así** (2026-10-04). No tocarlos.
+- **Versión 1.2.0 (Fase 11)**: el owner autorizó el build único el 2026-10-04. `app.json` ya está en
+  1.2.0. Flujo: deploy NutriBot → `eas build --profile production` → prueba interna → QA → promover al 100%.
 - **Deadlines de Google**: **feb 2027** memoria + DEX/R8 (hoy **no se cumple**: falta
   `expo-build-properties` con `enableMinifyInReleaseBuilds`; degrada en silencio. **Va en su propia
   versión, DESPUÉS de publicar la Fase 11** — decisión del 2026-10-04) y **abr 2027** Zero-Tap Sign-In (Restore
