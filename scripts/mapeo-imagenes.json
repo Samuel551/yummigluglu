@@ -1,9 +1,9 @@
 {
-  "version": 1,
+  "version": 2,
   "generado": "2026-07-20",
-  "descripcion": "Mapeo congelado carpeta local -> receta (slug) de public.recetas. Validado por match exacto de nombre + cruce con prompts-imagenes-ANOTADO.txt. NO regenerar automaticamente: si cambia, revisarlo a mano.",
+  "descripcion": "Mapeo congelado carpeta local -> receta (slug) de public.recetas. Validado por match exacto de nombre + cruce con prompts-imagenes-ANOTADO.txt. NO regenerar automaticamente: si cambia, revisarlo a mano. v2 (2026-10-04): +18 recetas BLW, 208-226 sin la 215 (descartada).",
   "origen_imagenes": "D:\\Proyectos\\recetas\\imagenes",
-  "total": 207,
+  "total": 225,
   "entradas": [
     {
       "num": 1,
@@ -1867,6 +1867,168 @@
       "nombre": "Galletitas de coco y limón",
       "confianza": "alta",
       "metodo": "exacto+referencia"
+    },
+    {
+      "num": 208,
+      "carpeta": "208 — Bastones de pollo al vapor con palta",
+      "png": "208.png",
+      "slug": "bastones-pollo-vapor-palta",
+      "nombre": "Bastones de pollo al vapor con palta",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 209,
+      "carpeta": "209 — Deditos de carne y quinoa al horno",
+      "png": "209.png",
+      "slug": "deditos-carne-quinoa-horno",
+      "nombre": "Deditos de carne y quinoa al horno",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 210,
+      "carpeta": "210 — Hamburguesita de lentejas y avena",
+      "png": "210.png",
+      "slug": "hamburguesita-lentejas-avena",
+      "nombre": "Hamburguesita de lentejas y avena",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 211,
+      "carpeta": "211 — Bastones de tortilla de huevo y espinaca",
+      "png": "211.png",
+      "slug": "bastones-tortilla-huevo-espinaca",
+      "nombre": "Bastones de tortilla de huevo y espinaca",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 212,
+      "carpeta": "212 — Croquetas alargadas de porotos negros con arroz",
+      "png": "212.png",
+      "slug": "croquetas-porotos-negros-arroz",
+      "nombre": "Croquetas alargadas de porotos negros con arroz",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 213,
+      "carpeta": "213 — Pollo desmenuzado con bastones de camote",
+      "png": "213.png",
+      "slug": "pollo-desmenuzado-bastones-camote",
+      "nombre": "Pollo desmenuzado con bastones de camote",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 214,
+      "carpeta": "214 — Bastones de zapallo italiano al horno con hummus",
+      "png": "214.png",
+      "slug": "bastones-zapallo-italiano-hummus",
+      "nombre": "Bastones de zapallo italiano al horno con hummus",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 216,
+      "carpeta": "216 — Tortitas de betarraga, lenteja y avena",
+      "png": "216.png",
+      "slug": "tortitas-betarraga-lenteja-avena",
+      "nombre": "Tortitas de betarraga, lenteja y avena",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 217,
+      "carpeta": "217 — Bastones de posta de vacuno a la olla",
+      "png": "217.png",
+      "slug": "bastones-posta-vacuno-olla",
+      "nombre": "Bastones de posta de vacuno a la olla",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 218,
+      "carpeta": "218 — Dedos de pan con palta y huevo duro",
+      "png": "218.png",
+      "slug": "dedos-pan-palta-huevo-duro",
+      "nombre": "Dedos de pan con palta y huevo duro",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 219,
+      "carpeta": "219 — Tortitas de avena, huevo y plátano",
+      "png": "219.png",
+      "slug": "tortitas-avena-huevo-platano",
+      "nombre": "Tortitas de avena, huevo y plátano",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 220,
+      "carpeta": "220 — Fideos salteados con pollo y verduras",
+      "png": "220.png",
+      "slug": "fideos-salteados-pollo-verduras",
+      "nombre": "Fideos salteados con pollo y verduras",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 221,
+      "carpeta": "221 — Nuggets caseros de pollo",
+      "png": "221.png",
+      "slug": "nuggets-caseros-pollo",
+      "nombre": "Nuggets caseros de pollo",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 222,
+      "carpeta": "222 — Nuggets de pollo y brócoli",
+      "png": "222.png",
+      "slug": "nuggets-pollo-brocoli",
+      "nombre": "Nuggets de pollo y brócoli",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 223,
+      "carpeta": "223 — Panqueques de betarraga",
+      "png": "223.png",
+      "slug": "panqueques-betarraga",
+      "nombre": "Panqueques de betarraga",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 224,
+      "carpeta": "224 — Tortilla de papa, zanahoria y acelga",
+      "png": "224.png",
+      "slug": "tortilla-papa-zanahoria-acelga",
+      "nombre": "Tortilla de papa, zanahoria y acelga",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 225,
+      "carpeta": "225 — Cilindros de arroz con palta y pollo",
+      "png": "225.png",
+      "slug": "cilindros-arroz-palta-pollo",
+      "nombre": "Cilindros de arroz con palta y pollo",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
+    },
+    {
+      "num": 226,
+      "carpeta": "226 — Papitas al horno con carne mechada",
+      "png": "226.png",
+      "slug": "papitas-horno-carne-mechada",
+      "nombre": "Papitas al horno con carne mechada",
+      "confianza": "alta",
+      "metodo": "exacto (fase 11 BLW, 2026-10-04)"
     }
   ]
 }
