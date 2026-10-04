@@ -22,17 +22,27 @@ sensible (pagos, webhooks, vista `recetas_teaser`, anuncios), leer su sección e
 > entera y recién ahí publica. No proponerlo hasta que él lo diga. El servidor se despliega en segundos
 > y el cliente tarda días: arreglar de a pedazos genera desfase.
 
-## Pendientes (al 2026-10-03)
+## Pendientes (al 2026-10-04)
 
-- **Fase 11 (BLW)**: ✅ código completo y **sin commitear**; migración `039` ya aplicada; las **18
-  recetas de trocitos están vivas** (catálogo 207 → 225). Detalle: `§ 1. Fase 11 (BLW)`.
-- **Marcar las convertibles**: de las 68 recetas `inicio`, sumarles `blw` + `forma_servido` +
-  `nota_seguridad`. **Una por una, nunca con UPDATE masivo.**
+- **Fase 11 (BLW)**: ✅ código completo y **commiteado** (sin push); migración `039` ya aplicada; las
+  **18 recetas de trocitos están vivas**, con video y foto (catálogo 207 → 225). Falta el build único.
+  Detalle: `§ 1. Fase 11 (BLW)`.
+- **Convertibles**: ✅ hecho el 2026-10-04. De las 68 recetas `inicio` viejas, **40** quedaron con
+  `metodo = {papilla, blw}` (cada una con su propio texto; `forma_servido` empieza con "Versión
+  trocitos:"). Las otras 28 (cereales, atoles, choclo, frutas con semillas duras) siguen solo como papilla.
+- **5 recetas `inicio` sin azúcar ni alcohol**: ✅ 2026-10-04. Panela → plátano maduro (y se retira la
+  canela en rama) en _Atol de yuca_; esencia/extracto de vainilla → vaina opcional cocinada y retirada en
+  las otras 4. Además, las 3 **bebidas** de `inicio` (2 atoles y el mate de leche) pasaron de leche
+  entera a leche materna o de fórmula, agregada al final y sin hervir. Cocinar con leche de vaca está
+  bien; darla como bebida antes del año, no. Los videos todavía muestran el ingrediente viejo. SQL en
+  `D:\Proyectos\recetas\sql\`.
 - **Desplegar NutriBot** (`supabase functions deploy nutribot`): el repo va adelante de lo
   desplegado. ⏸️ Esperando orden del owner.
-- **2 archivos en `videos\_revisar-duplicados\`** esperan decisión del owner (no son copias).
+- **3 archivos en `videos\_revisar-duplicados\`** esperan decisión del owner (no son copias): de la
+  102/103, de la 179 y de la 208.
 - **Deadlines de Google**: **feb 2027** memoria + DEX/R8 (hoy **no se cumple**: falta
-  `expo-build-properties` con R8; degrada en silencio) y **abr 2027** Zero-Tap Sign-In (Restore
+  `expo-build-properties` con `enableMinifyInReleaseBuilds`; degrada en silencio. **Va en su propia
+  versión, DESPUÉS de publicar la Fase 11** — decisión del 2026-10-04) y **abr 2027** Zero-Tap Sign-In (Restore
   Credentials API). Ver `§ Requisitos de calidad de Play`.
 - **Marketing**: solo se promocionan en redes videos de `rotacion_grupo = 0` (nunca se bloquean).
 

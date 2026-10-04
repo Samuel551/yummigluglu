@@ -515,8 +515,16 @@ categoría de dispositivo), **memoria de bitmaps** (que no queden retenidos en b
 >
 > Sin ese plugin, Expo compila el release **sin R8/ProGuard** → cobertura de optimización **0%**, contra
 > un mínimo de **25%**. El fix se escribe en 5 minutos (`npx expo install expo-build-properties` + el
-> plugin con `enableProguardInReleaseBuilds` y `enableShrinkResourcesInReleaseBuilds`) y **se prueba en
+> plugin con `enableMinifyInReleaseBuilds` y `enableShrinkResourcesInReleaseBuilds`) y **se prueba en
 > días**.
+>
+> 🔴 **En SDK 54 la opción se llama `enableMinifyInReleaseBuilds`**, no `enableProguardInReleaseBuilds`
+> (verificado en docs.expo.dev/versions/v54.0.0/sdk/build-properties el 2026-10-04). Con el nombre
+> viejo, lo más probable es que se ignore en silencio. Reglas `-keep` extra → `extraProguardRules`.
+>
+> ✅ **Decisión del owner (2026-10-04): R8 va en una versión PROPIA, después de publicar la Fase 11.**
+> No entra en el build único de BLW: si algo se rompe en producción, tiene que quedar claro si fue R8 o
+> fue BLW.
 >
 > ⚠️ **R8 rompe por reflexión, y en React Native los sospechosos son los módulos nativos**: RevenueCat,
 > AdMob, Google Sign In, Reanimated, keyboard-controller. Cada uno puede necesitar reglas
