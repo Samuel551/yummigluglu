@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { Receta } from '@/types';
 import { getAlergenoById } from '@/constants/Alergias';
 import { COLOR_ETAPA, ETAPA_LABEL, getEtapaInfo } from '@/constants/Etapas';
+import { AVISO_SUPERVISION, PRUEBA_TEXTURA } from '@/constants/Metodos';
 import { useColoresTema } from '@/hooks/useColoresTema';
 import { useSuscripcionStore } from '@/store/useSuscripcionStore';
 import { extraerVideoId, urlThumbnail } from '@/lib/youtube';
@@ -544,6 +545,110 @@ export default function DetalleRecetaScreen() {
                   {receta.alergenos.map((a) => getAlergenoById(a)?.nombre ?? a).join(' · ')}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {/*
+            BLOQUE BLW — cómo se sirve en trocitos + seguridad.
+
+            🔴 VA ANTES DE LOS INGREDIENTES A PROPÓSITO. Es información que la
+            madre necesita ANTES de cocinar, no cuando ya tiene el plato hecho.
+            No lo muevas debajo de la preparación ni lo metas en un acordeón:
+            una advertencia de atragantamiento que hay que desplegar para leer
+            es una advertencia que nadie lee.
+
+            Los dos campos vienen garantizados por la base cuando hay `blw`
+            (constraint `recetas_blw_exige_seguridad`), pero se chequean igual:
+            una receta cacheada de una versión vieja de la app no los tendría.
+          */}
+          {receta.metodo?.includes('blw') && (
+            <View style={{ marginBottom: 28 }}>
+              <Text style={seccionLabelStyle}>🖐️ CÓMO SERVIRLO EN TROCITOS</Text>
+
+              {receta.forma_servido ? (
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: c.negro,
+                    lineHeight: 23,
+                    marginBottom: 16,
+                  }}
+                >
+                  {receta.forma_servido}
+                </Text>
+              ) : null}
+
+              {/* Tarjeta de seguridad — la parte que no se negocia */}
+              <View
+                style={{
+                  backgroundColor: '#FFF7ED',
+                  borderWidth: 2,
+                  borderColor: '#FDBA74',
+                  borderRadius: 14,
+                  padding: 16,
+                  gap: 14,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 18 }}>🛡️</Text>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: '#C2410C',
+                      letterSpacing: 1.2,
+                    }}
+                  >
+                    ANTES DE SERVIR
+                  </Text>
+                </View>
+
+                {receta.nota_seguridad ? (
+                  <Text style={{ fontSize: 14, color: '#7C2D12', lineHeight: 21 }}>
+                    {receta.nota_seguridad}
+                  </Text>
+                ) : null}
+
+                <View style={{ height: 1, backgroundColor: '#FDBA74' }} />
+
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Text style={{ fontSize: 15 }}>👌</Text>
+                  <Text style={{ fontSize: 13, color: '#7C2D12', lineHeight: 20, flex: 1 }}>
+                    {PRUEBA_TEXTURA}
+                  </Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Text style={{ fontSize: 15 }}>👀</Text>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: '#7C2D12',
+                      lineHeight: 20,
+                      flex: 1,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {AVISO_SUPERVISION}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Si sirve para los dos métodos, avisarlo: es la misma comida */}
+              {receta.metodo.includes('papilla') && (
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: c.grisTexto,
+                    lineHeight: 19,
+                    marginTop: 14,
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Esta receta también sirve en papilla: prepárala igual y aplasta o procesa al
+                  final.
+                </Text>
+              )}
             </View>
           )}
 

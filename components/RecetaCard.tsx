@@ -6,6 +6,7 @@ import { useFavoritosStore } from '@/store/useFavoritosStore';
 import { usePerfilStore } from '@/store/usePerfilStore';
 import { useColoresTema } from '@/hooks/useColoresTema';
 import { COLOR_ETAPA, ETAPA_LABEL, getEtapaInfo } from '@/constants/Etapas';
+import { COLOR_METODO, METODO_BADGE } from '@/constants/Metodos';
 
 interface RecetaCardProps {
   receta: Receta;
@@ -174,6 +175,26 @@ export function RecetaCard({ receta }: RecetaCardProps) {
         >
           {ETAPA_LABEL[etapaPrimaria]}
         </Text>
+
+        {/*
+          Marca SOLO las de trocitos, nunca las de papilla.
+          Hoy las 207 recetas son papilla: un badge que sale en todas las cards
+          no informa nada, solo ensucia. El badge marca la excepción, no la regla.
+        */}
+        {receta.metodo?.includes('blw') && (
+          <>
+            <Bullet color={c.grisTexto} />
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '700',
+                color: COLOR_METODO.blw.text,
+              }}
+            >
+              {METODO_BADGE.blw}
+            </Text>
+          </>
+        )}
       </View>
     </TouchableOpacity>
   );

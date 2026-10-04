@@ -13,6 +13,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { usePerfilStore } from '@/store/usePerfilStore';
 import { ALERGENOS } from '@/constants/Alergias';
+import { OPCIONES_PREFERENCIA } from '@/constants/Metodos';
+import { PreferenciaMetodo } from '@/types';
 import { useColoresTema } from '@/hooks/useColoresTema';
 import { calcularEtapaPorEdad } from '@/constants/Etapas';
 
@@ -77,12 +79,14 @@ export default function EditarPerfilScreen() {
   const [mes, setMes] = useState('');
   const [anio, setAnio] = useState('');
   const [alergias, setAlergias] = useState<string[]>([]);
+  const [preferenciaMetodo, setPreferenciaMetodo] = useState<PreferenciaMetodo>('ambos');
 
   useEffect(() => {
     if (!perfil) return;
     setNombre(perfil.nombre);
     setAvatarEmoji(perfil.avatar_emoji);
     setAlergias(perfil.alergias);
+    setPreferenciaMetodo(perfil.preferencia_metodo ?? 'ambos');
     const fecha = new Date(perfil.fecha_nacimiento);
     setDia(String(fecha.getUTCDate()));
     setMes(String(fecha.getUTCMonth() + 1));
@@ -154,6 +158,7 @@ export default function EditarPerfilScreen() {
       fecha_nacimiento: fechaISO,
       etapa: etapaCalculada,
       alergias,
+      preferencia_metodo: preferenciaMetodo,
     });
     router.back();
   };
@@ -351,6 +356,66 @@ export default function EditarPerfilScreen() {
               </View>
             ))}
           </View>
+
+          {/*
+            ── CÓMO COME ──
+            Solo entre los 6 y los 23 meses: antes no come sólidos y después
+            todo es "trocitos", así que la pregunta no significaría nada.
+            Es la misma condición que usa el filtro del catálogo.
+          */}
+          {(etapaCalculada === 'inicio' || etapaCalculada === 'transicion') && (
+            <>
+              <Eyebrow label="CÓMO COME" c={c} />
+              <View style={{ paddingHorizontal: 24 }}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: c.grisTexto,
+                    lineHeight: 19,
+                    marginBottom: 12,
+                  }}
+                >
+                  Elige con qué recetas quieres que abra el catálogo. Puedes cambiarlo cuando
+                  quieras, y siempre puedes ver las demás desde los filtros.
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {OPCIONES_PREFERENCIA.map((opcion) => {
+                    const activo = preferenciaMetodo === opcion.id;
+                    return (
+                      <TouchableOpacity
+                        key={opcion.id}
+                        onPress={() => setPreferenciaMetodo(opcion.id)}
+                        activeOpacity={0.75}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 6,
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          borderRadius: 999,
+                          backgroundColor: activo ? '#DCFCE7' : c.card,
+                          borderWidth: 1,
+                          borderColor: activo ? '#86EFAC' : c.cardBorde,
+                        }}
+                      >
+                        <Text style={{ fontSize: 14 }}>{opcion.emoji}</Text>
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: activo ? '700' : '500',
+                            color: activo ? '#15803D' : c.negro,
+                            letterSpacing: -0.1,
+                          }}
+                        >
+                          {opcion.nombre}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </>
+          )}
 
           {/* ── ALERGIAS ── */}
           <Eyebrow label="ALERGIAS" c={c} />

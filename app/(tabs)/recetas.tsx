@@ -19,7 +19,8 @@ import { AnuncioBanner } from '@/components/AnuncioBanner';
 import { BanderaPais } from '@/components/BanderaPais';
 import { ModalPais } from '@/components/ModalPais';
 import { getPais } from '@/constants/Paises';
-import { MomentoDia } from '@/types';
+import { OPCIONES_PREFERENCIA } from '@/constants/Metodos';
+import { MomentoDia, PreferenciaMetodo } from '@/types';
 import { useColoresTema } from '@/hooks/useColoresTema';
 
 const MOMENTOS_VALIDOS: MomentoDia[] = ['desayuno', 'almuerzo', 'cena', 'snack'];
@@ -43,9 +44,28 @@ export default function RecetasScreen() {
   const [momentoSeleccionado, setMomentoSeleccionado] = useState<MomentoDia | null>(null);
   const [soloFavoritos, setSoloFavoritos] = useState(false);
   const [modalPaisVisible, setModalPaisVisible] = useState(false);
+  const [metodoSeleccionado, setMetodoSeleccionado] = useState<PreferenciaMetodo>('ambos');
 
   const paisActual = getPais(pais);
   const filtrandoPorPais = pais !== 'todos';
+
+  /**
+   * El filtro de método solo tiene sentido entre los 6 y los 23 meses.
+   * Para un preescolar todo es "trocitos" y la pregunta no significa nada:
+   * mostrarla sería un filtro que no filtra. Y en `lactancia` todavía no come
+   * sólidos.
+   */
+  const mostrarFiltroMetodo =
+    perfilActivo?.etapa === 'inicio' || perfilActivo?.etapa === 'transicion';
+
+  /**
+   * El perfil del hijo pone el DEFAULT; el chip permite espiar el otro método
+   * sin cambiar el perfil. Si el padre cambia de hijo, el filtro sigue al hijo
+   * nuevo — por eso el efecto depende del id además de la preferencia.
+   */
+  useEffect(() => {
+    setMetodoSeleccionado(perfilActivo?.preferencia_metodo ?? 'ambos');
+  }, [perfilActivo?.id, perfilActivo?.preferencia_metodo]);
 
   // Si llegamos con ?momento=desayuno desde Inicio, aplicar el filtro
   useEffect(() => {
@@ -60,8 +80,19 @@ export default function RecetasScreen() {
       momento: momentoSeleccionado ?? undefined,
       excluir_alergenos: perfilActivo?.alergias,
       pais,
+      // Solo se manda donde el filtro se muestra. Si no, un perfil de
+      // preescolar con la preferencia guardada en `blw` vería el catálogo
+      // recortado sin ningún control en pantalla para darse cuenta.
+      metodo: mostrarFiltroMetodo ? metodoSeleccionado : 'ambos',
     });
-  }, [momentoSeleccionado, perfilActivo, pais, cargarRecetas]);
+  }, [
+    momentoSeleccionado,
+    perfilActivo,
+    pais,
+    cargarRecetas,
+    metodoSeleccionado,
+    mostrarFiltroMetodo,
+  ]);
 
   // Filtro en memoria por favoritos (se cruza con momento si ambos están activos)
   const recetasMostradas = useMemo(() => {
@@ -239,6 +270,30 @@ export default function RecetasScreen() {
               }}
             />
 
+            {/*
+              ── FILTRO DE MÉTODO ──
+              Va ARRIBA del de momento a propósito: para una madre que hace
+              trocitos, el método recorta el catálogo mucho más que la hora del
+              día. Es el filtro que más le importa, así que va primero.
+            */}
+            {mostrarFiltroMetodo && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: 24, gap: 8 }}
+                style={{ marginHorizontal: -24, paddingLeft: 24, marginBottom: 12 }}
+              >
+                {OPCIONES_PREFERENCIA.map((opcion) => (
+                  <FiltroPill
+                    key={opcion.id}
+                    label={`${opcion.emoji} ${opcion.nombre}`}
+                    activo={metodoSeleccionado === opcion.id}
+                    onPress={() => setMetodoSeleccionado(opcion.id)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+
             {/* ── FILTROS — pills outline → fill negro ── */}
             <ScrollView
               horizontal
@@ -278,6 +333,7 @@ export default function RecetasScreen() {
                     momento: momentoSeleccionado ?? undefined,
                     excluir_alergenos: perfilActivo?.alergias,
                     pais,
+                    metodo: mostrarFiltroMetodo ? metodoSeleccionado : 'ambos',
                   }),
               }}
             />

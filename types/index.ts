@@ -4,6 +4,21 @@ export type EtapaAlimentaria = 'lactancia' | 'inicio' | 'transicion' | 'preescol
 export type MomentoDia = 'desayuno' | 'almuerzo' | 'cena' | 'snack';
 export type PlanSuscripcion = 'free' | 'premium' | 'premium_anual';
 
+/**
+ * Método de alimentación de la receta.
+ *
+ * `papilla` — puré, crema, compota: el adulto da de comer con cuchara.
+ * `blw`     — Baby-Led Weaning: el bebé se autoalimenta con trozos enteros.
+ *
+ * Una receta puede servir para AMBOS (es un array, no un valor único): la misma
+ * comida cambia solo en la preparación final. Un brócoli al vapor se aplasta o
+ * se sirve en arbolitos — es la misma receta, no dos.
+ */
+export type MetodoAlimentacion = 'papilla' | 'blw';
+
+/** Preferencia del niño. `ambos` = ver el catálogo completo (default histórico). */
+export type PreferenciaMetodo = MetodoAlimentacion | 'ambos';
+
 // ─── Perfil de hijo ───────────────────────────────────────────────────────────
 
 export interface PerfilHijo {
@@ -15,6 +30,8 @@ export interface PerfilHijo {
   alergias: string[];
   objetivo_nutricional?: string;
   avatar_emoji: string;
+  /** Método de alimentación del niño. Filtra el catálogo por defecto. */
+  preferencia_metodo: PreferenciaMetodo;
   created_at: string;
 }
 
@@ -25,6 +42,8 @@ export interface PerfilHijoInput {
   alergias: string[];
   objetivo_nutricional?: string;
   avatar_emoji?: string;
+  /** Opcional: la base tiene default 'ambos'. */
+  preferencia_metodo?: PreferenciaMetodo;
 }
 
 // ─── Recetas ──────────────────────────────────────────────────────────────────
@@ -74,6 +93,22 @@ export interface Receta {
   es_premium: boolean;
   activa: boolean;
   created_at: string;
+
+  // ─── Método de alimentación (Fase 11) ───────────────────────────────────────
+  /** Para qué métodos sirve. Siempre trae al menos uno. */
+  metodo: MetodoAlimentacion[];
+  /**
+   * BLW: cómo se corta y presenta. Ej: "Bastones de 8 cm, del grosor de un dedo".
+   * La base EXIGE este campo si `metodo` incluye `blw` (constraint
+   * `recetas_blw_exige_seguridad`), así que si hay `blw` esto no viene vacío.
+   */
+  forma_servido?: string;
+  /**
+   * BLW: advertencia de atragantamiento y prueba de textura.
+   * Igual que `forma_servido`: obligatorio a nivel base cuando hay `blw`.
+   * 🔴 Se pinta SIEMPRE y destacado. Nunca esconderlo detrás de un acordeón.
+   */
+  nota_seguridad?: string;
 }
 
 // ─── Favoritos ────────────────────────────────────────────────────────────────
@@ -245,4 +280,9 @@ export interface FiltrosReceta {
   solo_sin_premium?: boolean;
   tags?: string[];
   pais?: string; // 'todos' | 'chile' | 'peru' | etc — filtra por tags de país
+  /**
+   * Filtra por método. Si es `ambos` o viene sin valor, NO filtra nada:
+   * el catálogo completo es el comportamiento por defecto.
+   */
+  metodo?: PreferenciaMetodo;
 }

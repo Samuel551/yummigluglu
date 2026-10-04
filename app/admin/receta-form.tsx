@@ -14,9 +14,17 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { Receta, Ingrediente, PasoReceta, EtapaAlimentaria, MomentoDia } from '@/types';
+import {
+  Receta,
+  Ingrediente,
+  PasoReceta,
+  EtapaAlimentaria,
+  MomentoDia,
+  MetodoAlimentacion,
+} from '@/types';
 import { Colors } from '@/constants/Colors';
 import { ETAPAS } from '@/constants/Etapas';
+import { METODOS } from '@/constants/Metodos';
 import { ALERGENOS } from '@/constants/Alergias';
 import { MOMENTOS_DIA, MOMENTO_LABEL, MOMENTO_EMOJI } from '@/constants/Semana';
 import { PAISES } from '@/constants/Paises';
@@ -108,6 +116,11 @@ export default function RecetaForm() {
     { orden: 1, descripcion: '', duracion_min: 0 },
   ]);
   const [videoUrl, setVideoUrl] = useState('');
+  // Método de alimentación (Fase 11). Default `papilla`: es lo que son las 207
+  // recetas existentes, y obliga a marcar BLW conscientemente.
+  const [metodos, setMetodos] = useState<MetodoAlimentacion[]>(['papilla']);
+  const [formaServido, setFormaServido] = useState('');
+  const [notaSeguridad, setNotaSeguridad] = useState('');
   const [esPremium, setEsPremium] = useState(false);
   const [activa, setActiva] = useState(true);
 
@@ -153,6 +166,13 @@ export default function RecetaForm() {
       );
       setPasos(r.pasos?.length ? r.pasos : [{ orden: 1, descripcion: '', duracion_min: 0 }]);
       setVideoUrl(r.video_url ?? '');
+      setMetodos(
+        r.metodo?.length
+          ? (r.metodo as MetodoAlimentacion[])
+          : (['papilla'] as MetodoAlimentacion[])
+      );
+      setFormaServido(r.forma_servido ?? '');
+      setNotaSeguridad(r.nota_seguridad ?? '');
       setEsPremium(r.es_premium ?? false);
       setActiva(r.activa ?? true);
       setCargando(false);
@@ -174,6 +194,12 @@ export default function RecetaForm() {
     setMomentos((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
   const toggleAlergeno = (a: string) =>
     setAlergenos((prev) => (prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]));
+  // No deja quedarse sin método: destildar el último no hace nada. La base lo
+  // rechazaría igual (`cardinality(metodo) >= 1`), pero acá ni siquiera se llega.
+  const toggleMetodo = (m: MetodoAlimentacion) =>
+    setMetodos((prev) =>
+      prev.includes(m) ? (prev.length === 1 ? prev : prev.filter((x) => x !== m)) : [...prev, m]
+    );
 
   const agregarIngrediente = () => {
     const nextId = Math.max(0, ...ingredientes.map((i) => i.id)) + 1;
@@ -210,6 +236,25 @@ export default function RecetaForm() {
     if (pasosValidos.length === 0)
       return Alert.alert('Falta pasos', 'Agrega al menos un paso con descripción.');
 
+    if (metodos.length === 0)
+      return Alert.alert('Falta método', 'Selecciona al menos un método de alimentación.');
+
+    // Espejo en cliente de la constraint `recetas_blw_exige_seguridad`.
+    // La base es la que manda y va a rechazar el insert igual — esto existe solo
+    // para explicar POR QUÉ, en vez de escupir el error crudo de Postgres.
+    if (metodos.includes('blw')) {
+      if (!formaServido.trim())
+        return Alert.alert(
+          'Falta la forma de servir',
+          'Una receta de trocitos tiene que decir cómo se corta. Ejemplo: "Bastones de 8 cm, del grosor de un dedo adulto".'
+        );
+      if (!notaSeguridad.trim())
+        return Alert.alert(
+          'Falta la nota de seguridad',
+          'Una receta de trocitos tiene que decir qué vigilar. Es lo que evita un atragantamiento: no se puede guardar sin eso.'
+        );
+    }
+
     setGuardando(true);
 
     const payload = {
@@ -231,6 +276,12 @@ export default function RecetaForm() {
       pasos: pasosValidos.map((p, idx) => ({ ...p, orden: idx + 1 })),
       tags: construirTags(modoPais, tagsExtras),
       video_url: videoUrl.trim() || null,
+      metodo: metodos,
+      // Se limpian si la receta dejó de ser BLW: si quedaran cargados, una
+      // receta de solo papilla arrastraría instrucciones de corte que nadie ve
+      // y que reaparecerían al volver a marcarla como trocitos.
+      forma_servido: metodos.includes('blw') ? formaServido.trim() : null,
+      nota_seguridad: metodos.includes('blw') ? notaSeguridad.trim() : null,
       es_premium: esPremium,
       activa,
     };
@@ -471,6 +522,80 @@ export default function RecetaForm() {
                 ))}
               </View>
             </Campo>
+          </Seccion>
+
+          {/* ── Método de alimentación (Fase 11) ── */}
+          <Seccion titulo="🍽️ Método de alimentación">
+            <Campo
+              label="¿Para qué método sirve? *"
+              hint="Puede servir para los dos: es la misma comida, cambia solo la preparación final (aplastar o servir en trozos)."
+            >
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {METODOS.map((m) => (
+                  <Chip
+                    key={m.id}
+                    activo={metodos.includes(m.id)}
+                    onPress={() => toggleMetodo(m.id)}
+                    label={`${m.emoji} ${m.nombre}`}
+                  />
+                ))}
+              </View>
+            </Campo>
+
+            {/*
+              🔴 Los dos campos de abajo son OBLIGATORIOS cuando hay trocitos.
+              No es una validación de formulario que se pueda relajar: la base
+              tiene la constraint `recetas_blw_exige_seguridad` y rechaza el
+              insert igual. Si algún día molesta, el problema no es la
+              constraint — es que falta escribir la información de seguridad.
+            */}
+            {metodos.includes('blw') && (
+              <>
+                <View
+                  style={{
+                    backgroundColor: '#FFF7ED',
+                    borderWidth: 1,
+                    borderColor: '#FDBA74',
+                    borderRadius: 10,
+                    padding: 12,
+                    marginBottom: 16,
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: '#7C2D12', lineHeight: 18 }}>
+                    Recuerda las 3 reglas BLISS en cada comida: un alimento con hierro, uno con
+                    energía, y ninguno que pueda atragantar.
+                  </Text>
+                </View>
+
+                <Campo
+                  label="Forma de servir *"
+                  hint='Cómo se corta y presenta. Ej: "Bastones de 8 cm, del grosor de un dedo adulto".'
+                >
+                  <TextInput
+                    value={formaServido}
+                    onChangeText={setFormaServido}
+                    placeholder="Bastones de 8 cm, del grosor de un dedo adulto..."
+                    placeholderTextColor="#A8A29E"
+                    multiline
+                    style={[INPUT_BASE, { minHeight: 70, textAlignVertical: 'top' }]}
+                  />
+                </Campo>
+
+                <Campo
+                  label="Nota de seguridad *"
+                  hint="Qué debe vigilar quien lo prepara: textura, tamaño, riesgo de atragantamiento."
+                >
+                  <TextInput
+                    value={notaSeguridad}
+                    onChangeText={setNotaSeguridad}
+                    placeholder="Debe aplastarse entre dos dedos sin esfuerzo. Retira la piel y las semillas..."
+                    placeholderTextColor="#A8A29E"
+                    multiline
+                    style={[INPUT_BASE, { minHeight: 70, textAlignVertical: 'top' }]}
+                  />
+                </Campo>
+              </>
+            )}
           </Seccion>
 
           {/* ── Nutrición ── */}

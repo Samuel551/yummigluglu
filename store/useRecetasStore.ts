@@ -50,6 +50,14 @@ export const useRecetasStore = create<RecetasState>((set) => ({
         query = query.contains('momento_dia', [filtros.momento]);
       }
 
+      // Filtrar por método de alimentación (papilla / trocitos).
+      // `ambos` NO filtra: es el catálogo completo, y es el default de todos los
+      // perfiles existentes. Una receta puede tener los dos métodos, por eso va
+      // `contains` (operador @> con índice GIN) y no `eq`.
+      if (filtros?.metodo && filtros.metodo !== 'ambos') {
+        query = query.contains('metodo', [filtros.metodo]);
+      }
+
       // Filtrar solo recetas gratuitas
       if (filtros?.solo_sin_premium) {
         query = query.eq('es_premium', false);
