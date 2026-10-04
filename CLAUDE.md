@@ -1,1277 +1,157 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guía para Claude Code en este repo. **Solo lo esencial.** El detalle histórico (diagnósticos,
+mediciones, runbooks ya ejecutados, el porqué de cada decisión) vive en
+📕 **`docs/bitacora-proyecto.md`**, citado acá como `§ Título de la sección`. Antes de tocar un área
+sensible (pagos, webhooks, vista `recetas_teaser`, anuncios), leer su sección en la bitácora.
 
 ## Project Context
 
-**Yummi Glu Glu** — App móvil Android de alimentación infantil con IA integrada (NutriBot). Dirigida a padres de niños 6m–5 años en Chile y LATAM hispanohablante. Producto real pensado para escalar, no solo MVP.
+**Yummi Glu Glu** — app Android de alimentación infantil con IA (NutriBot), para padres de niños de
+6 meses a 5 años en Chile y LATAM. **Publicada en Google Play** (`com.yummigluglu.app`, versión viva
+`5 (1.1.0)`). El repo es **PÚBLICO** (`github.com/Samuel551/yummigluglu`).
 
-- Supabase project: `uoqzkbbnesmvmgbjikrn` (región: São Paulo)
-- Target: Android only (por ahora)
+- Supabase project: `uoqzkbbnesmvmgbjikrn` (São Paulo) · Target: solo Android
 - Código y comentarios en **español**
+
+## 🔴 Regla vigente del owner (2026-09-04)
+
+> **NO hacer migraciones nuevas. NO publicar nada. NO desplegar Edge Functions.**
+>
+> Todo se acumula en el árbol hasta juntar **un solo build**: el owner baja una APK, prueba la app
+> entera y recién ahí publica. No proponerlo hasta que él lo diga. El servidor se despliega en segundos
+> y el cliente tarda días: arreglar de a pedazos genera desfase.
+
+## Pendientes (al 2026-10-03)
+
+- **Fase 11 (BLW)**: ✅ código completo y **sin commitear**; migración `039` ya aplicada; las **18
+  recetas de trocitos están vivas** (catálogo 207 → 225). Detalle: `§ 1. Fase 11 (BLW)`.
+- **Marcar las convertibles**: de las 68 recetas `inicio`, sumarles `blw` + `forma_servido` +
+  `nota_seguridad`. **Una por una, nunca con UPDATE masivo.**
+- **Desplegar NutriBot** (`supabase functions deploy nutribot`): el repo va adelante de lo
+  desplegado. ⏸️ Esperando orden del owner.
+- **2 archivos en `videos\_revisar-duplicados\`** esperan decisión del owner (no son copias).
+- **Deadlines de Google**: **feb 2027** memoria + DEX/R8 (hoy **no se cumple**: falta
+  `expo-build-properties` con R8; degrada en silencio) y **abr 2027** Zero-Tap Sign-In (Restore
+  Credentials API). Ver `§ Requisitos de calidad de Play`.
+- **Marketing**: solo se promocionan en redes videos de `rotacion_grupo = 0` (nunca se bloquean).
 
 ## Commands
 
 ```bash
-# Desarrollo
-npm start              # Expo dev server (localhost)
-npm run android        # Lanzar en Android (requiere emulador o dispositivo)
-npm run web            # Expo en navegador — útil para revisar UI sin dispositivo
-npm run tunnel         # Expo con tunnel (ngrok) — para testing en dispositivo real vía datos móviles
-
-# Calidad de código
-npm run lint           # ESLint
-npm run lint:fix       # ESLint con autofix
-npm run format         # Prettier en todo el proyecto
-
-# Build APK para instalar en dispositivo real (requiere EAS CLI: npm i -g eas-cli)
-eas build -p android --profile development  # Dev client APK (soporta tunnel + hot reload)
-eas build -p android --profile preview      # APK de prueba standalone
-eas build -p android --profile production   # AAB para Google Play
+npm start / npm run android / npm run web
+npm run tunnel -- --clear   # Metro con ngrok para el dev client en dispositivo real
+npm run lint / lint:fix / format
+eas build -p android --profile development | preview | production
 ```
 
-El pre-commit hook corre `lint-staged` automáticamente (ESLint + Prettier sobre los archivos en stage).
-
-### Testing en dispositivo real
-
-El proyecto usa `expo-dev-client` para hot reload en dispositivo físico:
-
-1. Instalar el APK del perfil `development` (ya buildeado e instalado)
-2. Correr `npm run tunnel -- --clear` para iniciar Metro con tunnel limpio
-3. Abrir la app en el cel — se conecta automáticamente via ngrok
-
-## Development Workflow
-
-El proyecto se desarrolla por **fases**. Al completar cada fase:
-
-1. Probar en `npm run web` para revisión rápida de UI
-2. Buildear APK con EAS para testing en dispositivo real antes de avanzar a la siguiente fase
-
-## Estado de Fases
-
-| Fase | Descripción                                                  | Estado      |
-| ---- | ------------------------------------------------------------ | ----------- |
-| 0    | Setup: Expo Router + NativeWind + Supabase + Zustand + Husky | ✅ Completa |
-| 1    | Onboarding: flujo de 3 pasos para crear perfil de hijo       | ✅ Completa |
-| 2    | Catálogo de recetas con filtros + pantalla de detalle        | ✅ Completa |
-| 3    | Favoritos con optimistic updates                             | ✅ Completa |
-| 4    | Edición de cuenta (email/password) y perfiles de hijos       | ✅ Completa |
-| 5    | Plan semanal + Lista de compras + Diario de alimentos        | ✅ Completa |
-| 6    | NutriBot IA (`asistente.tsx`)                                | ✅ Completa |
-| 7a   | Videos Premium (embed YouTube por receta)                    | ✅ Completa |
-| 7b   | Integración RevenueCat (suscripciones)                       | ✅ Completa |
-| 8    | Panel de administración del developer                        | ✅ Completa |
-| 9    | Anuncios AdMob (banner + intersticial + rewarded desbloqueo) | ✅ Completa |
-| 10   | Saludos de cumpleaños y cumplemés (notificaciones locales)   | ✅ Completa |
-
-> **Fase 9 — Anuncios**: código completo y backend desplegado. Falta trabajo del owner para verlos en el dispositivo: rebuild del dev client + crear los ad units en AdMob. Ver sección "Anuncios (AdMob)".
-
-## Estado al 2026-08-26 — qué falta y qué NO hay que tocar
-
-**Del lado del código no queda deuda**: 0 errores de `tsc`, 0 `style` como función (hay regla de ESLint que lo impide), 0 agujeros de seguridad conocidos.
-
-### 🎉 APP PUBLICADA EN PRODUCCIÓN (2026-08-26)
-
-**La app está VIVA en el catálogo público de Google Play.** Play Console → _Página principal_ muestra
-`Yummi Glu Glu: comida bebé` (`com.yummigluglu.app`) con **Estado de la app: Producción**, 11 usuarios
-con la app instalada, última actualización 24 ago 2026.
-
-**Verificado contra el catálogo público, no solo contra Play Console:**
-
-```bash
-curl -s -o /dev/null -w "%{http_code}\n" \
-  "https://play.google.com/store/apps/details?id=com.yummigluglu.app&hl=es_CL"
-# -> 200, y el HTML trae "Yummi Glu Glu: comida bebé" + la insignia "Contiene anuncios"
-```
-
-Ese `200` es lo que importa de verdad: **es exactamente lo que el buscador de AdMob necesita ver.**
-Play Console diciendo "Producción" es la mitad de la prueba; que la ficha le responda al mundo es la
-otra.
-
-**Versión viva**: `5 (1.1.0)` — publicada el **2026-08-27**. Track de Producción **Activo**, **6 países/regiones**.
-(Ojo al leer notas viejas: el AAB de la prueba cerrada era el `versionCode 2` — ya quedó atrás.)
-
-> ✅ **Suscripciones verificadas ACTIVAS (2026-08-26).** Play Console → _Monetiza con Play_ →
-> _Suscripciones_: una suscripción `premium` ("Yummi Glu Glu Premium") con **2 planes básicos
-> activos** (mensual + anual), última actualización 22 ago 2026.
->
-> Se revisó porque la ficha pública muestra "Contiene anuncios" pero **no** "Compras en la
-> aplicación" — era **propagación de la insignia**, no suscripciones inactivas. 💡 **La insignia de la
-> ficha NO sirve como prueba de que los productos están activos**: la prueba es la pantalla de
-> Suscripciones. Si algún día `premium.tsx` carga sin paquetes, mirar ahí, no la ficha.
-
-> ℹ️ **Histórico, por si aparece un doc o commit viejo que diga otra cosa**: el **acceso** a producción
-> se concedió el 2026-08-22 y la **publicación** vino después. Fueron dos cosas distintas separadas por
-> días. Cualquier nota anterior a esta fecha que diga "todavía NO está en el catálogo público" está
-> desactualizada, no equivocada.
-
-**Clasificación de contenido (IARC)** — cuestionario enviado y calificaciones **en vivo desde el
-2026-08-26**. Global Rating ID: `27b5ff8e-d8aa-8030-82e0-3f83538e6d8f`. **No requiere ninguna acción.**
-
-> ⚠️ **Guardar ese Global Rating ID**: sirve para reusar la misma clasificación en otras tiendas que
-> licencian IARC sin volver a llenar el cuestionario. Y **si un cambio de la app cambiaría alguna
-> respuesta del cuestionario** (chat entre usuarios, contenido generado por usuarios, compras nuevas),
-> **hay que rehacerlo** — la clasificación vieja deja de ser válida.
-
-### ✅ PUBLICADO — build 5 (`89f0e98`) VIVO EN PRODUCCIÓN (2026-08-27)
-
-**Durante días el repo fue adelante del binario. Ya no.** El AAB `versionCode 5` / `1.1.0` se compiló
-del commit **`89f0e98`, que es HEAD, con el árbol limpio** — cero drift entre lo que se subió y lo que
-está acá. Medido, no supuesto:
-
-```bash
-npx eas-cli build:list --platform android --limit 5 --json   # -> vc 5 = 1.1.0 = git 89f0e98
-git status --porcelain                                       # -> vacío
-```
-
-Lo que ese binario suma sobre lo que corría en producción (vc=4 = `c487ccd`):
-
-| Commit    | Qué es                                                          |
-| --------- | --------------------------------------------------------------- |
-| `ef18b93` | **`premium.tsx` deja de expulsar al suscriptor** ← el que urgía |
-| `5ed38d0` | **Fase 10** — saludos de cumpleaños y cumplemés                 |
-| `b05e166` | Tarjeta verde de acceso a premium en el perfil                  |
-| `023735c` | Consentimiento UMP antes de inicializar AdMob                   |
-| `1de5034` | StatusBar sin la prop muerta                                    |
-
-> ✅ **`autoIncrement` funcionó**: EAS subió el versionCode **4 → 5 solo**. El rechazo de Play por
-> versionCode repetido (que costó un build entero el 19-08) no volvió.
-
-> ✅ **`VistaPremiumActivo` ya está verificada en dispositivo** por el owner, con el APK del dev
-> client, el mismo día que se implementó. **No reabrir ese ítem**: ya se probó y se aprobó.
-
-> ✅ **PUBLICADO Y VERIFICADO el 2026-08-27.** Google aprobó la promoción a Producción, el owner
-> actualizó la app en su dispositivo y **confirmó los cambios nuevos en pantalla**. Verificado además
-> contra el catálogo público, que es la prueba independiente de Play Console:
->
-> ```bash
-> curl -s "https://play.google.com/store/apps/details?id=com.yummigluglu.app&hl=es_CL" | grep -c 1.1.0
-> # -> 1.1.0 aparece en el HTML, y 1.0.0 YA NO aparece
-> ```
->
-> 🎯 **Con esto llegó al teléfono de los usuarios el fix de `ef18b93`**: `premium.tsx` ya no expulsa al
-> suscriptor, así que **"Restaurar compras" volvió a ser alcanzable**. Era la única vía de autoservicio
-> para recuperar una entitlement mal transferida, y estuvo inaccesible en producción hasta hoy.
-
-🎯 **La lección que dejó el desfase, y que sigue valiendo**: desplegar una Edge Function es
-instantáneo; publicar el cliente tarda días y hay que acordarse de hacerlo. **Cuando un arreglo tiene
-mitad servidor y mitad cliente, el servidor se adelanta solo y da la falsa sensación de "ya está".**
-Antes de dar por cerrado un fix, preguntarse **en qué binario vive** — y si vive en el APK, no está
-cerrado hasta que se publica.
-
-### ⏰ Deadlines de Google — con fecha, no negociables
-
-| Fecha           | Qué                                             | Estado                                  |
-| --------------- | ----------------------------------------------- | --------------------------------------- |
-| **31 ago 2026** | **Play Billing Library ≥ 8**                    | ✅ **CERRADO** (confirmado 2026-08-23)  |
-| **30 sep 2026** | **Verificación de desarrolladores de Android**  | ✅ **Ya registrada** (verificado 19-08) |
-| **feb 2027**    | **Umbrales de memoria + código DEX optimizado** | 🔴 **HOY NO SE CUMPLE** — ver abajo     |
-| **abr 2027**    | **Zero-Tap Sign-In (Restore Credentials API)**  | 🔴 **No implementado** — ver abajo      |
-
-**Play Billing 8** — ✅ **CERRADO, no queda nada que hacer.** El código cumple con `react-native-purchases@^10.6.0` (commit `f8534cd`), y el **aviso rojo del Panel de Play Console se apagó solo el mismo 2026-08-19**, el día que se subió el AAB `versionCode 2` a la pista de prueba cerrada. Confirmado por el owner el 2026-08-23.
-
-> 💡 **Lo que este caso probó, y sirve para el próximo deadline de Google:** el aviso **NO se apaga al arreglar `package.json`** — se apaga cuando Play **recibe un AAB compilado** con la librería nueva. Y **la pista de prueba cerrada alcanza**: no hizo falta publicar en producción ni esperar el trámite de acceso. Nunca atar un deadline de librería a un trámite de publicación.
-
-**Verificación de desarrolladores** — ✅ **RESUELTO, no hay nada que hacer.** Verificado el 2026-08-19 en
-Play Console → _Página principal_ → **Verificación de desarrolladores de Android** → pestaña _Nombres de
-los paquetes_: las dos apps de la cuenta figuran **`Registrada`** (`com.yummigluglu.app` el 2 ago 2026,
-`com.samfrasan.himnariocomunitario` el 19 abr 2026). Google registró automáticamente el 99% de las apps
-de Play y estas entraron. Enforcement inicial en Brasil, Indonesia, Singapur y Tailandia; expansión
-global en 2027.
-
-### 📉 Requisitos de calidad de Play (anunciados 2026-08) — feb y abr 2027
-
-Correo de Google recibido el 2026-08-26. Son **dos requisitos nuevos**, y la sanción es distinta a la de
-Billing 8: no rechazan el build, sino que _"las apps que no cumplan los umbrales pueden ver **reducida su
-visibilidad y sus capacidades de publicación** en Google Play"_.
-
-> 🎯 **Por eso este deadline es más peligroso que el de Billing 8, no menos.** Aquel **fallaba fuerte**:
-> Play rechazaba el AAB y te enterabas al instante. Este **degrada en silencio** — la app se sigue
-> publicando y simplemente se la ve menos. Es el mismo patrón de fallo silencioso que ya mordió tres
-> veces en este proyecto. **La única defensa es medir en Android vitals, no esperar un error.**
-
-**1) Memoria + código DEX optimizado — feb 2027**
-
-Tres métricas: **memoria dinámica** (anonymous RSS + swap, medida en foreground/background y por
-categoría de dispositivo), **memoria de bitmaps** (que no queden retenidos en background/cached) y
-**código DEX optimizado con un mínimo de 25% de cobertura** entre optimización, shrinking y ofuscación.
-
-> 🔴 **Este proyecto HOY no cumple el de DEX, y se comprueba sin abrir Play Console:**
->
-> ```bash
-> ls node_modules/expo-build-properties   # -> no existe
-> grep -c "expo-build-properties" app.json # -> 0
-> ```
->
-> Sin ese plugin, Expo compila el release **sin R8/ProGuard** → cobertura de optimización **0%**, contra
-> un mínimo de **25%**. El fix se escribe en 5 minutos (`npx expo install expo-build-properties` + el
-> plugin con `enableProguardInReleaseBuilds` y `enableShrinkResourcesInReleaseBuilds`) y **se prueba en
-> días**.
->
-> ⚠️ **R8 rompe por reflexión, y en React Native los sospechosos son los módulos nativos**: RevenueCat,
-> AdMob, Google Sign In, Reanimated, keyboard-controller. Cada uno puede necesitar reglas
-> `-keep` propias.
->
-> 🔴 **Un crash por minificación NO aparece en el dev client** — el dev client no minifica. Solo se ve
-> en un build de release. O sea: se prueba con APK `preview` y **QA completo, incluido el flujo de
-> compra**, o no se probó.
->
-> ⚠️ **NO tocar esto el mismo día que se publica otra cosa.** Hay 5 meses. Va en su propia versión, y
-> se mide antes/después en Play Console → **Android vitals**, que ya trae los paneles nuevos de memoria
-> dinámica y de bitmaps.
-
-**2) Zero-Tap Sign-In — abr 2027**
-
-Toda app con login debe **restaurar la sesión sola** cuando el usuario cambia de teléfono, vía la
-**Restore Credentials API** de Android. Acá aplica de lleno: la sesión de Supabase vive en
-`AsyncStorage`, que **no viaja en la migración de dispositivo** — hoy el que cambia de celular tiene que
-volver a loguearse. Es trabajo real, no un flag. Se planifica **después** del de memoria.
-
-### 🟡 Las 2 "acciones recomendadas" de Play Console — ninguna es bloqueante
-
-Aparecen en _Producción → Panel de control de la versión_ sobre la versión `5 (1.1.0)`. Son
-**recomendaciones**, no requisitos: no frenan publicaciones ni tienen fecha de corte. Diagnosticadas
-el 2026-08-26.
-
-**1) "Tu app usa APIs o parámetros obsoletos para la pantalla de borde a borde"**
-
-> 🔴 **NO se puede arreglar desde este repo. La llamada está en el CORE de React Native.** Google lo
-> detecta por **análisis estático del bytecode**, así que basta con que la llamada **exista** en el
-> APK — no hace falta que se ejecute nunca.
->
-> Medido, no supuesto (Kotlin usa sintaxis de propiedad, así que buscar `setStatusBarColor(` a secas
-> **no alcanza** — hay que buscar también `.statusBarColor =`):
->
-> ```bash
-> grep -rlE "\.statusBarColor *=|\.navigationBarColor *=|setStatusBarColor\(|setNavigationBarColor\(" \
->   node_modules/react-native/ReactAndroid/src node_modules/*/android node_modules/@*/*/android
-> ```
->
-> Devuelve: **`react-native/ReactAndroid`** (`StatusBarModule.kt`, líneas 38-78), `react-native-screens`,
-> `react-native-keyboard-controller`, `expo-image-picker` y `expo-dev-launcher` (este último solo en
-> debug). **Ninguna es código de la app.** Se apaga cuando React Native y esas librerías la saquen —
-> no hay nada que hacer más que actualizar cuando salga la versión que la elimine.
-
-> ✅ **Lo que SÍ era nuestro y se limpió**: `app/_layout.tsx` pasaba `backgroundColor` al `<StatusBar>`.
-> Con `edgeToEdgeEnabled: true` **expo-status-bar lo ignora** y tira un `console.warn` en cada render
-> (`StatusBar.android.tsx` lo warnea explícitamente). Era una prop muerta que ensuciaba la consola.
-> **Sacarla NO apaga la recomendación de Play** — el bytecode sigue ahí — pero deja de mentir sobre lo
-> que el código hace.
-
-**2) "Quita las restricciones de cambio de tamaño y orientación… pantalla grande"**
-
-Sale de `app.json` → `"orientation": "portrait"`, que compila a `android:screenOrientation="portrait"`.
-
-> ⚠️ **No sacarlo a la ligera.** En Android 16 (targetSdk 36) esa restricción **ya se ignora** en
-> pantallas ≥ 600dp, así que en tablets la app **ya** se redimensiona: quitarla del manifest no cambia
-> nada allá, y en cambio **habilita el giro en teléfonos**, donde toda la UI está diseñada en vertical.
-> El trabajo real no es borrar una línea: es **adaptar los layouts a horizontal y a tablet**. Es un
-> proyecto de UX, no un fix. Queda como deuda, no como tarea de lanzamiento.
-
-### ✅ Las 4 tareas: LAS 4 CERRADAS (27-08-2026)
-
-Con la app pública en el catálogo cayó el último bloqueo externo:
-
-| Tarea                                   | Requiere                       | Estado al 27-08                                                         |
-| --------------------------------------- | ------------------------------ | ----------------------------------------------------------------------- |
-| Productos de suscripción → entitlements | Acceso a producción            | ✅ **HECHA** (22-08) — pero verificar que digan **Activo** (ver arriba) |
-| Service Account de Play → RevenueCat    | Acceso a producción            | ✅ **HECHA** (23-08) — credenciales válidas + RTDN conectadas           |
-| Vincular AdMob ↔ ficha de Play          | App **pública en el catálogo** | ✅ **HECHA (27-08)** — AdMob: _Estado de aprobación: **Lista**_         |
-| Validar **`app-ads.txt`**               | La vinculación anterior        | ✅ **HECHA (27-08)** — rastreado y verificado, **100% autorizado**      |
-
-> ✅ **`app-ads.txt` VERIFICADO POR GOOGLE el 2026-08-27.** AdMob → **Aplicaciones** → pestaña
-> **app-ads.txt**: _"100% de las búsquedas del archivo app-ads.txt están autorizadas"_, y la fila de
-> `com.yummigluglu.app` marca **Estado ✅**, último rastreo **hace 1 hora**, detalle _"Se encontró y
-> verificó el archivo app-ads.txt"_.
->
-> 💡 **El rastreo fue casi inmediato, no las +24 h que documenta Google.** No asumir la demora larga:
-> conviene mirar la pestaña el mismo día de vincular la ficha.
-
-**Qué falta** → `docs/checklist-produccion.md` § "Bloqueado hasta PRODUCCIÓN".
-**Cómo se hace** → 📕 **`docs/runbook-produccion.md`** — runbook del día D, con los valores ya
-verificados (package, publisher de AdMob, dominio, dependencias). Se ejecuta de arriba hacia abajo.
-
-### 🔴 EL ORDEN IMPORTA — no publicar antes de conectar el cobro
-
-> ✅ **Esta cadena ya se recorrió hasta abajo.** Lo único vivo del diagrama es la **última fila**
-> (pasos 1 y 2). Se deja completo porque explica **por qué** ese es el orden — y porque el mismo
-> razonamiento aplica a la próxima app.
-
-```
-Paso 3 (productos) ✅  ──>  Paso 4 (Service Account) ✅  ──>  Paso 5 (QA de compras)
-                                                                     │
-                                                                     ▼
-                                              PUBLICAR versión de producción ✅ (26-08)
-                                                                     │
-                                              Google aprueba (~días) ✅
-                                                                     ▼
-                                    Paso 1 (AdMob ↔ Play) ✅ ──> Paso 2 (app-ads.txt) ✅
-```
-
-> 🔴 **Publicar antes del paso 4 es un bug que cuesta plata real.** Sin el Service Account cargado,
-> **RevenueCat no puede validar la compra contra Google**: el usuario paga, el entitlement no se
-> concede y la app lo deja en `free`. Resultado: cobro sin producto, reembolso y reseña de 1 estrella
-> el primer día. La tentación de apretar "Crear una versión nueva" ahora mismo es fuerte —
-> **el cobro se conecta primero.**
-
-> 🔴 **El paso 5 (QA de compras) no se saltea**: `react-native-purchases` saltó de `^8.9.0` a
-> `^10.6.0` y **ese flujo nunca se reprobó en dispositivo**. Es el SDK que maneja el dinero, y
-> saltó **dos majors**.
-
-> ✅ **Paso 0 CERRADO ENTERO (2026-08-19)**: `yummigluglu.com` quedó como Custom Domain del Worker
-> `yummigluglu-web` (las 4 páginas dan **200** por `curl`, y el `app-ads.txt` servido es idéntico al
-> del repo), **y las dos URLs de la ficha de Play ya apuntan al dominio propio** — política de
-> privacidad en `https://yummigluglu.com/privacidad.html` (pasó por revisión) y sitio web en
-> `https://yummigluglu.com` (los _Detalles de contacto_ **no** pasan por revisión, se aplican al
-> instante). Ambas **confirmadas en pantalla**.
-
-> ✅ **RESUELTO el 2026-08-27.** AdMob → Apps → Yummi Glu Glu → _Configuración de la aplicación_ muestra
-> **Estado de aprobación: `Lista`** y _Detalles de la tienda de aplicaciones_ = `Google Play → com.yummigluglu.app`.
-> **Se terminó el _limited ad serving_.** Efecto medido: **68 solicitudes (+126,67%)** en 7 días.
->
-> 💡 **"Estado de aprobación: Lista" ES la señal de que terminó el capado.** No hay otra pantalla que lo
-> confirme. Si algún día vuelve a decir _"Debe revisarse"_, la app volvió a estar limitada.
-
-### 🔴 Advertencias que NO se resuelven — son intencionales
-
-El linter de seguridad de Supabase marca cosas que **están así a propósito**. Antes de "arreglar" una, leer esto:
-
-| Advertencia                                                                             | Por qué se deja                                                                                                            |
-| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `security_definer_view` en **`recetas_teaser`**                                         | 🔴 **NO tocar.** Es lo que gatea `video_url`. Cambiarla **rompe el desbloqueo de videos**. Ver abajo.                      |
-| `rls_enabled_no_policy` en `webhook_events_procesados` y `ssv_transacciones_procesadas` | RLS activo sin policies = solo `service_role`. Es el diseño buscado.                                                       |
-| `anon_security_definer_function_executable` (varias)                                    | `stats_admin()` valida `es_admin()` adentro; las demás son funciones de **trigger**, que Postgres no deja invocar por RPC. |
-| `auth_leaked_password_protection`                                                       | Requiere **plan Pro**. El proyecto está en Free.                                                                           |
-
-**Sobre `recetas_teaser` en particular**: la vista necesita leer `suscripciones` y `desbloqueos_temporales` para decidir si muestra el video. Con `security_invoker` correría con los permisos del usuario y **las RLS de esas tablas la bloquearían** — la vista dejaría de poder decidir. Con `security_definer` corre con permisos del creador, **pero `auth.uid()` sigue siendo el del usuario que consulta**, así que el gateo sigue siendo por-usuario. El linter ve el patrón y avisa; no puede saber que el gateo está dentro de la vista.
-
-> 🚨 **ESTE PÁRRAFO DECÍA "El `grant` es solo para `authenticated`" Y ERA FALSO.** La auditoría del **2026-08-24** encontró que `anon` **y** `authenticated` tenían **INSERT, UPDATE, DELETE y TRUNCATE** sobre la vista. Y como `recetas_teaser` es **auto-actualizable** y corre con `security_invoker = false`, esos grants dejaban **escribir en `recetas` salteándose su RLS por completo**. Medido ejecutando el ataque (dentro de `begin … rollback`): **`DELETE` como `anon` → 207 filas**, o sea el catálogo entero, sin cuenta y con la anon key que viaja dentro del APK.
->
-> **Corregido en la migración `038_fix_grants_recetas_teaser.sql`**. Estado correcto y verificado hoy:
->
-> ```sql
-> -- lo único que debe existir:
-> grant select on public.recetas_teaser to authenticated;
-> ```
->
-> **Verificar así después de tocar la vista** (recrear una vista **resetea sus grants**, así que esto se puede reintroducir solo):
->
-> ```sql
-> select grantee, privilege_type from information_schema.role_table_grants
-> where table_schema='public' and table_name='recetas_teaser' and grantee in ('anon','authenticated');
-> -- debe devolver EXACTAMENTE una fila: authenticated | SELECT
-> ```
->
-> 🎯 **La lección, que aplica a toda la seguridad de este proyecto**: la RLS de `recetas` estaba impecable —se probó, bloquea todo— pero **nadie había probado la VISTA**. Auditar una tabla **no** audita las vistas que la exponen. Y este archivo describía una intención que jamás se verificó contra la base: **si una afirmación de seguridad no viene con la query que la comprueba, tratala como una hipótesis.**
-
-### Fase 6 — NutriBot IA (implementada)
-
-Chat de alimentación infantil sobre el Anthropic API (`claude-sonnet-5`). **El API key NUNCA sale del servidor**: vive en los secrets de Supabase (`ANTHROPIC_API_KEY`) y solo lo usa la Edge Function.
-
-Piezas:
-
-- **`supabase/functions/nutribot/index.ts`** — el único que habla con Anthropic. Identidad por JWT (no confía en ningún id del body), cupo mensual consumido atómicamente ANTES de gastar un token, topes duros de tamaño sobre todo lo que manda el cliente, y el perfil del niño leído de la DB verificando propiedad.
-- **`app/asistente.tsx`** (presentación `modal`) + **`store/useAsistenteStore.ts`**.
-- Migraciones `028` (cupo), `029` (devolución de crédito), `030` (historial de conversaciones).
-- **`constants/Nutribot.ts`** — cupos para pintar la UI. Se sincronizan A MANO con los del servidor; si cambiás uno, cambiá el otro.
-
-**Cupos mensuales: free 20, premium 250.** Los valores que rigen son los **defaults del código** en `nutribot/index.ts` — las env vars `NUTRIBOT_LIMITE_*` **no están seteadas** en Supabase (verificado con `supabase secrets list`), así que para cambiar un cupo alcanza con editar el archivo y redesplegar. Si algún día se setean esas env vars, pasan a ganar ellas.
-
-**Costos (medidos el 2026-08-02):** ~**$0.0083 por mensaje** a precio estándar. Peor caso mensual por usuario que agote su cupo: **$0.17 free**, **$2.08 premium**. Ojo con el razonamiento: **el cupo es un TECHO, no un consumo** — un usuario promedio manda 3-5 mensajes y cuesta lo mismo con cupo de 20 que de 15. Bajar el cupo free no ahorra plata real; solo baja el techo del peor caso, y contra un abusador 20 protege igual que 15.
-
-> 🔴 **Claude Sonnet 5 está en precio introductorio hasta el 2026-08-31** ($2/$10 por millón de tokens). Desde el **1 de septiembre de 2026** pasa a $3/$15 — **los costos de NutriBot suben ~50% solos, sin tocar una línea.** No asustarse con la factura de septiembre.
-
-> ⚠️ **El prompt caching tiene poco margen.** El `SYSTEM_ESTABLE` mide ~**1.618 tokens** y el mínimo cacheable de Sonnet 5 son **1.024**. Si se recorta ese prompt, **deja de cachear EN SILENCIO** (sin error) y el input pasa a costar 10x. Antes de acortarlo, medir; verificar con `usage.cache_read_input_tokens > 0` en el segundo turno.
-
-**Historial de conversaciones — UNA FILA DE `conversaciones_ia` = UNA CONVERSACIÓN.**
-
-`conversaciones_ia.id` ES el id de la conversación; la Edge Function le hace APPEND a `mensajes` en cada turno. El cliente solo LEE (panel de historial) y BORRA; escribir es exclusivo de la Edge Function con `service_role`.
-
-> ⚠️ **El contexto que se le manda a Anthropic sale de la DB, NO del array del cliente.** Si viene `conversacionId`, la función lee `mensajes` de la fila filtrando por `user_id` y usa eso. Es una defensa de seguridad, no una optimización: si el contexto viniera del cliente, un cliente modificado podría inventarle turnos que nunca ocurrieron ("me dijiste que la miel es segura a los 6 meses"). En una app de alimentación infantil eso es riesgo de daño real. El `historial` que manda el cliente quedó SOLO como fallback si la DB no responde.
-
-> ⚠️ **Nunca escribir `historial` en la persistencia.** Viene recortado a `MAX_TURNOS_HISTORIAL` (10): guardarlo truncaría la conversación a 10 mensajes en cada turno. El append va sobre lo leído de la DB. Este fue exactamente el bug de la versión original (hacía `insert` por mensaje con el historial completo → crecimiento cuadrático y ninguna fila con la charla entera); lo arregló la migración `030`.
-
-El **título** se deriva de las primeras palabras del primer mensaje del usuario (`derivarTitulo`), sin llamar a la IA: costo cero y sin latencia. El historial es para **todos**, sin distinción free/premium.
-
-**Formato de las respuestas**: la app las pinta con `<Text>` plano, que **no interpreta markdown**. El system prompt le prohíbe explícitamente `**negrita**`, `#` y backticks (permite guiones para listas). Si aparecen asteriscos en pantalla, el fix va en el prompt, no en un renderizador.
-
-### Fase 7a — Videos Premium (implementada)
-
-**Arquitectura elegida: NO hay tabla `videos` separada.** Cada video vive como campo `video_url` **dentro de la receta** (embed de YouTube). Modelo (a) "por receta". El contenido se carga desde el panel admin — no requiere código, es data entry.
-
-Piezas ya construidas:
-
-- **`app/(tabs)/videos.tsx`** — vista dual: `VistaPremium` (lista todas las recetas activas con `video_url`, filtradas por etapa del perfil activo, con thumbnail de YouTube) y `VistaPaywall` (upsell para usuarios free). Ya NO es placeholder.
-- **`app/receta/[id].tsx`** — reproductor embebido con `react-native-youtube-iframe` en un `Modal`. El modal respeta proporción **9:16 vertical** (pensado para YouTube **Shorts**). Tiene gate premium: receta `es_premium && !esPremium` → muestra card 🔒 que lleva a `/premium`; si es premium o la receta es gratis → botón ▶ que abre el video.
-- **`app/admin/receta-form.tsx`** — el admin carga **URL de imagen** (`imagen_url`) y **Video URL** (`video_url`) por receta, más el toggle `es_premium`. Este es el flujo de carga de contenido.
-- **`lib/youtube.ts`** — `extraerVideoId(url)` (soporta `watch?v=`, `youtu.be/`, `/embed/`, `/shorts/`) y `urlThumbnail(videoId)` (hqdefault).
-
-**Gotcha de YouTube no listado (LEER antes de cargar videos en masa):** los videos en "no listado" se embeben OK, pero solo si tienen **"Permitir insertar" (Allow embedding)** activado. Si el video se marca como **"Contenido para niños" (Made for Kids)**, YouTube restringe funciones de embed. Siendo app de comida para bebés, es tentador marcarlos así — **NO hacerlo**. Probar un video embebido en el dispositivo real antes de cargar el lote completo.
-
-Lo único que "queda" de la Fase 7a es carga de datos (links + imágenes por receta), que es trabajo del owner en el panel admin, no de código.
-
-## Environment Variables
-
-Crear `.env.local` en la raíz con:
-
-```
-EXPO_PUBLIC_SUPABASE_URL=https://uoqzkbbnesmvmgbjikrn.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
-EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID=<revenuecat_android_key>
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=<google_web_client_id>.apps.googleusercontent.com
-EXPO_PUBLIC_ADMOB_BANNER_ANDROID=ca-app-pub-XXX/YYY
-EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID=ca-app-pub-XXX/YYY
-EXPO_PUBLIC_ADMOB_REWARDED_ANDROID=ca-app-pub-XXX/YYY
-```
-
-Sin `SUPABASE_URL` y `SUPABASE_ANON_KEY` la app lanza una excepción al arrancar (`lib/supabase.ts`). Sin `REVENUECAT_API_KEY_ANDROID` la pantalla premium carga pero sin paquetes disponibles.
-
-`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` — el **Web Client ID** de Google Cloud (público, no secreto). Lo usa `GoogleSignin.configure()` en `useAuthStore.ts`. Sin él, el botón "Continuar con Google" no funciona (la config se saltea por el guard). Ver sección "Google Sign In".
-
-`EXPO_PUBLIC_ADMIN_PASSWORD_HASH` — hash SHA-256 de la contraseña del panel admin (requerido para acceder a `/admin`). Calcular con `crypto.subtle.digest('SHA-256', ...)` en browser.
-
-`EXPO_PUBLIC_ADMOB_*` — IDs de las unidades de anuncio de AdMob (banner, intersticial, rewarded) para Android. **Solo se usan en producción**: en `__DEV__` el código usa SIEMPRE los IDs de prueba de Google (evita clicks inválidos). Si faltan en prod, hace fallback a los IDs de test (inofensivo). Ver sección "Anuncios (AdMob)". El **App ID** de AdMob (el que empieza con `~`) NO va acá — va en `app.json` (plugin `react-native-google-mobile-ads`, se hornea al buildear).
-
-> **Dev client vs producción** (RESUELTO el 2026-08-02): el build `development` usa Metro local, que lee `.env.local` y hornea las `EXPO_PUBLIC_*` al bundlear. Los builds `preview`/`production` no tienen Metro, así que sus variables viven en **EAS Environment Variables** (`eas env:list --environment production`), y `eas.json` ata cada perfil al suyo con `"environment": "preview" | "production"`. Las 8 variables ya están cargadas en ambos environments.
->
-> Para sincronizar tras cambiar `.env.local`: `eas env:push production --force` (lee `.env.local` por defecto). **NO** usar un bloque `env` con valores dentro de `eas.json`: ese archivo se commitea y **el repo es público**.
->
-> ⚠️ **Toda `EXPO_PUBLIC_*` se hornea en el bundle JS y es extraíble de cualquier APK** — no son secretos, ni en EAS ni en ningún lado. Por eso el gate del panel admin (`EXPO_PUBLIC_ADMIN_PASSWORD_HASH`) es **solo cosmético**: la autorización real la hace RLS con `es_admin()`, que verifica `user_id` contra la tabla `admins`. Nunca mover una decisión de autorización al cliente.
-
-> ✅ **Key de RevenueCat de producción (resuelto el 2026-08-02).** `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` empieza con `goog_`, sincronizada en `.env.local` y en los environments `production` y `preview` de EAS. Antes era una `test_` (sandbox): las compras **no se procesan de verdad** con esa, y el síntoma **no aparece en desarrollo**. La key `goog_` se genera **sola** al crear la app de Google Play Store en RevenueCat (Apps & providers) — no hay botón para crearla, y **no confundirla con el "REST API Identifier"** (`app…`) ni con una "Secret API key" (esa NUNCA va en el cliente).
->
-> ✅ **PASO 4 CERRADO ENTERO (2026-08-23) — el cobro ya está conectado contra Google.** La app de
-> Play Store en RevenueCat tiene el `Service Account Credentials JSON` cargado y muestra el badge
-> **`Valid credentials`**, y las _Google developer notifications_ están conectadas con
-> `Last received 2026-08-23, 4:23 a.m. UTC` sobre el topic
-> `projects/yummi-glu-glu/topics/Play-Store-Notifications`.
->
-> - Service account: **`revenuecat-play@yummi-glu-glu.iam.gserviceaccount.com`**, roles
->   `roles/pubsub.admin` + `roles/monitoring.viewer`.
-> - JSON en **`C:\Users\Samuel\secretos\`** — FUERA del repo (que es público).
-> - Invitada en Play Console con **3 permisos de cuenta** (incluido _Administrar pedidos y
->   suscripciones_) y solo lectura a nivel app.
->
-> 🔴 **Esto NO significa que el cobro esté probado.** Falta el **paso 5: QA de compra real en
-> dispositivo**. Lo verificado es el canal (credenciales + notificaciones), no la transacción.
->
-> 📕 **Los pasos exactos, ejecutados y con todas las trampas, están en
-> `docs/runbook-produccion.md` § Paso 4.** Lo que costó horas y no estaba escrito:
->
-> - Hay que habilitar **3 APIs**, no 1: Play Android Developer, Play Developer Reporting y **Cloud Pub/Sub**.
-> - 🔴 **`Pub/Sub Editor` NO alcanza: va `roles/pubsub.admin`.** Editor **no tiene
->   `pubsub.topics.setIamPolicy`**, y RevenueCat no solo crea el topic — después le escribe la
->   política de IAM. El error dice _"no permission to create a Pub/Sub topic"_ y **eso desorienta**:
->   crear sí puede; falla el paso siguiente. (Este archivo decía "Pub/Sub Editor" y **era falso**.)
-> - 🔴 **RevenueCat crea el topic con la política de IAM VACÍA** (`etag: ACAB`, sin `bindings`). Hay
->   que darle **a mano** `roles/pubsub.publisher` sobre el topic a
->   `google-play-developer-notifications@system.gserviceaccount.com` — una cuenta **de Google**, no
->   del proyecto. Sin eso, _"Enviar notificación de prueba"_ falla.
-> - 🔴 **Play Console traduce mal el formato del topic**: dice `proyectos/…/temas/…` y el valor real
->   va **en inglés** (`projects/…/topics/…`).
-> - 🔴 **Al invitar la cuenta, Play precarga `Administrador (todos los permisos)`** sobre la app (14
->   permisos, varios de escritura). Destildarlo: este JSON se le entrega a un tercero.
-> - 💡 **Usar Cloud Shell (`>_`), no el selector de roles web.** `gcloud` no está instalado local. Por
->   ID de rol desaparece la ambigüedad de los nombres traducidos (`Editor de Pub/Sub Lite` es **otro
->   producto**; `Editor` a secas es el rol básico de **todo el proyecto**).
-> - ⏳ **Las credenciales pueden tardar HASTA 36 HORAS en propagar** (dicho por RevenueCat, textual).
->   Acá **no** hizo falta esperar —validaron al instante—, pero si el QA de compras falla justo
->   después de cargar el JSON, **el primer sospechoso es la propagación, NO el código**. Atajo:
->   editar la descripción de cualquier producto en Play → _Monetizar_ y guardar.
-
-> 🔴 **El JSON del Service Account es una CREDENCIAL y este repo es PÚBLICO** (`github.com/Samuel551/yummigluglu`, `private: false`, verificado contra la API el 2026-08-22). Google lo descarga como `<project-id>-<key-id>.json` — un nombre que **no parece un secreto** y que `git add .` se lleva puesto. Commitearlo entrega los **datos financieros y los pedidos** de Play Console.
->
-> **Guardarlo FUERA del proyecto** (`C:\Users\Samuel\secretos\`). El `.gitignore` ya atrapa `yummi-glu-glu-*.json`, `*service-account*.json`, `*service_account*.json`, `*-credentials.json` y `secretos/` — verificado con `git check-ignore`, no asumido. Pero eso es el **cinturón de seguridad, no el plan**: el archivo no debería llegar nunca a la carpeta.
->
-> Si se filtra: Google Cloud → la service account → _Manage keys_ → **borrar la clave** y generar otra. Rotar invalida la vieja al instante.
-
-> ⚠️ **En un `.env` una variable duplicada NO da error y gana la PRIMERA.** Costó una vuelta: al reemplazar la key de RevenueCat quedó la vieja arriba y la nueva abajo, y el parser seguía tomando la de sandbox en silencio. Al editar `.env.local`, **reemplazar la línea, no agregar otra**, y verificar con:
->
-> ```bash
-> node -e "const d=require('fs').readFileSync('.env.local','utf8'),k=[...d.matchAll(/^\s*([A-Z0-9_]+)\s*=/gm)].map(m=>m[1]);console.log('duplicados:',k.length-new Set(k).size)"
-> ```
+Pre-commit: `lint-staged` (ESLint + Prettier). Probar en dispositivo con el **dev client**, nunca Expo
+Go. Un crash por minificación (R8) **solo** aparece en builds `preview`/`production`.
 
 ## Architecture
 
-### Navigation — Expo Router (file-based)
+- **Expo Router** (`app/`): guards **dentro de cada layout**. `(tabs)/_layout.tsx` = sin sesión →
+  login · sin perfiles → `onboarding` · ok → tabs. Pantallas: `(auth)`, `(tabs)` (inicio, recetas,
+  favoritos, plan, videos, perfil), `receta/[id]`, `premium`, `asistente` (NutriBot, modal), `admin/`,
+  `editar-perfil/[id]`, `editar-cuenta`, `diario/[id]`, `lista-compras`.
+- **Zustand** en `store/` (`useAuthStore`, `usePerfilStore`, `useRecetasStore`, `useSuscripcionStore`,
+  `useTemaStore`, …). Los stores llaman directo a Supabase, sin capa de servicios.
+- **Tipos** en `types/index.ts` · alias `@/` = raíz · dominio en `constants/` (`Etapas`, `Alergias`,
+  `Metodos`, `Colors`, `Semana`, `Nutribot`).
+- **Etapas**: `inicio` (6–8m), `transicion` (9–12m), `preescolar` (13m+).
+- **Errores user-facing**: siempre por `lib/errores.ts` → `mensajeError()`. No inventar mensajes por store.
+- **Dark mode**: fuente de verdad `useTemaStore` (no `useColorScheme` de nativewind). Inline styles →
+  `useColoresTema()`; `className` → prefijo `dark:`.
 
-```
-app/
-  index.tsx           # Guard: redirige a (auth)/login o (tabs) según sesión
-  _layout.tsx         # Root layout: inicializa sesión Supabase, registra listeners
-  onboarding.tsx      # Flujo de 3 pasos para crear el primer perfil de hijo
-  (auth)/             # Stack sin sesión: login, register
-  (tabs)/             # Tabs con sesión
-    _layout.tsx       # Guard triple: sin sesión → login, sin perfiles → onboarding, ok → tabs
-    index.tsx         # Pantalla Inicio
-    recetas.tsx       # Catálogo de recetas con filtros (etapa, momento, alergenos)
-    favoritos.tsx     # Favoritos del usuario
-    plan.tsx          # Tab Plan semanal — genera plan 7 días + acceso a lista de compras
-    videos.tsx        # Videos Premium — VistaPremium (lista recetas con video_url) o VistaPaywall (free). Ver Fase 7a
-    perfil.tsx        # Perfiles de hijos + cuenta
-  receta/[id].tsx     # Detalle de receta (presentation: card)
-  lista-compras.tsx   # Lista de compras derivada del plan semanal (presentation: card)
-  diario/[id].tsx     # Diario de introducción de alimentos por perfil (presentation: card)
-  editar-cuenta.tsx   # Editar email + reset contraseña (accesible desde perfil)
-  editar-perfil/
-    [id].tsx          # Editar perfil de hijo: nombre, avatar, fecha, alergias + eliminar
-  premium.tsx         # Pantalla de compra premium — RevenueCat + polling Supabase post-compra
-  asistente.tsx       # NutriBot IA (presentation: modal) — pendiente de implementar
-  admin/
-    _layout.tsx       # Guard de password (SHA-256 contra EXPO_PUBLIC_ADMIN_PASSWORD_HASH)
-    index.tsx         # Dashboard admin: lista de recetas con toggles activo/premium
-    recetas.tsx       # Gestión de recetas: activar/desactivar, toggle premium, agregar video_url
-```
+### Supabase y seguridad
 
-Los íconos de tabs usan un componente `TabIcon` con emojis (definido en `(tabs)/_layout.tsx`) — Lucide u otra librería de íconos aún no está integrada.
+- RLS en todas las tablas. **La autorización real es RLS** (`es_admin()`, tabla `admins`).
+  `useEsAdmin()` y el hash de password del admin son **solo UI**. Toda `EXPO_PUBLIC_*` es extraíble del APK.
+- **El cliente lee recetas de la VISTA `recetas_teaser`, no de `recetas`.** 🔴 Es `security_definer`
+  **a propósito** (gatea `video_url` por usuario). **No pasarla a `security_invoker`.** Tras recrearla,
+  verificar que el único grant sea `authenticated | SELECT` (recrear resetea grants; ya hubo un agujero
+  que dejaba borrar el catálogo como `anon` → migración `038`). Ver `§ Advertencias que NO se resuelven`.
+- **Modelo freemium**: las recetas son siempre free; `es_premium` = **el VIDEO** es premium.
+  Desbloqueo 24h con rewarded (SSV con créditos). `es_premium` lo recalcula el cron
+  `rotar_videos_premium()` el día 1 de cada mes; para sacar una receta de la rotación → `rotacion_grupo = 0`.
+- **Migraciones nuevas** (cuando se permitan): toda tabla en `public` lleva RLS, **GRANTs explícitos**
+  y policies en el mismo archivo (Supabase deja de auto-exponer tablas desde el 30-oct-2026). Toda FK a
+  `auth.users` con `on delete cascade` (lo exige el borrado de cuenta).
 
-La protección de rutas se hace **dentro de cada layout**, no con middleware. El guard en `(tabs)/_layout.tsx` tiene 3 niveles: sin sesión → `(auth)/login`, con sesión pero sin perfiles → `onboarding`, con perfiles → renderiza tabs. Mientras carga perfiles muestra un spinner para evitar flashes.
+### Edge Functions — el flag `verify_jwt`
 
-### Onboarding
+**¿Quién llama?** Cliente con `functions.invoke` → `verify_jwt` ON. Tercero servidor a servidor →
+`--no-verify-jwt` + autenticación propia.
 
-`app/onboarding.tsx` — flujo obligatorio para usuarios nuevos (sin perfiles). 3 pasos:
+| Función                                                                                         | Deploy                                                                   |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `revenuecat-webhook`, `ssv-recompensa`                                                          | 🔴 **`--no-verify-jwt` SIEMPRE** (sin él, ninguna compra activa premium) |
+| `nutribot`, `canjear-desbloqueo`, `sincronizar-suscripcion`, `eliminar-cuenta`, `welcome-email` | verify_jwt ON                                                            |
 
-1. Nombre + avatar emoji
-2. Fecha de nacimiento → calcula `EtapaAlimentaria` automáticamente (rango válido: 4 meses a 6 años)
-3. Selección de alergias (opcional)
+No usar el MCP `deploy_edge_function` para el webhook (no expone `verify_jwt`). Verificar el webhook con
+RevenueCat → _Send test event_ → debe responder `{"ok":true,"ignorado":"TEST"}`.
+Detalle: `§ Edge Functions (Supabase)` y `§ RevenueCat — TRANSFER`.
 
-Al crear el perfil exitosamente, hace `router.replace('/(tabs)')`. El campo `fecha_nacimiento` se guarda en ISO format (`YYYY-MM-DD`).
-
-### State Management — Zustand
-
-Stores independientes en `store/`:
-
-| Store                 | Responsabilidad                                                                                                                              |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `useAuthStore`        | Sesión Supabase, login/register/logout/magic link, actualizarEmail, enviarResetContrasena                                                    |
-| `usePerfilStore`      | CRUD de perfiles de hijos (crear, actualizar, eliminar), perfil activo                                                                       |
-| `useRecetasStore`     | Catálogo de recetas con filtros por etapa, momento y alergenos                                                                               |
-| `useFavoritosStore`   | Favoritos con **optimistic updates** — join SELECT con recetas                                                                               |
-| `usePlanStore`        | Plan semanal generado por etapa/alergias, lista de compras derivada del plan                                                                 |
-| `useDiarioStore`      | Diario de introducción de alimentos por perfil con optimistic delete                                                                         |
-| `useSuscripcionStore` | Suscripción premium vía RevenueCat: `inicializarRevenueCat`, `comprarPremium`, `restaurarCompras`, polling post-compra                       |
-| `useAdminStore`       | Gestión de recetas para el panel admin: listar, toggle activo/premium, agregar video_url                                                     |
-| `useTemaStore`        | Dark mode: `tema` ('light' \| 'dark'), `setTema`, `alternar`, `hidratar`. Fuente de verdad del tema — sincroniza a nativewind y AsyncStorage |
-
-Los stores llaman directo a Supabase — no hay capa de servicios separada todavía.
-
-### Dark Mode
-
-Implementado con NativeWind (`darkMode: 'class'`). El toggle vive dentro de la pantalla de perfil — NO hay botón flotante global.
-
-- **Fuente de verdad**: `store/useTemaStore.ts` (Zustand). Expone `tema`, `setTema(t)`, `alternar()`, `hidratar()`. Cada cambio de tema sincroniza a nativewind vía `colorScheme.set()` (para que las clases `dark:` sigan funcionando) Y persiste a AsyncStorage (`yummigluglu-tema`). **No leer `useColorScheme()` de nativewind directamente** — siempre pasar por el store.
-- **Paleta dual** en `constants/Colors.ts` — `Colors.light` y `Colors.dark`.
-- **Hook `useColoresTema()`** en `hooks/useColoresTema.ts` — suscribe a `useTemaStore` y retorna la paleta activa + `isDark`. Usar en pantallas con inline `style`.
-- **Clases `dark:`** — funcionan para pantallas con `className` (auth, onboarding) porque el store llama `colorScheme.set()` en cada cambio.
-- **Control de tema** — sección "APARIENCIA" dentro de `app/(tabs)/perfil.tsx` con un `Switch` que llama `setTema('dark' | 'light')` del store.
-- **Hidratación** — `app/_layout.tsx` llama `hidratar()` del store una vez al montar; lee AsyncStorage y aplica el tema guardado (o `light` por default).
-- **StatusBar** en `_layout.tsx` cambia entre `light`/`dark` según el tema.
-
-**Por qué Zustand y no `useColorScheme` de nativewind**: en v4.2.3 el hook `useColorScheme` no propagaba re-renders consistentes a los componentes que derivan colores del hook (`useColoresTema` lo llamaba internamente). Resultado: el `setColorScheme` cambiaba el valor pero la UI no se actualizaba. Zustand garantiza el re-render de todos los suscriptores.
-
-### Components
-
-```
-components/
-  RecetaCard.tsx   # Card reutilizable de receta — botón ❤️/🤍 para favoritos, badge de etapa y alergenos
-  BotonTema.tsx    # Toggle flotante dark/light mode (🌙/☀️)
-```
-
-### Hooks
-
-```
-hooks/
-  useColoresTema.ts  # Retorna la paleta activa (Colors.light | Colors.dark) + flag `isDark`. Usar en pantallas con inline `style`.
-  useEsAdmin.ts      # `true` si el usuario esta en la tabla `admins`. SOLO para decidir que se dibuja — ver nota abajo.
-```
-
-> 🔴 **`useEsAdmin()` es UI, NO seguridad.** Oculta la seccion "AVANZADO" del perfil (la fila "Panel admin") para todo el que no este en la tabla `admins` — antes se le mostraba a **todos los usuarios**. Pero cualquiera puede navegar a `/admin` escribiendo la ruta: **la autorizacion real la hace RLS con `es_admin()`**, que bloquea lectura y escritura aunque la pantalla se abra. Nunca tratar el ocultamiento como una defensa; se apoya en la misma tabla que RLS justamente para que no haya dos verdades. Arranca en `false` a proposito (mientras viaja la consulta no se muestra nada), y la policy `using (auth.uid() = user_id)` hace que un no-admin reciba **cero filas sin error**.
-
-Los hooks viven en `hooks/`. Cuando una pantalla ya resuelve colores vía NativeWind `className` con prefijo `dark:`, no necesita el hook. El hook existe para pantallas con inline `style` donde no se puede expresar dark mode con clases.
-
-### Supabase
-
-- Cliente singleton en `lib/supabase.ts`, usando `AsyncStorage` para persistir sesión
-- RLS habilitado en todas las tablas — las políticas garantizan que cada usuario solo ve sus datos
-- **El acceso a recetas premium es enforced por RLS** (`supabase/migrations/002_recetas_rls_premium.sql`), no solo en cliente. La verificación en `useSuscripcionStore.esPremium` es solo para UI.
-- `useSuscripcionStore.calcularEsPremium()` es local/optimista — la fuente de verdad es la tabla `suscripciones` actualizada por el webhook de RevenueCat
-
-### Edge Functions (Supabase)
-
-`supabase/functions/revenuecat-webhook/` — recibe eventos de RevenueCat (INITIAL_PURCHASE, RENEWAL, CANCELLATION, etc.) y actualiza la tabla `suscripciones` usando `service_role` (el cliente nunca escribe directamente en esa tabla). Requiere vars de entorno en Supabase: `REVENUECAT_WEBHOOK_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
-
-> 🔴 **DEPLOY OBLIGATORIO CON `--no-verify-jwt`:**
->
-> ```bash
-> supabase functions deploy revenuecat-webhook --no-verify-jwt
-> ```
->
-> **Sin ese flag, NINGUNA COMPRA ACTIVA PREMIUM.** RevenueCat llama servidor a servidor y
-> manda el shared secret **crudo** en `Authorization`, no un JWT de Supabase. Con
-> `verify_jwt: true` el gateway responde `401 UNAUTHORIZED_INVALID_JWT_FORMAT` y **el código de
-> la función nunca corre**: `suscripciones` no se actualiza, el usuario paga y la app lo deja
-> en `free`. La comparación timing-safe del secret **ES** la autenticación. Mismo criterio que
-> `ssv-recompensa`. No hay `supabase/config.toml`, así que el flag se pasa **en cada deploy**.
-
-> ⚠️ **Pasó de verdad (detectado y arreglado el 2026-08-22).** La función estaba desplegada con
-> `verify_jwt: true` **desde abril**, y encima lo desplegado era la versión **vieja, sin ninguna
-> de las 4 defensas de abajo** (encabezado "Baby Bites", `!==` en vez de `timingSafeEqual`, sin
-> validación de UUID, sin idempotencia). **El hardening vivía solo en el repo.** No se detectó
-> nunca porque **jamás hubo una compra real** que ejercitara el webhook. Redesplegada en la
-> **v5** con el código del repo y `verify_jwt: false`.
-
-> 🔎 **Cómo verificar que está bien, sin escribir nada** — el truco es el **grupo de control**:
-> pegarle a la función y mirar **quién** responde. El gateway contesta **JSON con `code` en
-> inglés**; el código propio contesta **texto plano en español**.
->
-> ```bash
-> U=https://uoqzkbbnesmvmgbjikrn.supabase.co/functions/v1/revenuecat-webhook
-> curl -s -X GET $U                       # -> 405 "Method Not Allowed"  ✅ corre el código
-> curl -s -X POST $U -H "Authorization: x" -d {}   # -> 401 "Unauthorized"     ✅ corre el código
-> # Si devuelve {"code":"UNAUTHORIZED_INVALID_JWT_FORMAT"} -> el gateway lo bloquea. ROTO.
-> ```
-
-> ✅ **VERIFICADO EXTREMO A EXTREMO el 2026-08-22** con **RevenueCat → Integrations → Webhooks →
-> `babybites` → "Send test event"**. Respuesta: **`{"ok":true,"ignorado":"TEST"}`** — ese JSON
-> sale de la rama `default` del switch de `index.ts`, así que prueba que el código corrió.
-> Los headers lo confirman (`x-served-by: supabase-edge-runtime`, `x-deno-execution-id`).
->
-> **Un solo click prueba 6 etapas**: gateway → **compare timing-safe del secret (matcheó: el
-> header de RC está bien cargado)** → parse → validación de UUID → `SELECT` en
-> `webhook_events_procesados` (o sea que `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_URL` están bien
-> y la tabla responde) → switch.
->
-> ⚠️ **Lo que el evento `TEST` NO prueba**, porque corta en el switch antes de llegar:
-> `auth.admin.getUserById()`, el **`upsert` en `suscripciones`** (el que realmente da premium) y
-> el `INSERT` de idempotencia. Eso solo se ejercita con un `INITIAL_PURCHASE` real → **paso 5 del
-> runbook, compra sandbox en dispositivo**. No dar el cobro por probado con el test event.
->
-> 💡 **"Send test event" es la forma canónica de verificar este webhook**: es gratis, no toca
-> plata y no escribe nada. Repetirlo después de cualquier cambio de secret, de URL o de deploy.
-
-> ✅ Config confirmada en RC: URL correcta, **Environment = "Both Production and Sandbox"**
-> (necesario para que las compras sandbox del paso 5 lleguen al webhook), filtros en All apps /
-> All events.
-
-> ⚠️ **La otra mitad vive en RevenueCat**: Dashboard → Integrations → Webhooks → el header
-> `Authorization` debe ser **exactamente** el valor de `REVENUECAT_WEBHOOK_SECRET`, **sin**
-> prefijo `Bearer`. El código compara el header completo contra el secret.
-
-**Hardening del webhook (4 defensas — manejan datos de pago, no romper):**
-
-1. **Comparación timing-safe del secret** — `timingSafeEqual()` en lugar de `===`. RevenueCat manda el shared secret en `Authorization`, y el compare manual es la defensa contra timing attacks sobre él.
-
-   > 🔴 **CORRECCIÓN (2026-08-22): RevenueCat SÍ ofrece firma HMAC.** Este archivo afirmaba lo
-   > contrario ("NO ofrece firma HMAC, verificado en doc oficial"). **Es falso hoy**: en el
-   > dashboard, Integrations → Webhooks → la config, hay un toggle **"HMAC webhook signing"**,
-   > actualmente en **Disabled**. Puede haber sido cierto cuando se verificó; ya no lo es.
-   >
-   > **NO activarlo todavía**: la función no verifica la firma, así que prenderlo no aporta nada
-   > hoy (RevenueCat mandaría un header extra que se ignora — no rompe, pero tampoco protege).
-   > Es una **mejora post-lanzamiento**: primero se implementa la verificación en
-   > `revenuecat-webhook/index.ts`, se despliega, y recién después se activa el toggle. En ese
-   > orden, o el webhook empieza a rechazar eventos legítimos.
-   >
-   > Cuando se haga, HMAC **reemplaza** al shared secret como autenticación real: la firma no se
-   > puede replicar aunque el secret se filtre, y cierra el hueco documentado abajo en "Lo que
-   > estas defensas NO previenen".
-
-2. **Validación + verificación del `app_user_id`** — regex de UUID antes de tocar DB, luego `supabase.auth.admin.getUserById(userId)`. Si el user no existe, devolver 404 (RC no reintenta 4xx). Aunque la FK de `suscripciones.user_id → auth.users` ya bloquea inserts inválidos, el chequeo explícito evita el round-trip y devuelve un código limpio.
-3. **Idempotencia via `webhook_events_procesados`** — tabla con `event_id` como PK. Antes de procesar, query si ya existe → si sí, retornar `{ ok: true, ignorado: 'duplicado' }`. Después del upsert exitoso, INSERT del event_id (PK race-safe — código `23505` es esperado en concurrencia y se ignora). Migración en `006_webhook_security_hardening.sql`. RLS habilitado sin policies → solo `service_role` accede.
-4. **Operacional — secret rotado y largo** — `REVENUECAT_WEBHOOK_SECRET` debe ser ≥ 32 chars random. Vive solo en Supabase Edge Function secrets (`supabase secrets set REVENUECAT_WEBHOOK_SECRET=...`) y en RevenueCat Dashboard → Integrations → Webhooks. **NUNCA en el repo, ni en `.env.local`, ni en logs.** Si hay sospecha de filtración: rotar inmediatamente en ambos lados (Supabase + RC dashboard).
-
-**Lo que estas defensas NO previenen** (limitaciones de RC): si el secret se filtra, un atacante puede activar/desactivar premium para users **existentes** (no inventar IDs). El daño máximo es regalar premium o bloquear suscripciones legítimas — no exfiltrar datos de tarjetas (esos viven en RC/Stripe, nunca en nuestra DB).
-
-`supabase/functions/welcome-email/` — correo de bienvenida tras el registro. La invoca el
-CLIENTE (`useAuthStore.ts` → `supabase.functions.invoke('welcome-email')`), sin `await` y con
-`.catch(() => {})`: si falla, el registro NO se rompe. Deploy: `supabase functions deploy
-welcome-email` (**verify_jwt ON, y acá está BIEN** — la llama el cliente con el JWT del usuario;
-no confundirla con el webhook de RevenueCat, que es servidor a servidor).
-
-**Regla general para decidir el flag**: ¿quién llama? **El cliente con `functions.invoke`** →
-`verify_jwt: true`. **Un tercero servidor a servidor** (RevenueCat, Google SSV, Stripe) →
-`verify_jwt: false` + autenticación propia dentro de la función. `verify_jwt` **no se ve en el
-código**: es config de despliegue, así que un `index.ts` impecable puede estar muerto detrás del
-gateway sin que nada en el repo lo delate.
-
-`supabase/functions/canjear-desbloqueo/` — concede un desbloqueo temporal de 24h de una receta premium tras un anuncio recompensado (rewarded). Identifica al usuario por su JWT (no confía en ids del body), valida que la receta sea premium, y hace upsert en `desbloqueos_temporales` con `service_role` (el cliente NO puede escribir esa tabla). Deploy: `supabase functions deploy canjear-desbloqueo` (verify_jwt ON). Ver sección "Anuncios (AdMob)".
-
-`supabase/functions/sincronizar-suscripcion/` — le **pregunta** a la API REST de RevenueCat si el usuario (identificado por su JWT) tiene una entitlement activa, y si la tiene actualiza `suscripciones` con `service_role`. Deploy: `supabase functions deploy sincronizar-suscripcion` (verify_jwt ON). Requiere el secret `REVENUECAT_SECRET_API_KEY`.
-
-> 🔧 **Por qué existe (bug del QA del 2026-08-24)**: "Restaurar compras" **no reparaba nada**. Llamaba a `restorePurchases()` y después **esperaba a que el webhook** actualizara la tabla — pero RevenueCat **no dispara webhook** cuando restaura algo que ya tenía. Verificado: durante toda la prueba `webhook_events_procesados` se quedó en 1. El cliente encuestaba 10 s y se rendía **sin mostrar ningún mensaje**.
->
-> 🔴 **El problema de fondo era circular: el botón que existe para reparar un webhook caído dependía del webhook.** Cada vez que agregues un mecanismo de recuperación, preguntate **de qué depende** — si depende de lo mismo que puede fallar, no es una red de seguridad.
->
-> ⚠️ **Solo SUBE de plan, NUNCA baja.** Si RC responde "no encontré nada", **no degrada**. Dos razones con dientes: (1) los premium de **cortesía** no existen en RevenueCat (`revenuecat_customer_id` en `NULL`) y un "no encontrado" les **borraría el regalo**; (2) un hipo de la API de RC le sacaría el premium a alguien que **sí está pagando**. Las bajas legítimas las maneja el webhook con `EXPIRATION`/`BILLING_ISSUE`.
->
-> ⚠️ **Es agnóstica al nombre de la entitlement** (recorre todas y toma la de vencimiento más lejano; `expires_date: null` = vitalicia y gana). El identificador vive **solo** en el dashboard de RevenueCat y no aparece en ningún lado del código — hardcodearlo se rompería **en silencio** el día que alguien lo renombre. Hoy se llama `premium`, verificado contra la API.
->
-> ⚠️ **`comprarPremium` también la llama como red de seguridad.** Su polling corta a los ~10 s y **en la primera compra real el webhook tardó 12 s**: el camino feliz medido en producción ya se pasaba de la ventana.
-
-`supabase/functions/eliminar-cuenta/` — borra la cuenta del usuario. **Requisito de Google Play**: toda app con registro debe ofrecer eliminación de cuenta dentro de la app, no solo por correo. Deploy: `supabase functions deploy eliminar-cuenta` (verify_jwt ON).
-
-Existe como Edge Function porque tocar `auth.users` requiere `service_role`. Dos defensas: identidad **solo por JWT** (nunca acepta un id del body — si no, cualquiera con sesión borraría la cuenta ajena) y `confirmar: true` explícito en el body, para que un reintento de red no borre una cuenta.
-
-> ✅ **Un solo `deleteUser` alcanza: las 12 tablas de `public` referencian `auth.users(id) ON DELETE CASCADE`** (verificado contra el catálogo). Borrar tabla por tabla sería más frágil y dejaría huérfanos el día que se agregue una tabla nueva y alguien olvide sumarla a la función. **Si creás una tabla con `user_id`, la FK va con `on delete cascade`** — es lo que sostiene el borrado de cuenta.
-
-> ⚠️ **Tras borrar, el `signOut` del cliente va con `scope: 'local'`** (`useAuthStore.eliminarCuenta`). El usuario ya no existe en el servidor: un signOut global responde 401 y puede dejar la sesión viva en AsyncStorage. El scope local igual emite `SIGNED_OUT`, que es lo que dispara la limpieza de RevenueCat y desbloqueos en `_layout.tsx`.
-
-> ⚠️ **`supabase.functions.invoke` NO propaga el cuerpo del error**: ante un 4xx/5xx devuelve un `FunctionsHttpError` con el mensaje genérico _"non-2xx status code"_. Por eso el store loguea el original y muestra un mensaje propio en español — no encadenar `mensajeError(error)` esperando el detalle real.
-
-**UI**: `app/editar-cuenta.tsx`, sección "ELIMINAR CUENTA", con doble `Alert` de confirmación. Tiene fila propia en `perfil.tsx` → CUENTA → "Eliminar cuenta" aunque lleve a la misma pantalla que Email/Contraseña: **Google exige que la eliminación sea fácil de encontrar**, y escondida detrás de "Email" no lo es. La página pública `web/eliminar-cuenta.html` describe este flujo como método principal y deja el correo como alternativa para quien desinstaló la app.
-
-> ⚠️ **Eliminar la cuenta NO cancela la suscripción de Google Play** — eso se hace solo desde Play. Está avisado en la pantalla, en el segundo `Alert` y en la página pública. No sacarlo: es la confusión más cara que puede tener un usuario que cree haber cancelado el cobro.
+- **NutriBot**: el API key de Anthropic nunca sale del servidor. El contexto se lee de la DB, no del
+  cliente. Cupos free 20 / premium 250 (en `nutribot/index.ts`; sincronizar a mano con
+  `constants/Nutribot.ts`). ⚠️ El `SYSTEM_ESTABLE` debe quedar ≥ 1.024 tokens o el caché se apaga en
+  silencio. Respuestas sin markdown (se pintan con `<Text>`).
+- **`sincronizar-suscripcion` solo SUBE de plan, nunca baja.** No cambiarlo.
+- **`premium.tsx` no expulsa al suscriptor**: "Restaurar compras" debe seguir alcanzable.
 
 ### Anuncios (AdMob)
 
-Monetización de usuarios **free** con `react-native-google-mobile-ads`. Set "lean" (banner + intersticial capeado + rewarded opt-in). **Público declarado en Play: adultos/padres** — NO dirigido a niños (evita las restricciones de la política de familias de AdMob). Rating de ads limitado a **PG** (brand-safe para app de bebés).
-
-**Regla de oro innegociable**: los anuncios van SOLO para free. Todo formato hace `null`/no-op si `useSuscripcionStore.esPremium`. Un premium que ve un ad es un bug crítico.
-
-**Módulo NATIVO** → no existe en web ni en dev client sin recompilar. Todo se carga perezosamente con guard de plataforma (`lib/ads.ts` → `cargarModuloAds()`), patrón defensivo idéntico a RevenueCat: si no está disponible, no-op silencioso (no crashea). **Agregar los ads requiere rebuild del dev client** (`eas build -p android --profile development`).
-
-> ⚠️ **Web se salva con un fork por plataforma, NO con el guard de runtime.** Metro arma el grafo de dependencias por análisis estático: el `require('react-native-google-mobile-ads')` literal de `ads.ts` entra al bundle web aunque esté detrás de `Platform.OS === 'web'` (el guard protege runtime, no bundleo) → `Web Bundling failed: Importing native-only module`. Por eso existe `lib/ads.web.ts` (no-op, misma API) — Metro prefiere `.web.ts` al bundlear web y `ads.ts` queda fuera del grafo. **Si cambiás la API exportada de `ads.ts`, replicala en `ads.web.ts`.** Mismo patrón si algún día otro módulo nativo se importa con string literal fuera de componentes native-only.
-
-> ⚠️ **Versión PINEADA a `react-native-google-mobile-ads@15.7.0` (exacta) — NO subir a 16.x.** La 16.x trae `play-services-ads` ≥ 24.6.0 compilado con **Kotlin 2.3.0**, y Expo SDK 54 usa **Kotlin 2.1.20** (con KSP `2.1.20-2.0.1` atado). El build de Gradle falla en `:react-native-google-mobile-ads:compileDebugKotlin` con `Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.3.0, expected version is 2.1.0`. La 15.7.0 usa `play-services-ads 24.5.0` (sin metadata Kotlin → sin conflicto). Por eso está en `expo.install.exclude` del `package.json` (para que `expo install` no la bumpee). NO subir Kotlin del proyecto a 2.3 como "fix" — rompería KSP y otros módulos Expo.
-
-**IDs de unidad**: en `__DEV__` se usan SIEMPRE los IDs de prueba de Google (constantes en `lib/ads.ts`). En producción, las env `EXPO_PUBLIC_ADMOB_*`; si faltan, fallback a test (inofensivo). El **App ID** (`~...`) va en `app.json` → plugin `react-native-google-mobile-ads` (`androidAppId`), se hornea al buildear → cambiarlo requiere rebuild.
-
-**Consentimiento (UMP / CMP) — agregado el 2026-08-26.** `inicializarSdkAds()` llama a
-`AdsConsent.gatherConsent()` **antes** de `initialize()`. Google exige una CMP certificada para servir
-anuncios personalizados en el **EEE, Reino Unido y Suiza**.
-
-> ⚠️ **Fuera de esas regiones es un NO-OP**: el SDK resuelve la geografía del lado del servidor,
-> devuelve `NOT_REQUIRED` y **no muestra nada**. Hoy la app se publica solo en LATAM (6 países), así
-> que ningún usuario ve un formulario. Se implementó igual porque el día que se agregue **España** el
-> arreglo costaría **un build entero**.
-
-> ✅ **No hubo que instalar nada**: `com.google.android.ump:user-messaging-platform` ya viajaba dentro
-> del APK como dependencia **`api`** de `react-native-google-mobile-ads` (ver su `android/build.gradle`,
-> línea 139). El SDK estaba en el binario **sin usarse** desde el primer build.
-
-> ⚠️ **Si falla, se sigue.** El `catch` traga el error a propósito: sin consentimiento AdMob sirve ads
-> **no personalizados**, que es peor que lo ideal pero infinitamente mejor que cero ingresos. Un error
-> de consentimiento nunca puede dejar la app sin anuncios.
-
-> 🔴 **ESTO ES LA MITAD QUE DESBLOQUEA LOS ADS, NO EL CUMPLIMIENTO COMPLETO DEL EEE.** Si algún día se
-> publica ahí, Google exige **además** un punto de entrada permanente para que el usuario cambie de
-> opinión: `AdsConsent.showPrivacyOptionsForm()` detrás de una fila en Perfil, visible solo cuando
-> `getConsentInfo().privacyOptionsRequirementStatus === 'REQUIRED'`. **No está hecho** — y no hace
-> falta mientras no haya usuarios del EEE.
-
-> ℹ️ `recolectarConsentimiento()` es **privada**: no cambia la API exportada de `ads.ts`, así que
-> `ads.web.ts` **no necesitó tocarse**. Si algún día se exporta, hay que replicarla en el fork.
-
-Piezas:
-
-- `lib/ads.ts` — carga perezosa del módulo, `inicializarSdkAds()` (rating PG, no-niños, consentimiento UMP), resolvers de IDs.
-- `store/useAnunciosStore.ts` — `{ listo, inicializar }`. `inicializar()` se llama una vez en `app/_layout.tsx`; arranca la precarga de intersticial + rewarded.
-- `components/AnuncioBanner.tsx` — banner adaptativo. Devuelve `null` si premium / SDK no listo / sin módulo. Colocar en zonas NO invasivas (ej. `ListFooterComponent` de la lista de recetas).
-- `lib/intersticial.ts` — manager singleton con **doble tope anti-molestia**: recién al 3er "momento natural" (`TRIGGERS_POR_AD`) Y máximo 1 cada 4 min (`MIN_MS_ENTRE_ADS`). Se registra el momento con `registrarMomentoIntersticial()` (ej. al abrir el detalle de una receta).
-- `lib/recompensado.ts` — manager del rewarded (opt-in, sin tope). `mostrarRecompensado()` resuelve `true` SOLO si el usuario vio el ad completo (`EARNED_REWARD`).
-- `components/ModalRecompensa.tsx` — bottom sheet de elección de recompensa. Opciones no disponibles se muestran "Próximamente" (ej. mensajes extra de NutriBot hasta la Fase 6).
-
-**Modelo premium: a nivel VIDEO, no receta** (migración `024`):
-
-⚠️ **IMPORTANTE — `es_premium` significa "el VIDEO de esta receta es premium".** Las RECETAS son SIEMPRE free (ingredientes, pasos, nutrición, imagen — todo visible sin login premium). Solo se gatea el `video_url`. Modelo freemium: recetas gratis como imán de marketing, videos premium como monetización.
-
-### Rotación mensual de videos free/premium (migraciones `032` y `033`)
-
-**`es_premium` ya NO se administra a mano: lo recalcula un job de `pg_cron` el día 1 de cada mes.**
-
-Columna `recetas.rotacion_grupo`:
-
-| Grupo | Recetas | Comportamiento                                         |
-| ----- | ------- | ------------------------------------------------------ |
-| `0`   | 53      | **Siempre free.** Imán de marketing, nunca se bloquea. |
-| `1`   | 52      | Rotativo — free 1 de cada 3 meses                      |
-| `2`   | 51      | Rotativo                                               |
-| `3`   | 51      | Rotativo                                               |
-
-Free en cualquier momento: **grupo 0 + el grupo activo del mes ≈ 104 de 207 (~50%)**. El grupo activo es `(mes % 3) + 1`, así que el ciclo cierra en 3 meses.
-
-La asignación de grupos se hizo con `ntile(4)` sobre `md5(id::text)` particionado por etapa primaria. Un solo criterio equilibra las tres dimensiones a la vez — **verificado**: etapa 45.7–50.0%, momento 41.6–54.9%, país 43.5–56.7%. Es determinístico: recalcularlo da el mismo reparto.
-
-- **Función**: `public.rotar_videos_premium()` — `SECURITY DEFINER`, `search_path` fijo, **idempotente** (segunda corrida en el mismo mes → 0 filas). Sin `EXECUTE` para `anon`/`authenticated`.
-- **Job**: `select * from cron.job;` → `rotar-videos-premium`, `0 3 1 * *` (03:00 UTC ≈ medianoche en Chile). Historial en `cron.job_run_details`.
-
-> ⚠️ **El toggle "Video Premium" del panel admin quedó subordinado al cron.** Un cambio manual sobre una receta de grupo 1–3 **se pierde el día 1 del mes siguiente**. Las del grupo 0 no las toca el job, así que ahí el toggle sí persiste. Para sacar una receta de la rotación, moverla a `rotacion_grupo = 0`.
-
-> El badge del tab Videos dice **"GRATIS ESTE MES"** (no solo "GRATIS") justamente porque la selección rota — avisa la temporalidad de entrada en vez de sorprender al mes siguiente. Se muestra en todas las libres, incluidas las fijas: distinguirlas exigiría exponer `rotacion_grupo` en `recetas_teaser`, y recrear esa vista por un badge no compensa el riesgo.
-
-**Desbloqueo del VIDEO con rewarded** (arquitectura completa):
-
-1. **RLS `recetas`** (migración `024`) — todas las recetas activas visibles para `authenticated` (sin gate por `es_premium` en la fila). El contenido de receta es free.
-2. **Vista `recetas_teaser`** (`security_invoker = false` **INTENCIONAL**) — fuente de lectura user-facing del catálogo Y el detalle. Devuelve TODO el contenido de receta libre, pero **gatea SOLO `video_url`** con `CASE`: se muestra si `es_premium = false` OR premium activo OR desbloqueo vigente. El linter marca ERROR `security_definer_view` → **esperado y seguro**: grant solo a `authenticated`, el `auth.uid()` per-request gatea el video. NO cambiar a `security_invoker`.
-3. **Tabla `desbloqueos_temporales`** (migración `023`) — un desbloqueo por (user, receta) con `expires_at`; desbloquea el VIDEO 24h. El usuario solo LEE los suyos (RLS); escribe solo la Edge Function con `service_role`.
-4. **Edge Function `canjear-desbloqueo`** — la única que escribe desbloqueos, tras verificar el usuario por JWT.
-5. **Cliente**: `store/useRecetasStore.ts` y `app/receta/[id].tsx` leen de `recetas_teaser` (NO de `recetas`). `store/useDesbloqueosStore.ts` cachea desbloqueos y llama la edge function. `RecetaCard` muestra un badge "VIDEO" (sin candado — la receta es free); el detalle muestra la receta completa siempre, y solo la sección de video muestra `UnlockCTA` (ver anuncio 24h / hazte premium) cuando `es_premium && videoBloqueado`. Refetch tras ganar el rewarded.
-
-> ⚠️ **Gotcha crítico**: el cliente YA lee de `recetas_teaser`. Si las migraciones `023`+`024` NO están aplicadas, el catálogo se rompe (la vista no existe). La vista es requisito para que la app cargue recetas.
-
-> ⚠️ **`video_url` en la tabla base `recetas` es legible por `authenticated` vía query directa** (RLS es row-level, no column-level). El gateo del video es solo para el flujo normal de la app (vía la vista). Aceptable: los videos son de YouTube **no listado** (ya son "seguridad por oscuridad"); un user técnico que saca la URL igual podría verla. El gate es para la UX, no DRM real.
-
-**Server-Side Verification (SSV) — cerrado el 2026-08-05.** Antes `canjear-desbloqueo` le creía al cliente cuando decía "vi el anuncio". Ahora la única prueba válida es el callback FIRMADO que Google manda servidor a servidor.
-
-**Modelo de CRÉDITOS, y el porqué es así:** `serverSideVerificationOptions` solo se puede pasar al **crear** el anuncio, y el rewarded se precarga al abrir la app — cuando todavía no se sabe qué receta va a querer el usuario. Crearlo recién al pedirlo cerraría el problema pero le mete 3-5 s de espera al único camino de monetización. Por eso el callback **no concede una receta: concede un crédito** al usuario, y él elige después qué desbloquear. Que elija QUÉ no es un problema —ya se ganó el desbloqueo—; lo que no puede es **fabricar** el crédito.
-
-Flujo completo:
-
-1. `lib/recompensado.ts` crea el ad con `serverSideVerificationOptions: { userId }`. **Sin sesión no se crea el anuncio**: un callback sin `user_id` no se puede atribuir y el crédito se perdería.
-2. El usuario ve el ad completo → Google llama a **`ssv-recompensa`** (`verify_jwt` **OFF**, la autenticación ES la firma).
-3. Esa función verifica firma + frescura + idempotencia e inserta una fila en `ssv_transacciones_procesadas`. Esa fila **es** el crédito (migraciones `036` y `037`).
-4. El cliente llama a `canjear-desbloqueo`, que **busca y consume** un crédito libre y recién ahí concede las 24h.
-
-> ⚠️ **Falta un paso de owner: cargar la URL del callback en AdMob.** Sin eso Google nunca llama y **ningún desbloqueo funciona**. AdMob → Apps → Yummi Glu Glu → Bloques de anuncios → el rewarded → Editar → _Verificación del lado del servidor_ → `https://uoqzkbbnesmvmgbjikrn.supabase.co/functions/v1/ssv-recompensa`
-
-> ⚠️ **El canje REINTENTA (5 × 1,5 s) a propósito.** El callback de Google llega unos segundos después de que el ad termina, así que un `409 sin_credito` en el primer intento es **lo normal**, no un fallo. Si se sacan los reintentos, el usuario ve el anuncio y no recibe nada.
-
-> ⚠️ **`node:crypto` y NO Web Crypto para verificar la firma.** Google firma en formato **DER** y `crypto.subtle.verify` con ECDSA espera el formato crudo (r‖s) — habría que convertir a mano. `createVerify` entiende DER directo. Las claves son **P-256** (verificado contra `verifier-keys.json`); si fueran secp256k1 el Edge Runtime no las soportaría.
-
-> ⚠️ **El contenido firmado se toma de la query string CRUDA**, no reconstruida con `URLSearchParams`: reconstruirla cambia encoding y orden, y la firma deja de validar. Es todo lo que hay antes de `&signature=`.
-
-> ✅ **Dos defensas para el replay**: ventana de frescura de 10 min sobre `timestamp` (barata, no toca la base) + `transaction_id` como PK (cierra el caso del todo). La firma por sí sola no caduca, así que reenviar una URL capturada sería válido sin esto.
-
-### Libraries (`lib/`)
-
-```
-lib/
-  supabase.ts   # Cliente singleton con AsyncStorage — explota si faltan EXPO_PUBLIC_SUPABASE_URL/ANON_KEY
-  errores.ts    # mensajeError(error) → string user-facing en español neutro
-```
-
-`lib/errores.ts` es la fuente única para traducir errores de Supabase a mensajes user-facing. Tiene dos mapas: `MENSAJES_POR_CODE` (match exacto contra `error.code` — códigos modernos de Supabase auth como `over_email_send_rate_limit`, `weak_password`, `user_already_exists`) y `MENSAJES_POR_TEXTO` (match por substring contra `error.message` — para errores legacy o de red). Siempre loguea el error original vía `console.warn` antes de traducir, para no perder el detalle al debuggear. Cuando aparezca un error nuevo que no matchea ningún patrón, agregarlo acá — NO hacer try/catch con mensajes custom en cada store.
-
-### Typing
-
-Todos los tipos de dominio en `types/index.ts`. Los tipos de Supabase Auth (`Session`, `User`) vienen de `@supabase/supabase-js` directamente.
-
-Path alias `@/` apunta a la raíz del proyecto (configurado en `tsconfig.json`).
-
-### Constants / Domain Data
-
-```
-constants/
-  Etapas.ts    # ETAPAS[], calcularEtapaPorEdad(), getEtapaInfo()
-  Alergias.ts  # ALERGENOS[], ALERGENO_IDS, getAlergenoById()
-  Colors.ts    # Paleta de colores de la app
-  Semana.ts    # DIAS_SEMANA, MOMENTOS_DIA, getLunesDeSemana(), formatearRangoSemana(), helpers de navegación semanal
-```
-
-Las etapas alimentarias son: `inicio` (6–8m), `transicion` (9–12m), `preescolar` (13m+).
-
-### Database Schema
-
-Tablas principales (`supabase/migrations/001_initial_schema.sql`):
-
-- `perfiles_hijos` — hijos del usuario (etapa, alergias, avatar_emoji)
-- `recetas` — catálogo, con `ingredientes` y `pasos` en JSONB, e `es_premium` flag
-- `favoritos` — relación user ↔ receta ↔ perfil_hijo (UNIQUE por user+receta)
-- `conversaciones_ia` — historial de NutriBot (mensajes en JSONB)
-- `suscripciones` — plan free/premium/premium_anual, actualizada por webhook de RevenueCat (Edge Function)
-
-Índices GIN en arrays (`etapas_compatibles`, `alergenos`, `momento_dia`, `tags`) para filtros eficientes.
-
-### Migraciones — GRANTs obligatorios en tablas nuevas (Data API change)
-
-A partir del **30 de octubre de 2026** Supabase deja de exponer automáticamente al Data API (PostgREST / GraphQL / `supabase-js`) las tablas creadas en el schema `public`. Las **tablas existentes mantienen sus grants actuales** — no se rompen. El cambio aplica solo a tablas creadas en o después de esa fecha.
-
-**Regla obligatoria**: toda migración nueva que cree una tabla en `public` (ej. `videos` de Fase 7a, futuras tablas) debe incluir **GRANTs explícitos + RLS + policies** en el mismo archivo de migración. No depender del comportamiento legacy de auto-exposición.
-
-**Template mínimo a copiar en cada migración nueva:**
-
-```sql
-create table public.nombre_tabla (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now()
-);
-
--- 1. Habilitar RLS SIEMPRE antes de los grants
-alter table public.nombre_tabla enable row level security;
-
--- 2. GRANTs por rol — ajustar según necesidad
-grant select on public.nombre_tabla to anon;                              -- solo si la tabla es pública (ej. recetas)
-grant select, insert, update, delete on public.nombre_tabla to authenticated;
-grant select, insert, update, delete on public.nombre_tabla to service_role;
-
--- 3. Policies — RLS sin policies bloquea todo, ojo
-create policy "users select propios"
-  on public.nombre_tabla for select to authenticated
-  using (auth.uid() = user_id);
-```
-
-**Síntoma si falta un GRANT**: PostgREST devuelve error `42501` con el `GRANT` exacto que falta en el mensaje. Si una tabla nueva "no aparece" desde `supabase-js`, este es el primer sospechoso después del 30 oct 2026.
-
-**Patrón ya aplicado** en `002_recetas_rls_premium.sql` y `006_webhook_security_hardening.sql` — usar esos como referencia. La tabla `webhook_events_procesados` (006) es el ejemplo limpio de tabla **solo accesible por `service_role`** (sin policies para `anon`/`authenticated`).
-
-## Known Gotchas
-
-### NativeWind en Android — historial de problemas (RESUELTO)
-
-NativeWind v4.0.36 + css-interop v0.1.21 tenían 5 bugs encadenados en Windows que impedían que los estilos se aplicaran en Android. Se intentó parchar manualmente pero no fue suficiente. **La solución fue actualizar a NativeWind v4.2.3 + css-interop v0.2.3** — los patches manuales fueron eliminados.
-
-**IMPORTANTE**: Usar **dev client** (no Expo Go) para testing en dispositivo. NativeWind v4 depende de un transformer custom de Metro que puede tener problemas en Expo Go. Siempre probar con el APK del perfil `development`.
-
-### `style` como función en Pressable — NO aplica los estilos (usar View interno)
-
-Un `Pressable` con `style={({ pressed }) => ({ ... })}` **no aplica esos estilos** en este proyecto. Verificado en dispositivo el 2026-08-02: una card con `flexDirection: 'row'`, `backgroundColor`, `padding` y `borderRadius` dentro del callback salió como texto plano apilado en vertical, sin fondo y sin padding — **ni uno solo de los estilos llegó**. Sin error, sin warning: simplemente no se aplica.
-
-El sospechoso es **css-interop de NativeWind**, que envuelve los componentes de React Native (misma familia de problemas que la sección anterior).
-
-**Patrón obligatorio — separar interacción de layout:**
-
-```tsx
-// ❌ NO: el layout se pierde entero
-<Pressable style={({ pressed }) => ({ flexDirection: 'row', backgroundColor: c.verdeClaro })}>
-  <Text>...</Text>
-</Pressable>
-
-// ✅ SÍ: el touchable solo maneja el toque, el View interno lleva el layout
-<TouchableOpacity onPress={...} activeOpacity={0.7}>
-  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.verdeClaro }}>
-    <Text>...</Text>
-  </View>
-</TouchableOpacity>
-```
-
-**Este es el patrón que el resto del proyecto ya usaba**: touchable con estilos mínimos + `View` interno con el layout. Si ves ese envoltorio "de más" en el código, **no lo simplifiques** — es cicatriz, no descuido.
-
-> ✅ **Hay una regla de ESLint que lo impide (2026-08-05).** `no-restricted-syntax` en `eslint.config.js` falla ante cualquier `style` como función en JSX, con el mensaje explicando por qué. **No la desactives con un `eslint-disable`**: si el lint se queja, el estilo NO se iba a aplicar de todos modos.
->
-> Se agregó porque el bug **reapareció tres veces**, siempre detectado a ojo mirando capturas de usuarios. Un bug que no falla en ningún lado vuelve para siempre; la única defensa real es que rompa el lint.
-
-> 🔎 **Cómo reconocerlo a ojo, si algún día se cuela igual:** un layout que sale **en COLUMNA cuando pediste `row`**. Es la firma del bug — el `flexDirection` se descartó y quedó el default. Así se encontró el de los botones "Volver": la flecha arriba y el texto abajo.
-
-**Barrido completo del 2026-08-05** — se convirtieron los 14 casos que quedaban. Lo que estaba perdiendo cada uno:
-
-| Dónde                     | Qué se perdía                                                                                                   |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| 5 botones "Volver"        | `paddingHorizontal`, `flexDirection`, `gap`                                                                     |
-| `(tabs)/index.tsx` ⚙️     | El círculo de 40×40 y el centrado del ícono                                                                     |
-| `(tabs)/index.tsx` Agenda | El `paddingHorizontal: 24` (fila pegada al borde)                                                               |
-| `RecetaCard`              | El `marginBottom: 28` (cards pegadas entre sí)                                                                  |
-| `UpsellPremium` CTA       | **Fondo naranja, padding, borde redondeado y la fila** ← el peor: el botón de premium se veía como texto suelto |
-| `agenda.tsx` (7 casos)    | Paddings de los chevrons, `marginTop` y filas de los links                                                      |
-
-### `newArchEnabled` en app.json
-
-**DEBE estar en `true`**. `react-native-reanimated` v4.x lo requiere obligatoriamente para Android — si está en `false`, el build de Gradle falla con `assertNewArchitectureEnabledTask`. Estuvo temporalmente en `false` durante diagnóstico de NativeWind pero ya se reactivó.
-
-### `edgeToEdgeEnabled` en app.json
-
-`android.edgeToEdgeEnabled` está en `true`. En Expo SDK 54 puede requerir `expo-edge-to-edge` como dependencia. Si el build de Android falla en Gradle sin error claro, este es un sospechoso — probar con `false` o instalar el paquete.
-
-### Supabase Auth — flujo completo de deep links (LEER si tocás auth)
-
-El flujo de confirmación de email / magic link / reset password en mobile tiene **3 piezas** que TIENEN que estar bien o el usuario termina en `localhost:3000` (o el deep link no se procesa):
-
-**1) Código (`store/useAuthStore.ts`) — ya OK**
-Los métodos `signUp`, `signInWithOtp` y `resetPasswordForEmail` pasan `emailRedirectTo: Linking.createURL('/', { scheme: 'yummigluglu' })`. En web usa `window.location.origin`.
-
-**2) Supabase Dashboard → Authentication → URL Configuration — CRÍTICO**
-
-- **Site URL**: `yummigluglu://` (NO dejar el default `http://localhost:3000`).
-- **Redirect URLs (whitelist)**: agregar `yummigluglu://**` y `yummigluglu://*`.
-
-> ⚠️ Si la URL que manda el código (`emailRedirectTo`) **no matchea ninguna entry de la whitelist**, Supabase la **ignora silenciosamente** y usa el Site URL como fallback. Por eso aunque el código esté perfecto, si la whitelist no tiene `yummigluglu://**`, el email termina mandando al user a `localhost:3000` con `ERR_CONNECTION_REFUSED`.
-
-**3) Handler de deep link (`app/_layout.tsx`) — ya OK**
-En React Native, `detectSessionInUrl` del cliente Supabase **solo funciona en web**. En mobile hay que parsear manualmente el fragment de la URL (`yummigluglu://#access_token=XXX&refresh_token=YYY&type=signup`) y llamar `supabase.auth.setSession({ access_token, refresh_token })`. El handler ya está montado en `_layout.tsx` con `Linking.getInitialURL` (cold start) + `Linking.addEventListener('url', ...)` (warm).
-
-**Para debuggear**: si el usuario hace click en el link y NO queda logueado, mirar consola para `Error procesando deep link de auth:` que loguea el handler. Causas comunes: token expirado (Supabase los hace expirar en 1h), URL sin fragment (chequear que Site URL en dashboard sea el deep link y no una URL https), `verifyOtp` requerido en vez de `setSession` (algunos flujos legacy).
-
-### RevenueCat — `TRANSFER`: la suscripción es de la CUENTA DE GOOGLE, no de la cuenta de la app
-
-> 🔴 **Bug encontrado el 2026-08-24, en producción, con plata real.** Una cuenta **free**
-> (`samuel.sanchez@alumnos.ucentral.cl`) tocó **"Restaurar compras"** en el mismo teléfono donde otra
-> cuenta había comprado, y **se llevó el premium**. No fue un fallo del botón: fue el comportamiento
-> **por defecto** de RevenueCat sumado a que el webhook tiraba el aviso a la basura.
-
-**Cómo funciona de verdad.** Google Play ata la suscripción a la **cuenta de Google del teléfono**,
-no al `user_id` de Supabase. Cuando otra cuenta de la app restaura, RevenueCat aplica su
-**Restore Behavior** — que por defecto es _Transfer to new App User ID_ — y **traspasa la
-entitlement**. Después avisa con un evento **`TRANSFER`**.
-
-> 🔴 **`TRANSFER` es el ÚNICO evento de RevenueCat que llega SIN `app_user_id`.** Identifica a las
-> partes con `transferred_from[]` y `transferred_to[]`. La validación de shape del webhook exigía
-> `app_user_id`, así que **el evento moría con un `400` antes de llegar al `switch`**. El comentario
-> del `default` decía "TRANSFER se ignora" y **era falso**: nunca llegaba hasta ahí.
-
-**Por qué el daño era permanente**: `sincronizar-suscripcion` **solo sube de plan, nunca baja** (a
-propósito — ver su encabezado). Si nadie da de baja al origen, **un pago deja premium a tantas
-cuentas como restauren en ese teléfono, para siempre**.
-
-**Cómo se midió, no se supuso**: 6 `POST` con `user_agent: RevenueCat` → **400**, todos con
-`content_length: 468`. Y la fila de `suscripciones` de la cuenta free tenía un `expires_at`
-**idéntico** al de la compra real (`2026-09-24 01:16:41+00`) → RevenueCat efectivamente le había
-pasado la entitlement.
-
-**El arreglo son DOS mitades, y una no está en el repo:**
-
-1. **Código** — `revenuecat-webhook` tiene ahora la **rama 3.b**: ante un `TRANSFER`, pone
-   `plan='free', activa=false` a cada `transferred_from`. Usa `update`, no `upsert` (si la fila no
-   existe, no hay que crearla). **No** activa a `transferred_to`: el evento no garantiza traer
-   `expiration_at_ms`, y el destinatario ya se activa por `sincronizar-suscripcion`, que **verifica
-   contra RevenueCat** en vez de inventar un vencimiento.
-2. **Dashboard de RevenueCat** — _Project settings_ → _General_ → **Restore Behavior**:
-
-   | Opción                                          | Qué hace                                                                      |
-   | ----------------------------------------------- | ----------------------------------------------------------------------------- |
-   | `Transfer to new App User ID`                   | **Default. Es el que causó esto.**                                            |
-   | `Transfer if there are no active subscriptions` | ✅ **Recomendada** — bloquea el traspaso mientras la sub esté activa.         |
-   | `Keep with original App User ID`                | El que restaura recibe error. Traba al usuario legítimo que cambió de cuenta. |
-   | `Share between App User IDs`                    | Legacy. **Si te salís, no podés volver.**                                     |
-
-> 🔴 **EL ORDEN IMPORTA para devolver una entitlement mal transferida.** Primero **restaurar desde la
-> cuenta que pagó** (con el transfer todavía habilitado), y **recién ahí** cambiar el setting. Al
-> revés, la entitlement queda atrapada en la cuenta equivocada y el pagador no la puede recuperar.
-
-> ⚠️ **Deploy: `supabase functions deploy revenuecat-webhook --no-verify-jwt`.** NO usar el MCP
-> `deploy_edge_function` — no expone `verify_jwt` y puede volver a dejar la función muerta detrás del
-> gateway (ya pasó en abril).
-
-### `app/premium.tsx` — la pantalla premium NO expulsa al suscriptor
-
-> 🔴 **Bug de producto (2026-08-24).** `premium.tsx` tenía un `useEffect` que hacía `router.back()`
-> apenas `esPremium` era `true`. Y **"Restaurar compras" vive en un solo lugar de toda la app: esa
-> pantalla.** Resultado: **un usuario premium no tenía ninguna forma de llegar al botón.**
->
-> Es **el mismo patrón** que el bug del webhook: una red de seguridad escondida detrás de un guard
-> que asume que no hace falta usarla. 🎯 **Antes de esconder algo detrás de un estado, preguntate si
-> ese estado puede estar equivocado.** Acá `esPremium` sale de nuestra tabla — y nuestra tabla es
-> justamente lo que "Restaurar compras" existe para reparar.
-
-Ahora `esPremium` renderiza **`VistaPremiumActivo`**: plan, fecha de renovación, link a
-_Administrar suscripción_ en Google Play, la lista de beneficios, y **"Restaurar compras" discreto
-pero presente** al final.
-
-- ⚠️ **El botón de restaurar NO se saca.** Es la única vía de **autoservicio** cuando la suscripción
-  existe en Google Play pero la app no la refleja — exactamente lo que deja el webhook cuando falla,
-  y el webhook de este proyecto ya estuvo **muerto 4 meses** (abril → 22-08) sin que nadie lo notara.
-  La doc de RevenueCat además describe estados que **solo** se revierten restaurando.
-- ⚠️ **Sin `expires_at` se muestra "Sin fecha de vencimiento", no "se renueva el…"**: esas filas son
-  los premium de **cortesía**, que no vienen de Google Play y no renuevan nada.
-- ✅ **Efecto secundario buscado**: al terminar una compra el usuario ya no sale disparado de la
-  pantalla — ve la confirmación de que su Premium quedó activo.
-- ⚠️ El early return va **después de todos los hooks**. React exige que la cantidad y el orden de
-  hooks sea idéntico en cada render.
-
-**`RECEIPT_ALREADY_IN_USE_ERROR` (código `"7"`)** ya no cae en el mensaje genérico. Es RevenueCat
-diciendo que la suscripción pertenece a **otra cuenta de la app** — aparece cuando el _Restore
-Behavior_ no permite el traspaso. Decirle "Intenta de nuevo" es invitarlo a reintentar algo que
-nunca va a funcionar; ahora dice que inicie sesión con la cuenta correcta. Se compara contra
-`Purchases.PURCHASES_ERROR_CODE`, no contra el string suelto.
-
-### Fase 10 — Saludos de cumpleaños y cumplemés (`lib/saludos.ts`)
-
-Notificaciones **locales** derivadas de `perfiles_hijos.fecha_nacimiento`: **cumpleaños siempre**,
-**cumplemés hasta los 24 meses**, a las **9:00 locales**. Costo cero — no hay push, ni FCM, ni tokens,
-ni backend.
-
-> ✅ **VERIFICADO EN DISPOSITIVO (2026-08-24, 18:41).** Notificación recibida con la app **cerrada**,
-> con el ícono de la app, el nombre y el avatar del perfil en el título:
-> _"🎂 ¡Hola cumple 13 meses! ⭐"_. Salió la **variante 1 de las 3** del texto mensual, que es la que
-> corresponde (`13 % 3 = 1`) — la rotación determinística funciona. Validado además por una madre real.
-
-> 🔴 **NO se guardan en la tabla `recordatorios`: se DERIVAN.** Meterlos como filas crearía
-> recordatorios que el usuario nunca creó, mezclados con los suyos en la agenda, y una **segunda copia
-> de la fecha** que habría que resincronizar cada vez que el padre corrige el cumpleaños en
-> `editar-perfil`. Derivarlos es cero migración y cero desincronización posible.
-
-> 🔴 **Ventana móvil de 12 meses, no los 24 cumplemés de una.** iOS topea en **64 notificaciones
-> pendientes por app** y con varios hijos se revienta. Se reprograma desde un `useEffect` que depende
-> de `perfiles` en `app/(tabs)/_layout.tsx`: esa única dependencia cubre los cuatro casos que mueven
-> fechas — carga inicial, alta de un hijo, corrección de la fecha y borrado.
-> `reprogramarSaludos()` es **idempotente** (cancela y reprograma), así que llamarla de más es barato.
-
-**Las dos trampas de fechas, ambas probadas con casos borde:**
-
-> 🔴 **`new Date('2025-03-03')` se interpreta como UTC.** En Chile (UTC-3/-4) devuelve el **2 de marzo
-> a las 21:00** — el saludo saldría **un día antes**, que es exactamente el error que arruina un
-> cumpleaños. Por eso existe `parsearFechaLocal`, que parte el string a mano.
-
-> 🔴 **`new Date(2026, 3, 31)` se desborda a mayo.** Un bebé nacido un **31** no tendría cumplemés en
-> los meses de 30 días. `fechaRecortada` recorta al último día real del mes. Verificado: nacido el 31
-> → abril da **30**, febrero da **28**; nacido el **29-feb** → 2027 da **28-feb**, 2028 da **29-feb**.
-
-> ✅ A los 24 meses el cumplemés corta, pero ese mismo día **aparece el cumpleaños de 2 años**: no hay
-> hueco en la transición.
-
-**El permiso se pide en el ONBOARDING, paso 2, cuando la fecha ya es válida** — no al instalar.
-
-> 🔴 **En Android 13+ `POST_NOTIFICATIONS` es un permiso de runtime, y un rechazo lo bloquea casi
-> definitivamente** (después solo se activa desde Ajustes del sistema). Tenés **un solo disparo bueno**.
-> Pedirlo apenas instala es gastarlo cuando el usuario todavía no sabe qué hace la app.
->
-> Por eso hay un **pre-permiso propio**: primero la tarjeta 🎂 "¿Le mandamos un saludo?" con
-> _Sí, avísenme_ / _Ahora no_, y **solo si dice que sí** se dispara el diálogo del sistema. El momento
-> es el de máxima relevancia: el padre acaba de escribir el cumpleaños de su hijo.
-
-**Toggle en `Perfil → NOTIFICACIONES`.**
-
-> ⚠️ **No es un lujo.** Sin él, la única forma de dejar de recibir los saludos sería apagar las
-> notificaciones de la app entera desde Ajustes — llevándose puestos también los recordatorios de
-> comida de la agenda.
-
-> ⚠️ **Si lo activás sin permisos, los pide, y vuelve a `false` si los niegan.** Un switch que dice
-> "activado" y no manda nada nunca es la peor clase de bug: el usuario no tiene forma de darse cuenta.
-> Es además el único camino para quien ya tenía la app instalada y nunca pasó por el onboarding nuevo.
-
-> ⚠️ **La preferencia vive en AsyncStorage (`yummigluglu-saludos-activos`), NO en la base.** Las
-> notificaciones locales las programa el teléfono que las tiene: guardar la preferencia en el servidor
-> prometería una sincronización que el mecanismo no puede cumplir.
-
-**Marcador**: `data.tipo = 'saludo_cumple'`. `cancelarSaludos()` filtra por eso, así que **nunca toca
-las notificaciones de la agenda**. El type `NotificacionData` ya tenía `tipo` y `perfil_hijo_id` — no
-hubo que tocar `lib/notificaciones.ts`.
-
-### RevenueCat — polling post-compra
-
-Después de `comprarPremium()` o `restaurarCompras()`, el store hace polling a Supabase hasta 10 veces con intervalos de 1 segundo esperando que el webhook de RevenueCat actualice la tabla `suscripciones`. En producción el webhook tarda < 5 segundos. Si `esPremium` no cambia en 10s, la compra se completa igualmente en RC pero la UI no lo reflejará hasta el próximo `cargarSuscripcion()`.
-
-### RevenueCat — versión del SDK y la Play Billing Library
-
-**`react-native-purchases` está en `^10.6.0` porque Google exige Play Billing Library ≥ 8.0.0 desde el 2026-08-30.** Antes de esa fecha, cualquier actualización de la app con una versión anterior **se rechaza**.
-
-**La Billing Library no se declara en el proyecto: viene DENTRO de RevenueCat.** La cadena real (verificada contra los POM de Maven Central, no de memoria):
-
-```
-react-native-purchases 10.6.0
-  └─ purchases-hybrid-common 18.28.0
-      └─ purchases (Android) 10.16.0
-          └─ com.android.billingclient:billing 8.3.0   ✅
-```
-
-Antes estaba en `^8.9.0` → `billing 7.1.1` ❌. Para verificar la versión efectiva después de cualquier bump:
-
-```bash
-hc=$(grep -oE "purchases-hybrid-common:[0-9.]+" node_modules/react-native-purchases/android/build.gradle | head -1 | cut -d: -f2)
-pv=$(curl -s "https://repo1.maven.org/maven2/com/revenuecat/purchases/purchases-hybrid-common/$hc/purchases-hybrid-common-$hc.pom" | grep -A2 "<artifactId>purchases</artifactId>" | grep "<version>" | head -1 | sed -E 's/.*<version>(.*)<\/version>.*/\1/')
-curl -s "https://repo1.maven.org/maven2/com/revenuecat/purchases/purchases/$pv/purchases-$pv.pom" | grep -A3 "com.android.billingclient" | grep "<version>"
-```
-
-> ⚠️ **Es un módulo NATIVO: subirlo obliga a rebuild del dev client y del binario de producción.** Y el flujo de compra hay que reprobarlo entero — es el SDK que maneja el dinero.
-
-> ✅ **Kotlin: acá estamos del lado seguro, al revés que AdMob.** `purchases` pide `kotlin-stdlib 2.0.21` (mínimo Kotlin 1.8.0+) y el proyecto usa **2.1.20**. Kotlin es compatible **hacia atrás**: un compilador nuevo lee metadata vieja sin problema. El caso de `react-native-google-mobile-ads` 16.x es el inverso —librería compilada con 2.3.0 sobre un proyecto en 2.1.20— y por eso **ese sí rompe**. Antes de asustarse por un choque de Kotlin, mirar **en qué dirección va**.
-
-> ✅ **`minSdk`**: la 10.0.0 lo sube de 21 a **23** (Android 6). Expo SDK 54 ya exige **Android 7 (API 24)**, así que no afecta.
-
-> ✅ **La advertencia en rojo del changelog NO aplica a esta app.** Habla de _productos de compra única_ mal configurados como consumibles, que dejan de poder restaurarse. Yummi Glu Glu vende **suscripciones**, no compras únicas.
-
-> ⚠️ **Lo que sí cambia Billing 8**: se elimina la posibilidad de consultar **suscripciones expiradas** y compras únicas ya consumidas. Para esta app significa que RevenueCat no puede reportar histórico de suscripciones vencidas que no tenga ya importado. Sin impacto en el modelo actual (el estado premium sale de la tabla `suscripciones`, que llena el webhook).
-
-**Superficie usada del SDK: 6 métodos, todos en `store/useSuscripcionStore.ts`** — `configure`, `logIn`, `logOut`, `getOfferings`, `purchasePackage`, `restorePurchases`. Ninguno cambió de firma entre la v8 y la v10. Esa superficie chica es lo que hace barato el salto de dos versiones mayores; si crece, el próximo bump deja de ser trivial.
-
-### Versionado del build — `appVersionSource` + `autoIncrement` (LEER ANTES DE BUILDEAR)
-
-`eas.json` usa `"appVersionSource": "remote"` en `cli`: el `versionCode` de Android lo lleva **EAS en el servidor**, no `app.json`.
-
-⚠️ **`"remote"` significa "leé el número del servidor", NO "subilo".** Para que EAS lo incremente hace falta además `"autoIncrement": true` **en el perfil de build**. Sin eso, EAS reusa el mismo `versionCode` en cada build y **Google Play rechaza el AAB**:
-
-> _"Ya se usó el código de la versión 1. Prueba con otro código."_
-
-Pasó el 2026-08-19: se buildeó producción sin `autoIncrement`, salió con `versionCode 1` (el mismo de la prueba cerrada) y Play lo rechazó al subirlo. **Un build entero perdido**, porque el `versionCode` va firmado dentro del AAB y no se puede editar después: hay que rebuildear sí o sí.
-
-Ya está corregido — el perfil `production` lleva `"autoIncrement": true`.
-
-```bash
-npx eas-cli build:version:get -p android   # ver el versionCode remoto actual
-npx eas-cli build:version:set -p android   # fijarlo a mano si se desincroniza
-```
-
-Play exige que cada AAB tenga un `versionCode` **estrictamente mayor** que todos los ya subidos, en cualquier pista.
-
-### UI de auth — patrón canónico de formularios
-
-**Patrón unificado (ya aplicado en login y register)**: `KeyboardAvoidingView` (behavior `padding` en ambas plataformas, `keyboardVerticalOffset={24}` en Android) → `ScrollView` con `ref`, `keyboardShouldPersistTaps="handled"` y `contentContainerClassName="flex-grow justify-center px-6 py-10"` → contenido. Cada `TextInput` dispara `setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100)` en su `onFocus`.
-
-- **Por qué `setTimeout(..., 100)`**: el teclado se abre asíncrono — sin el delay el `scrollToEnd` corre antes de que el layout se ajuste y queda corto.
-- **Por qué `behavior: 'padding'` en Android** (no el default `'height'`): con `'height'` el `ScrollView` se recortaba y el header quedaba cortado arriba en pantallas chicas tipo Galaxy S20 (ver captura `s20-login.png` en la raíz).
-- **Por qué `keyboardShouldPersistTaps="handled"`**: para que tocar fuera de un input cierre el teclado pero los `TouchableOpacity` (toggle 🙈/👁️, botones de modo) sigan respondiendo al primer tap.
-- **Replicar este patrón** en cualquier form nuevo con 2+ inputs (`editar-cuenta.tsx`, `editar-perfil/[id].tsx`, etc.).
-
-### Teclado + `edgeToEdgeEnabled` en Android — se usa `react-native-keyboard-controller`
-
-> 🔴 **El `KeyboardAvoidingView` que se importa NO es el de `react-native`, es el de `react-native-keyboard-controller`.** Si escribís `import { KeyboardAvoidingView } from 'react-native'` volvés a introducir el bug. Las 7 pantallas con teclado ya usan el correcto.
->
-> **`KeyboardProvider` envuelve toda la app en `app/_layout.tsx`.** Sin ese provider el componente no recibe eventos y **no hace nada** — sin error, la pantalla simplemente no reacciona al teclado. Si aparece un `KeyboardAvoidingView` que "no funciona", este es el primer sospechoso.
-
-**Por qué se cambió (2026-08-04).** El `KeyboardAvoidingView` de `react-native` compensa a mano y queda **desfasado al cerrar el teclado**: dejaba espacio muerto abajo. Lo reportaron testers en varias pantallas (login y NutriBot entre ellas). El de keyboard-controller lee la posición real del teclado cuadro a cuadro, así que entra y sale sincronizado.
-
-Antes se había descartado esa librería porque "es un módulo nativo y obliga a otro rebuild". **Esa razón caducó** cuando el rebuild pasó a ser obligatorio por Play Billing 8. Cuando el motivo para rechazar algo es un costo que ya vas a pagar por otra razón, la decisión hay que revisarla.
-
-> ✅ **Kotlin: esta librería es segura por construcción.** Su `build.gradle` usa `rootProject.ext.kotlinVersion`, o sea que **se compila con el Kotlin del proyecto** (2.1.20) en vez de venir precompilada con uno fijo. Por eso no puede haber choque de metadata como el de `react-native-google-mobile-ads` 16.x (ese sí es un AAR de Maven con Kotlin fijo).
-
-> ✅ **No hay que tocar `babel.config.js`**: keyboard-controller usa worklets de Reanimated, y `babel-preset-expo` 54 agrega `react-native-worklets/plugin` **automáticamente** cuando detecta el paquete instalado (lo trae Reanimated 4).
-
-> ⚠️ Instalar con **`npx expo install`**, nunca `npm install` a secas: Expo resuelve la versión compatible con el SDK (eligió **1.18.5**, no la 1.22.2 que es la última de npm).
-
-**El problema de fondo que sigue vigente:** con `android.edgeToEdgeEnabled: true` + New Architecture, Expo SDK 54 llama `setDecorFitsSystemWindows(false)` y **el teclado deja de redimensionar la ventana: se dibuja ENCIMA del contenido**. `adjustResize` no actúa. Todo lo de abajo sigue aplicando.
-
-**NO asumir que `edgeToEdgeEnabled` implica `adjustResize` funcionando** — pasa exactamente lo contrario. Se probó sacar el `behavior` del `KeyboardAvoidingView` en Android (asumiendo que el sistema haría el trabajo) y **el input quedó completamente tapado por el teclado**, verificado en dispositivo. `behavior="padding"` va en AMBAS plataformas.
-
-**Cómo distinguir el síntoma antes de tocar nada:**
-
-- **Sobra** espacio sobre el teclado → el problema NO es el `KeyboardAvoidingView`. Buscá un padding duplicado (ver punto siguiente).
-- El input queda **tapado** → falta el `KeyboardAvoidingView` o está mal configurado.
-
-**El safe area inset lo paga UN SOLO elemento — el último, el que toca el borde de la pantalla.** Este fue el bug real de `app/asistente.tsx`: el input tenía `paddingBottom: Math.max(insets.bottom, 12)` Y el disclaimer que va debajo tenía otro `Math.max(insets.bottom, 8)`. Con nav bar de 3 botones (~48dp) daba ~92dp de aire muerto. Si hay algo debajo de tu componente, ese algo es el que paga el inset.
-
-**`insets.bottom` NO se pone en 0 cuando el teclado tapa la barra de navegación.** Sigue reportando ~48dp, así que el elemento del borde queda flotando sobre el teclado. Se resuelve con listeners `keyboardDidShow` / `keyboardDidHide` y aplicando el inset solo con el teclado cerrado (patrón aplicado en `app/asistente.tsx`). **Ese patrón se mantiene aunque ahora esté keyboard-controller**: es sobre el _safe area_, no sobre el desplazamiento del teclado — resuelven cosas distintas.
-
-> Esto **no contradice** el patrón de formularios de auth de más abajo: aquel usa `ScrollView` + `scrollToEnd` con `keyboardVerticalOffset={24}`. Acá, con lista de chat + input fijo al borde, el offset sobra (son 24dp de aire sin justificación).
-
-### Emojis grandes en Android — `lineHeight` > `fontSize`
-
-Algunos emojis tienen glifos que sobresalen del bounding box vertical de la fuente (ej. 🍼 tiene la tetina arriba, 🍦 el helado, 🎂 las velas). En Android, React Native recorta el `Text` al `lineHeight` calculado a partir del `fontSize` — y esos glifos quedan **cortados arriba**. iOS no tiene este bug.
-
-**Regla**: para emojis con `text-5xl` o más grandes (≥ 48px), pasar `style={{ lineHeight: <fontSize * 1.5> }}` para darle aire vertical. Ejemplo: `text-6xl` (60px) → `lineHeight: 90`. Aplicado en `app/(auth)/login.tsx` para el 🍼. Si aparecen otros emojis grandes (header de onboarding, premium, etc.) y se ven cortados, aplicar lo mismo.
-
-NO usar `includeFontPadding: false` para "compactar" — hace lo opuesto: quita el padding interno de la fuente Android y empeora el recorte.
-
-### Supabase Auth — envío de emails vía Resend (CONFIGURADO)
-
-Los emails de auth (confirmación de registro, magic link, reset password) se mandan por **Resend** como SMTP custom (Supabase Dashboard → Project Settings → Auth → SMTP Settings). Configurado el 2026-06-07.
-
-- **Dominio verificado**: `yummigluglu.com` (registrado en Cloudflare, DNS gestionado ahí). Verificado en Resend con DKIM + SPF (Resend agregó los registros vía la integración automática de Cloudflare). Sender: `noreply@yummigluglu.com`, nombre "Yummi Glu Glu".
-- **Credenciales SMTP en Supabase**: host `smtp.resend.com`, port `465`, user `resend`, password = API key de Resend (encriptada en Supabase).
-
-**Gotcha que costó semanas de confusión (LEER):** antes de verificar el dominio, Resend estaba en **modo sandbox** y solo dejaba enviar a la dirección dueña de la cuenta. Cualquier OTRO destinatario fallaba con el error 550 de Resend (`You can only send testing emails to your own email address... verify a domain at resend.com/domains`). El síntoma en la app era genérico ("No pudimos enviarte el correo de confirmación", mapeado en `lib/errores.ts`) — **el motivo real solo aparece en los Auth Logs** (vía MCP de Supabase: `get_logs` service `auth`, o Dashboard → Logs → Auth). Moraleja: **ante un fallo de email, mirar SIEMPRE los Auth Logs antes de teorizar** (la hipótesis del "rate limit del pool default de Supabase" era falsa).
-
-**Producción / rate limits**: Resend free da 3.000 emails/mes y 100/día — suficiente para dev y producción temprana. Si el dominio se despublica o caen los registros DNS, los emails vuelven a fallar — primer sospechoso si "de golpe" dejan de llegar.
-
-### Google Sign In (nativo)
-
-Login con Google vía `@react-native-google-signin/google-signin` (v16+) + `supabase.auth.signInWithIdToken`. Implementado 2026-06-07. **Requiere dev client** (módulo nativo — no anda en Expo Go).
-
-**Flujo**: `GoogleSignin.hasPlayServices()` → `GoogleSignin.signIn()` → si `isSuccessResponse`, se toma el `idToken` → `supabase.auth.signInWithIdToken({ provider: 'google', token })`. La cancelación del selector se trata en silencio (no es error). Todo en `useAuthStore.ts` → acción `iniciarSesionConGoogle`. Botón "Continuar con Google" en `login.tsx` y `register.tsx` (icono AntDesign `google`).
-
-**Config externa (no reconstruir a ciegas):**
-
-- **Google Cloud Console** — proyecto `Yummi Glu Glu` (id `yummi-glu-glu`), consent screen **External**, **estado "En producción"** (verificado en pantalla el 2026-08-22 en Google Auth Platform → _Público_). Cualquier usuario de Play puede entrar con Google; **ya no hace falta cargar test users**. Este archivo decía "modo Testing" y era **falso**. Dos OAuth clients:
-  - **Web Client** → su Client ID va en `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (es el que se pasa a `GoogleSignin.configure({ webClientId })` Y el que se carga en Supabase). Redirect URI autorizado: `https://uoqzkbbnesmvmgbjikrn.supabase.co/auth/v1/callback`.
-  - **Android Client** → package `com.yummigluglu.app` + **SHA-1 del keystore de EAS**. NO se usa en código, pero debe existir o Google tira `DEVELOPER_ERROR`. El SHA-1 se saca de expo.dev → proyecto → Credentials (NO por `eas credentials` interactivo). **Si rotás el keystore, hay que actualizar el SHA-1 en este client.**
-- **Supabase** → Dashboard → Authentication → Providers → Google habilitado con el Web Client ID + Secret.
-
-### Deep link scheme — DEBE ser `yummigluglu` en las 3 piezas
-
-El scheme de deep link (`app.json` → `scheme`) estuvo históricamente como `babybites` (legacy del rename Baby Bites → Yummi Glu Glu) mientras el código (`useAuthStore.ts`) generaba el redirect con `yummigluglu` → mismatch → la confirmación de email no volvía a la app (pantalla en blanco en el navegador). **Unificado en `yummigluglu` el 2026-06-07.** Las 3 piezas tienen que coincidir SIEMPRE:
-
-1. `app.json` → `"scheme": "yummigluglu"` (se hornea en el manifest nativo → cambiarlo REQUIERE rebuild).
-2. `store/useAuthStore.ts` → `Linking.createURL('/', { scheme: 'yummigluglu' })`.
-3. Supabase → Auth → URL Configuration → Site URL `yummigluglu://` + Redirect URLs `yummigluglu://**` y `yummigluglu://*`.
-
-> El **EAS slug sigue siendo `baby-bites`** a propósito (atado al `projectId`, invisible al usuario). NO cambiarlo.
+- **Solo para free**: todo formato es no-op si `esPremium`. Un premium que ve un ad es bug crítico.
+- `react-native-google-mobile-ads` **pineado a 15.7.0** — la 16.x rompe por Kotlin 2.3. No subir.
+- `lib/ads.ts` tiene fork `lib/ads.web.ts`: si cambia la API exportada, replicarla.
+- En `__DEV__` siempre IDs de prueba. Detalle: `§ Anuncios (AdMob)`.
+
+### Fase 11 — BLW / BLISS
+
+- `recetas.metodo text[]` (`papilla`/`blw`), `forma_servido`, `nota_seguridad` (obligatorios si hay
+  `blw`, constraint en la base). `perfiles_hijos.preferencia_metodo` (`papilla`|`blw`|`ambos`).
+- En el detalle, el bloque de seguridad va **antes de los ingredientes y sin acordeón**.
+- Filtro de método solo en `inicio` y `transicion`. Badge solo para trocitos.
+
+## Known Gotchas (los que muerden al tocar código)
+
+- 🔴 **`style` como función en `Pressable` NO aplica estilos** (css-interop de NativeWind). Patrón:
+  `TouchableOpacity` + `View` interno con el layout. Hay regla ESLint: **no desactivarla**.
+- **`KeyboardAvoidingView` se importa de `react-native-keyboard-controller`**, no de `react-native`
+  (`KeyboardProvider` en `_layout.tsx`). `behavior="padding"` en ambas plataformas. El safe-area inset
+  lo paga **un solo** elemento, el del borde.
+- `newArchEnabled: true` obligatorio (Reanimated 4). `edgeToEdgeEnabled: true`.
+- Emojis ≥ 48px en Android: `lineHeight ≈ fontSize * 1.5`. No usar `includeFontPadding: false`.
+- **Deep link scheme `yummigluglu`** en `app.json`, `useAuthStore.ts` y Supabase (Site URL + Redirect
+  URLs `yummigluglu://**`). En mobile la sesión del link se setea a mano en `_layout.tsx`.
+- **Fechas**: `new Date('YYYY-MM-DD')` es UTC → usar `parsearFechaLocal` (`lib/saludos.ts`).
+- **Builds**: `appVersionSource: remote` + `autoIncrement: true` en `production` (Play rechaza
+  versionCode repetido).
+- Módulos nativos nuevos → rebuild del dev client. Instalar con `npx expo install`, no `npm install`.
+- `.env.local`: una variable duplicada **gana la primera**, sin error. Reemplazar la línea, no agregar.
+- Fallo de emails → mirar primero los **Auth Logs** (SMTP vía Resend, dominio `yummigluglu.com`).
+- **Secretos**: el JSON del Service Account vive en `C:\Users\Samuel\secretos\`, **nunca** en el repo.
+  Nada de valores en `eas.json` (las env de builds viven en EAS Environment Variables).
+
+## Videos locales (para scripts)
+
+`D:\Proyectos\recetas\videos\` = 225 carpetas `N — Nombre` (guion largo `—`, **sin** ceros) con un mp4
+igual a la carpeta. `clips\` numera **con** ceros (`001`). Comparar por valor numérico, nunca por string.
+Receta BLW _n_ = carpeta `207 + n`; **la 215 está descartada y el hueco es a propósito.** Scripts en
+`scripts/` (Node puro): `auditar-videos.mjs` solo reporta; ninguno borra. Detalle:
+`§ Los videos locales` y `§ Las descripciones de YouTube`.
+
+## Environment Variables (`.env.local`)
+
+`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID`
+(`goog_…`), `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`, `EXPO_PUBLIC_ADMIN_PASSWORD_HASH`,
+`EXPO_PUBLIC_ADMOB_BANNER|INTERSTITIAL|REWARDED_ANDROID`. Sincronizar a EAS con
+`eas env:push production --force`.
 
 ## Code Conventions
 
-- `no-explicit-any` está en `error` — nunca usar `any`
-- `no-unused-vars` en `error` — prefix `_` para ignorar args
-- `no-console` en `warn` — solo `console.warn` y `console.error` permitidos
-- Estilos con **NativeWind** (Tailwind para React Native) — clases CSS en `className`
-- **Dark mode** habilitado (`darkMode: 'class'` en `tailwind.config.js`). Toggle flotante 🌙/☀️ en esquina superior derecha (componente `BotonTema`). Para pantallas con `className`, usar prefijo `dark:`. Para pantallas con inline `style`, usar el hook `useColoresTema()` de `hooks/useColoresTema.ts` que devuelve la paleta activa.
-- Colores de UI desde `constants/Colors.ts` — tiene paleta `light` y `dark`. Hook `useColoresTema()` retorna la paleta correcta según el tema activo.
-- **Español — dos registros distintos**:
-  - **Código, nombres de variables/funciones y comentarios**: español rioplatense (voseo) está OK — es el estilo del proyecto.
-  - **Textos user-facing (UI, copy, mensajes de error, placeholders, labels, notificaciones)**: español **NEUTRAL** con "tú" (Prueba, Intenta, Toca, Ve, Revisa). **NO** usar voseo/rioplatense en nada que vea el usuario final (nada de "Probá", "Revisá", "Tocá", "Andá"). Esto aplica a toda la app — auth, onboarding, recetas, errores en `lib/errores.ts`, etc. El público objetivo es LATAM hispanohablante, no solo Argentina.
+- `no-explicit-any` y `no-unused-vars` en `error` (prefijo `_` para ignorar). Solo `console.warn`/`error`.
+- Estilos con **NativeWind** (`className`); colores desde `constants/Colors.ts`.
+- **Dos registros de español**:
+  - Código y comentarios: rioplatense (voseo) OK.
+  - **Todo lo que ve el usuario: español NEUTRO con "tú"** (Prueba, Toca, Revisa). Nunca voseo en UI.
