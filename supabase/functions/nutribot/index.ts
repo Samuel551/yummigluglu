@@ -162,7 +162,7 @@ Si te preguntan algo que no tiene relación con alimentación infantil o con el 
 
 ## Sobre la aplicación
 
-Yummi Glu Glu tiene un catálogo de recetas filtrables por etapa y momento del día, favoritos, plan semanal con lista de compras, un diario de introducción de alimentos y videos de preparación. Si una consulta se resuelve mejor con una función de la aplicación, menciónala en una frase. No inventes funciones que no existen ni prometas recetas específicas por nombre: no tienes acceso al catálogo.
+Yummi Glu Glu tiene un catálogo de recetas filtrables por etapa, momento del día y método de alimentación (papillas o trocitos/BLW), favoritos, plan semanal con lista de compras, un diario de introducción de alimentos y videos de preparación. El método se elige en el perfil del niño y también con un filtro en el catálogo. Si una consulta se resuelve mejor con una función de la aplicación, menciónala en una frase. No inventes funciones que no existen ni prometas recetas específicas por nombre: no tienes acceso al catálogo.
 
 ## Incertidumbre
 
@@ -177,6 +177,7 @@ function construirContextoNino(
     etapa: string;
     alergias: string[] | null;
     objetivo_nutricional: string | null;
+    preferencia_metodo: string | null;
   } | null
 ): string {
   if (!perfil) {
@@ -206,11 +207,24 @@ function construirContextoNino(
     ? `\n- Objetivo nutricional indicado por el cuidador: ${perfil.objetivo_nutricional}.`
     : '';
 
+  // Método de alimentación. Si el cuidador eligió trocitos (BLW), las
+  // recomendaciones tienen que venir con las reglas BLISS: hierro, energía y
+  // nada que pueda atragantar. Recomendar papilla a quien hace BLW no es solo
+  // inútil — contradice a la app, que ya le está filtrando el catálogo.
+  let lineaMetodo = '';
+  if (perfil.preferencia_metodo === 'blw') {
+    lineaMetodo = `
+- MÉTODO DE ALIMENTACIÓN: trocitos (BLW / alimentación autorregulada). El bebé se autoalimenta con trozos blandos; NO uses cuchara ni sugieras purés salvo que el usuario lo pida. Aplica el protocolo BLISS en cada comida que propongas: (1) un alimento rico en hierro, (2) un alimento de buena densidad energética, (3) ningún alimento con riesgo de atragantamiento (nada de frutos secos enteros, uvas o tomates cherry sin partir, zanahoria cruda, palomitas, salchichas en rodajas, ni trozos duros o redondos). Indica SIEMPRE la forma y el tamaño del corte, y recuerda la prueba de textura: el trozo debe aplastarse entre dos dedos sin esfuerzo.`;
+  } else if (perfil.preferencia_metodo === 'papilla') {
+    lineaMetodo = `
+- MÉTODO DE ALIMENTACIÓN: papillas y purés, con cuchara. Ajusta la textura a la edad y ve espesando de forma progresiva.`;
+  }
+
   return `Contexto del niño sobre el que consulta el usuario (úsalo en cada respuesta sin volver a preguntarlo):
 - Nombre: ${perfil.nombre}
 - Edad: ${edadTexto} (${meses} meses)
 - Etapa alimentaria: ${perfil.etapa}
-${lineaAlergias}${lineaObjetivo}
+${lineaAlergias}${lineaObjetivo}${lineaMetodo}
 
 Ajusta texturas, porciones y alimentos sugeridos a esta edad exacta.`;
 }
@@ -373,7 +387,7 @@ Deno.serve(async (req) => {
   {
     let q = admin
       .from('perfiles_hijos')
-      .select('nombre, fecha_nacimiento, etapa, alergias, objetivo_nutricional')
+      .select('nombre, fecha_nacimiento, etapa, alergias, objetivo_nutricional, preferencia_metodo')
       .eq('user_id', user.id); // ← el filtro que impide leer el perfil de otro
 
     q = perfilId ? q.eq('id', perfilId) : q.order('created_at', { ascending: true });
