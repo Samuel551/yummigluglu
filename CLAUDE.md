@@ -40,8 +40,17 @@ sensible (pagos, webhooks, vista `recetas_teaser`, anuncios), leer su sección e
   desplegado. ⏸️ Esperando orden del owner.
 - **3 archivos en `videos\_revisar-duplicados\`** (de la 102/103, de la 179 y de la 208): el owner
   decidió **dejarlos así** (2026-10-04). No tocarlos.
-- **Versión 1.2.0 (Fase 11)**: el owner autorizó el build único el 2026-10-04. `app.json` ya está en
-  1.2.0. Flujo: deploy NutriBot → `eas build --profile production` → prueba interna → QA → promover al 100%.
+- **Versión 1.2.0 (Fase 11)**: ✅ NutriBot v14 desplegado, build vc 6 (`86b3609`), QA completo en prueba
+  interna. **Enviada a revisión de Producción el 2026-10-04**, sin publicación administrada (se publica sola
+  al aprobarse). Recién con "Activa" se puede promocionar en redes.
+- 🔴 **BUG del webhook (arreglar el 2026-10-05)**: si `CANCELLATION` llega junto con `EXPIRATION` o
+  después (pasa con cobros fallidos), `revenuecat-webhook/index.ts:194` vuelve a escribir `premium`,
+  con `expires_at` ya vencido. La app y `user_es_premium` miran `expires_at` (están bien), pero
+  **`recetas_teaser` NO lo mira → deja los videos premium gratis para siempre**. Se reprodujo con la
+  compra de prueba del owner (2026-10-05 01:12 UTC); su cuenta quedó así. Plan: (1) SQL que pasa la
+  cuenta del owner a free; (2) webhook: `CANCELLATION` con vencimiento pasado → free (deploy
+  **`--no-verify-jwt`** + Send test event); (3) migración: la vista también mira `expires_at`
+  (mantener `security_definer`, re-verificar que el único grant sea `authenticated | SELECT`).
 - **Deadlines de Google**: **feb 2027** memoria + DEX/R8 (hoy **no se cumple**: falta
   `expo-build-properties` con `enableMinifyInReleaseBuilds`; degrada en silencio. **Va en su propia
   versión, DESPUÉS de publicar la Fase 11** — decisión del 2026-10-04) y **abr 2027** Zero-Tap Sign-In (Restore
