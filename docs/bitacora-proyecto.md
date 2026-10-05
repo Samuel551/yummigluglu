@@ -526,6 +526,10 @@ categoría de dispositivo), **memoria de bitmaps** (que no queden retenidos en b
 > No entra en el build único de BLW: si algo se rompe en producción, tiene que quedar claro si fue R8 o
 > fue BLW.
 >
+> ⚠️ **Con R8 hay que subir el `mapping.txt` a Play** junto a cada AAB. Si no, los crashes en Android
+> vitals llegan ofuscados (`a.b.c()`) y no se pueden leer. Sin R8, Play muestra la advertencia "No hay
+> un archivo de desofuscación…": en ese caso es **informativa** (vista al subir la 1.2.0, vc 6).
+>
 > ⚠️ **R8 rompe por reflexión, y en React Native los sospechosos son los módulos nativos**: RevenueCat,
 > AdMob, Google Sign In, Reanimated, keyboard-controller. Cada uno puede necesitar reglas
 > `-keep` propias.

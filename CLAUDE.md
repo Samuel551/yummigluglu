@@ -46,6 +46,10 @@ sensible (pagos, webhooks, vista `recetas_teaser`, anuncios), leer su sección e
   `expo-build-properties` con `enableMinifyInReleaseBuilds`; degrada en silencio. **Va en su propia
   versión, DESPUÉS de publicar la Fase 11** — decisión del 2026-10-04) y **abr 2027** Zero-Tap Sign-In (Restore
   Credentials API). Ver `§ Requisitos de calidad de Play`.
+- **Idea para la 1.3.0** (no urgente): una línea debajo de los chips de método del catálogo, tipo
+  _"Abre en Trocitos según el perfil de {nombre}"_. En el QA de la 1.2.0 el owner esperaba que el
+  perfil ESCONDIERA los otros métodos; es a propósito que no lo haga (la mayoría mezcla papilla y
+  trocitos), pero conviene explicarlo en pantalla. Los perfiles nuevos ya nacen en `ambos`.
 - **Marketing**: solo se promocionan en redes videos de `rotacion_grupo = 0` (nunca se bloquean).
 
 ## Commands
